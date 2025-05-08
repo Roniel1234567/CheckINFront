@@ -205,5 +205,16 @@ export const internshipService = {
       console.error('Error al crear contacto:', error);
       throw error;
     }
+  },
+
+  // Relación Taller-Centro
+  asignarTallerCentro: async (data: { id_taller: number; id_centro: number }): Promise<any> => {
+    try {
+      const response = await api.post('/taller-centro', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al asignar taller a centro:', error);
+      throw error;
+    }
   }
 }; 

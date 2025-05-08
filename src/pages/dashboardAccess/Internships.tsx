@@ -52,6 +52,11 @@ function Internships() {
   const [calle, setCalle] = useState('');
   const [residencia, setResidencia] = useState('');
   const [alerta, setAlerta] = useState<string | null>(null);
+  const [openAsignarTaller, setOpenAsignarTaller] = useState(false);
+  const [empresaAsignar, setEmpresaAsignar] = useState('');
+  const [tallerAsignar, setTallerAsignar] = useState('');
+  const [asignarMensaje, setAsignarMensaje] = useState<string | null>(null);
+  const [asignarLoading, setAsignarLoading] = useState(false);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -328,9 +333,37 @@ function Internships() {
           <MUI.Typography variant="body1" color="text.secondary">
             Administra las pasantías y su seguimiento
           </MUI.Typography>
-        </MUI.Box>
 
-        <MUI.Box sx={{ p: { xs: 2, md: 4 } }}>
+          {/* Bloque de botones principales */}
+          <MUI.Box sx={{ display: 'flex', gap: 2, mt: 2, mb: 4 }}>
+            <MUI.Button
+              variant="contained"
+              color="primary"
+              startIcon={<Icons.Add />}
+              sx={{ borderRadius: 2, fontWeight: 'bold' }}
+              onClick={() => setOpenDialog(true)}
+            >
+              Registrar Nuevo Centro de Trabajo
+            </MUI.Button>
+            <MUI.Button
+              variant="outlined"
+              startIcon={<Icons.Group />}
+              sx={{ borderRadius: 2, fontWeight: 'bold' }}
+              // Aquí va la lógica de Ver por Taller
+            >
+              Ver por Taller
+            </MUI.Button>
+            <MUI.Button
+              variant="contained"
+              color="secondary"
+              startIcon={<Icons.Link />}
+              sx={{ borderRadius: 2, fontWeight: 'bold' }}
+              onClick={() => setOpenAsignarTaller(true)}
+            >
+              Asignar Taller
+            </MUI.Button>
+          </MUI.Box>
+
           {/* Tarjetas de estadísticas */}
           <MUI.Grid container spacing={3} sx={{ mb: 4 }}>
             {stats.map((stat, index) => (
@@ -676,20 +709,93 @@ function Internships() {
           </MUI.DialogActions>
         </MUI.Dialog>
 
-        <MUI.Button
-          variant="contained"
-          onClick={handleRegistrarCentro}
-          sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1b60' } }}
-        >
-          Registrar
-        </MUI.Button>
-
         {alerta && (
           <MUI.Alert severity={alerta.includes('Error') ? 'error' : 'success'} sx={{ mb: 2 }}>
             {alerta}
           </MUI.Alert>
         )}
         </MUI.Box>
+
+        <MUI.Dialog open={openAsignarTaller} onClose={() => {
+          setOpenAsignarTaller(false);
+          setEmpresaAsignar('');
+          setTallerAsignar('');
+          setAsignarMensaje(null);
+        }} maxWidth="xs" fullWidth>
+          <MUI.DialogTitle>Asignar Taller a Empresa</MUI.DialogTitle>
+          <MUI.DialogContent>
+            <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+              <MUI.FormControl fullWidth>
+                <MUI.InputLabel>Empresa</MUI.InputLabel>
+                <MUI.Select
+                  value={empresaAsignar}
+                  onChange={e => setEmpresaAsignar(e.target.value)}
+                  label="Empresa"
+                >
+                  <MUI.MenuItem value="">
+                    <em>Seleccione una empresa</em>
+                  </MUI.MenuItem>
+                  {centrosTrabajo.map(centro => (
+                    <MUI.MenuItem key={centro.id_centro} value={centro.id_centro}>
+                      {centro.nombre_centro}
+                    </MUI.MenuItem>
+                  ))}
+                </MUI.Select>
+              </MUI.FormControl>
+              <MUI.FormControl fullWidth>
+                <MUI.InputLabel>Taller</MUI.InputLabel>
+                <MUI.Select
+                  value={tallerAsignar}
+                  onChange={e => setTallerAsignar(e.target.value)}
+                  label="Taller"
+                >
+                  <MUI.MenuItem value="">
+                    <em>Seleccione un taller</em>
+                  </MUI.MenuItem>
+                  {talleres.map(taller => (
+                    <MUI.MenuItem key={taller.id_taller} value={taller.id_taller}>
+                      {taller.nombre_taller} - {taller.familia_taller.nombre_fam}
+                    </MUI.MenuItem>
+                  ))}
+                </MUI.Select>
+              </MUI.FormControl>
+              {asignarMensaje && (
+                <MUI.Alert severity={asignarMensaje.includes('Error') ? 'error' : 'success'}>
+                  {asignarMensaje}
+                </MUI.Alert>
+              )}
+            </MUI.Box>
+          </MUI.DialogContent>
+          <MUI.DialogActions>
+            <MUI.Button onClick={() => setOpenAsignarTaller(false)}>
+              Cancelar
+            </MUI.Button>
+            <MUI.Button
+              variant="contained"
+              color="primary"
+              disabled={asignarLoading || !empresaAsignar || !tallerAsignar}
+              onClick={async () => {
+                setAsignarLoading(true);
+                setAsignarMensaje(null);
+                try {
+                  await internshipService.asignarTallerCentro({
+                    id_taller: Number(tallerAsignar),
+                    id_centro: Number(empresaAsignar)
+                  });
+                  setAsignarMensaje('Taller asignado correctamente a la empresa.');
+                  setEmpresaAsignar('');
+                  setTallerAsignar('');
+                } catch (err: any) {
+                  setAsignarMensaje('Error al asignar taller: ' + (err?.response?.data?.message || 'Error desconocido'));
+                } finally {
+                  setAsignarLoading(false);
+                }
+              }}
+            >
+              Asignar
+            </MUI.Button>
+          </MUI.DialogActions>
+        </MUI.Dialog>
       </MUI.Box>
   );
 }
