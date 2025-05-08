@@ -48,7 +48,7 @@ function Dashboard() {
       value: activeStudents, 
       icon: <Icons.School fontSize="large" />, 
       color: theme.palette.primary.light, 
-      path: '/Usuarios/Estudiantes',
+      path: '/estudiante',
       description: 'Total de estudiantes en Pasantías'
     },
     { 
