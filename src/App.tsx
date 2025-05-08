@@ -18,6 +18,7 @@ import Administrators from './pages/dashboardAccess/subPages/Administrators';
 import Observers from './pages/dashboardAccess/subPages/Observers';
 import Supervisors from './pages/dashboardAccess/subPages/Supervisors';
 import Tutors from './pages/dashboardAccess/subPages/Tutors';
+import PlazasCentro from './pages/dashboardAccess/PlazasCentro';
 
 function App() {
   return (
@@ -36,7 +37,7 @@ function App() {
 
   {/* Rutas anidadas dentro de Usuarios */}
   <Route path="/Usuarios" element={<Users />}/>
-      <Route path="/Usuarios/Estudiantes" element={<Students />} />
+      <Route path="/estudiante" element={<Students />} />
       <Route path="/Usuarios/Tutores" element={<Tutors />} />
       <Route path="/Usuarios/Supervisores" element={<Supervisors />} />
       <Route path="/Usuarios/Administradores" element={<Administrators />} />
@@ -45,6 +46,7 @@ function App() {
         <Route path="/Visitas" element={<Visits />} />
         <Route path="/Pasantias" element={<Internships />} />
         <Route path="/CentrosdeTrabajo" element={<Companies />} />
+        <Route path="/plazas" element={<PlazasCentro />} />
       </Routes>
     </BrowserRouter>
   </ThemeProvider>
