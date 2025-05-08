@@ -19,6 +19,7 @@ import Observers from './pages/dashboardAccess/subPages/Observers';
 import Supervisors from './pages/dashboardAccess/subPages/Supervisors';
 import Tutors from './pages/dashboardAccess/subPages/Tutors';
 import PlazasCentro from './pages/dashboardAccess/PlazasCentro';
+import Evaluaciones from './pages/dashboardAccess/Evaluaciones';
 
 function App() {
   return (
@@ -47,6 +48,7 @@ function App() {
         <Route path="/Pasantias" element={<Internships />} />
         <Route path="/CentrosdeTrabajo" element={<Companies />} />
         <Route path="/plazas" element={<PlazasCentro />} />
+        <Route path="/evaluaciones" element={<Evaluaciones />} />
       </Routes>
     </BrowserRouter>
   </ThemeProvider>
