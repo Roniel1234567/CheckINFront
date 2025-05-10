@@ -56,7 +56,7 @@ function Dashboard() {
       value: activeCompanies, 
       icon: <Icons.Business fontSize="large" />, 
       color: theme.palette.primary.light, 
-      path: '/CentrosdeTrabajo',
+      path: '/Centros-Trabajo',
       description: 'Centros colaboradores activos'
     },
     { 

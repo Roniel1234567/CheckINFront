@@ -1,37 +1,46 @@
-import { useState } from 'react';
-import { Box } from '@mui/material';
-import SideBar from '../components/SideBar';
-import DashboardAppBar from '../components/DashboardAppBar';
-import { Outlet } from 'react-router-dom';
+import { useState } from "react";
+import { Box } from "@mui/material";
+import SideBar from "../components/SideBar";
+import DashboardAppBar from "../components/DashboardAppBar";
+import { Outlet, useNavigate } from "react-router-dom";
 
 const DashboardLayout = () => {
   const [drawerOpen, setDrawerOpen] = useState(true);
+  // const navigate = useNavigate();
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <DashboardAppBar toggleDrawer={toggleDrawer} />
-      <SideBar drawerOpen={drawerOpen} toggleDrawer={toggleDrawer} />
+    <Box
+      sx={{
+        display: "flex",
+        height: "100vh",
+        overflow: "hidden",
+      }}
+    >
+      {/* <DashboardAppBar toggleDrawer={toggleDrawer} /> */}
+      {/* <SideBar drawerOpen={drawerOpen} toggleDrawer={toggleDrawer} /> */}
+
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { md: `calc(100% - ${drawerOpen ? 280 : 0}px)` },
-          ml: { md: drawerOpen ? '280px' : 0 },
-          transition: 'margin 0.2s ease-in-out',
-          mt: '64px', // Altura del AppBar
-          bgcolor: 'background.default',
-          minHeight: 'calc(100vh - 64px)'
+          height: "100vh",
+          overflow: "auto",
+          pt: "0px", // altura del AppBar
+        
+          transition: "padding-left 0.2s ease-in-out",
+          width: "100%",
         }}
       >
-        <Outlet />
+        <Box sx={{ p: 3 }}>
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   );
 };
 
-export default DashboardLayout; 
+export default DashboardLayout;

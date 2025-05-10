@@ -23,6 +23,7 @@ import Evaluaciones from './pages/dashboardAccess/Evaluaciones';
 import Talleres from './pages/dashboardAccess/subPages/Talleres';
 import DashboardLayout from './layouts/DashboardLayout';
 
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
@@ -38,17 +39,17 @@ function App() {
           <Route path="/Login" element={<Login />} />
 
           {/* Rutas del dashboard con layout */}
-          <Route path="/*" element={<DashboardLayout />}>
-            <Route path="Dashboard" element={<Dashboard />} />
-            <Route path="Usuarios" element={<Users />} />
-            <Route path="estudiante" element={<Students />} />
-            <Route path="Usuarios/Tutores" element={<Tutors />} />
-            <Route path="Usuarios/Supervisores" element={<Supervisors />} />
-            <Route path="Usuarios/Administradores" element={<Administrators />} />
-            <Route path="Usuarios/Observadores" element={<Observers />} />
-            <Route path="Visitas" element={<Visits />} />
-            <Route path="Pasantias" element={<Internships />} />
-            <Route path="CentrosdeTrabajo" element={<Companies />} />
+          <Route path="/" element={<DashboardLayout />}>
+            <Route path='/dashboard' element={<Dashboard />} /> {/* Ruta por defecto */}
+            <Route path="usuarios" element={<Users />} />
+            <Route path="estudiantes" element={<Students />} />
+            <Route path="usuarios/tutores" element={<Tutors />} />
+            <Route path="usuarios/supervisores" element={<Supervisors />} />
+            <Route path="usuarios/administradores" element={<Administrators />} />
+            <Route path="usuarios/observadores" element={<Observers />} />
+            <Route path="visitas" element={<Visits />} />
+            <Route path="pasantias" element={<Internships />} />
+            <Route path="centros-trabajo" element={<Companies />} />
             <Route path="plazas" element={<PlazasCentro />} />
             <Route path="evaluaciones" element={<Evaluaciones />} />
             <Route path="talleres" element={<Talleres />} />
