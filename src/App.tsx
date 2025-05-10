@@ -21,40 +21,42 @@ import Tutors from './pages/dashboardAccess/subPages/Tutors';
 import PlazasCentro from './pages/dashboardAccess/PlazasCentro';
 import Evaluaciones from './pages/dashboardAccess/Evaluaciones';
 import Talleres from './pages/dashboardAccess/subPages/Talleres';
+import DashboardLayout from './layouts/DashboardLayout';
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
-    <CssBaseline />
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Navigate to="/Principal" replace />} />
-        <Route path="/Principal" element={<Principal />} />
-        <Route path="/SobreNosotros" element={<AboutUs />} />
-        <Route path="/Funcionalidades" element={<Features />} />
-        <Route path="/ManualdeUsuario" element={<UserManual />} />
+      <CssBaseline />
+      <BrowserRouter>
+        <Routes>
+          {/* Rutas públicas */}
+          <Route path="/" element={<Navigate to="/Principal" replace />} />
+          <Route path="/Principal" element={<Principal />} />
+          <Route path="/SobreNosotros" element={<AboutUs />} />
+          <Route path="/Funcionalidades" element={<Features />} />
+          <Route path="/ManualdeUsuario" element={<UserManual />} />
+          <Route path="/Login" element={<Login />} />
 
-        <Route path="/Login" element={<Login />} />
-        <Route path="/Dashboard" element={<Dashboard />} />
-
-  {/* Rutas anidadas dentro de Usuarios */}
-  <Route path="/Usuarios" element={<Users />}/>
-      <Route path="/estudiante" element={<Students />} />
-      <Route path="/Usuarios/Tutores" element={<Tutors />} />
-      <Route path="/Usuarios/Supervisores" element={<Supervisors />} />
-      <Route path="/Usuarios/Administradores" element={<Administrators />} />
-      <Route path="/Usuarios/Observadores" element={<Observers />} />
-
-        <Route path="/Visitas" element={<Visits />} />
-        <Route path="/Pasantias" element={<Internships />} />
-        <Route path="/CentrosdeTrabajo" element={<Companies />} />
-        <Route path="/plazas" element={<PlazasCentro />} />
-        <Route path="/evaluaciones" element={<Evaluaciones />} />
-        <Route path="/talleres" element={<Talleres />} />
-      </Routes>
-    </BrowserRouter>
-  </ThemeProvider>
-);
+          {/* Rutas del dashboard con layout */}
+          <Route path="/*" element={<DashboardLayout />}>
+            <Route path="Dashboard" element={<Dashboard />} />
+            <Route path="Usuarios" element={<Users />} />
+            <Route path="estudiante" element={<Students />} />
+            <Route path="Usuarios/Tutores" element={<Tutors />} />
+            <Route path="Usuarios/Supervisores" element={<Supervisors />} />
+            <Route path="Usuarios/Administradores" element={<Administrators />} />
+            <Route path="Usuarios/Observadores" element={<Observers />} />
+            <Route path="Visitas" element={<Visits />} />
+            <Route path="Pasantias" element={<Internships />} />
+            <Route path="CentrosdeTrabajo" element={<Companies />} />
+            <Route path="plazas" element={<PlazasCentro />} />
+            <Route path="evaluaciones" element={<Evaluaciones />} />
+            <Route path="talleres" element={<Talleres />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </ThemeProvider>
+  );
 }
 
-export default App
+export default App;

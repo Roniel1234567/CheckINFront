@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_URL = 'http://localhost:5000/api';
+import api from '../src/services/api';
 
 // Basic interfaces
 export interface Provincia {
@@ -65,53 +63,53 @@ export interface EmpresaPorTaller {
 export const CompaniesCRUD = {
     // Centros de trabajo
     getAllCompanies: async (): Promise<CentroTrabajo[]> => {
-        const { data } = await axios.get<CentroTrabajo[]>(`${API_URL}/centros-trabajo`);
+        const { data } = await api.get<CentroTrabajo[]>('/centros-trabajo');
         return data;
     },
 
     getCompanyById: async (id: number): Promise<CentroTrabajo> => {
-        const { data } = await axios.get<CentroTrabajo>(`${API_URL}/centros-trabajo/${id}`);
+        const { data } = await api.get<CentroTrabajo>(`/centros-trabajo/${id}`);
         return data;
     },
 
     createCompany: async (company: Omit<CentroTrabajo, 'id_centro' | 'creacion_centro'>): Promise<CentroTrabajo> => {
-        const { data } = await axios.post<CentroTrabajo>(`${API_URL}/centros-trabajo`, company);
+        const { data } = await api.post<CentroTrabajo>('/centros-trabajo', company);
         return data;
     },
 
     updateCompany: async (id: number, company: Partial<CentroTrabajo>): Promise<CentroTrabajo> => {
-        const { data } = await axios.put<CentroTrabajo>(`${API_URL}/centros-trabajo/${id}`, company);
+        const { data } = await api.put<CentroTrabajo>(`/centros-trabajo/${id}`, company);
         return data;
     },
 
     deleteCompany: async (id: number): Promise<void> => {
-        await axios.delete(`${API_URL}/centros-trabajo/${id}`);
+        await api.delete(`/centros-trabajo/${id}`);
     },
 
     // Ubicaciones
     getProvincias: async (): Promise<Provincia[]> => {
-        const { data } = await axios.get<Provincia[]>(`${API_URL}/provincias`);
+        const { data } = await api.get<Provincia[]>('/provincias');
         return data;
     },
 
     getCiudadesByProvincia: async (provinciaId: number): Promise<Ciudad[]> => {
-        const { data } = await axios.get<Ciudad[]>(`${API_URL}/ciudades/provincia/${provinciaId}`);
+        const { data } = await api.get<Ciudad[]>(`/ciudades/provincia/${provinciaId}`);
         return data;
     },
 
     getSectoresByCiudad: async (ciudadId: number): Promise<Sector[]> => {
-        const { data } = await axios.get<Sector[]>(`${API_URL}/sectores/ciudad/${ciudadId}`);
+        const { data } = await api.get<Sector[]>(`/sectores/ciudad/${ciudadId}`);
         return data;
     },
 
     // Talleres
     getAllTalleres: async (): Promise<Taller[]> => {
-        const { data } = await axios.get<Taller[]>(`${API_URL}/talleres`);
+        const { data } = await api.get<Taller[]>('/talleres');
         return data;
     },
 
     getCentrosByTaller: async (tallerId: number): Promise<EmpresaPorTaller[]> => {
-        const { data } = await axios.get<EmpresaPorTaller[]>(`${API_URL}/centros-trabajo/taller/${tallerId}`);
+        const { data } = await api.get<EmpresaPorTaller[]>(`/centros-trabajo/taller/${tallerId}`);
         return data;
     }
 };

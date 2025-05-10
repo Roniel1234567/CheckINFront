@@ -1,100 +1,149 @@
-import api from '../config/api';
+import api from './api';
 
 export interface Estudiante {
-  id: string;
-  nombre: string;
-  apellido: string;
-  documento: string;
-  taller: string;
-  contacto: string;
-  estado: 'Activo' | 'Inactivo' | 'Eliminado';
-  poliza?: {
-    nombre: string;
-    numero: string;
+  tipo_documento_est: string;
+  documento_id_est: string;
+  usuario_est: {
+    id_usuario: number;
+    dato_usuario: string;
+    contrasena_usuario: string;
+    rol_usuario: number;
+    estado_usuario: string;
+    creacion_usuario: string;
   };
-  fechas?: {
-    inicio: string;
-    fin: string;
+  nombre_est: string;
+  seg_nombre_est?: string;
+  apellido_est: string;
+  seg_apellido_est?: string;
+  fecha_nac_est: string;
+  contacto_est: {
+    id_contacto: number;
+    telefono_contacto: string;
+    email_contacto: string;
+    estado_contacto: string;
+    creacion_contacto: string;
   };
+  direccion_id: {
+    id_dir: number;
+    sector_dir: any;
+    calle_dir: string;
+    num_res_dir: string;
+    estado_dir: string;
+    creacion_dir: string;
+  };
+  ciclo_escolar_est: {
+    id_ciclo: number;
+    inicio_ciclo: number;
+    fin_ciclo: number;
+    estado_ciclo: string;
+    creacion_ciclo: string;
+  };
+  creacion_est: string;
+  taller_est: {
+    id_taller: number;
+    nombre_taller: string;
+    cod_titulo_taller: string;
+    estado_taller: string;
+  };
+  horaspasrealizadas_est?: string;
+  nombre_poliza?: string;
+  numero_poliza?: string;
+  fecha_inicio_pasantia?: string;
+  fecha_fin_pasantia?: string;
 }
 
 export interface NuevoEstudiante {
-  nombre: string;
-  apellido: string;
-  documento: string;
-  taller: number;
-  contacto: string;
-  tipo_documento?: string;
-  fecha_nac?: string;
+  tipo_documento_est: string;
+  documento_id_est: string;
+  nombre_est: string;
+  apellido_est: string;
+  fecha_nac_est: string;
+  contacto_est: string;
+  taller_est: string;
+  direccion_id: string;
+  ciclo_escolar_est: string;
 }
 
 export interface PolizaData {
-  nombre: string;
-  numero: string;
+  nombre_poliza: string;
+  numero_poliza: string;
 }
 
 export interface FechasData {
-  inicio: string;
-  fin: string;
+  fecha_inicio_est: string;
+  fecha_fin_est: string;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+console.log('API_URL:', API_URL);
+
 const studentService = {
-  // Obtener todos los estudiantes
-  getAllStudents: async (): Promise<Estudiante[]> => {
+  async getAllStudents(): Promise<Estudiante[]> {
     try {
       const response = await api.get<Estudiante[]>('/estudiantes');
       return response.data;
     } catch (error) {
+      console.error('Error al obtener estudiantes:', error);
       throw error;
     }
   },
 
-  // Crear un nuevo estudiante
-  createStudent: async (studentData: NuevoEstudiante): Promise<Estudiante> => {
+  async getStudentById(id: string): Promise<Estudiante> {
     try {
-      // Aseguramos que taller sea un número y agregamos valores por defecto para los campos obligatorios
-      const dataToSend = {
-        ...studentData,
-        taller: Number(studentData.taller),
-        tipo_documento: studentData.tipo_documento || 'Cédula',
-        fecha_nac: studentData.fecha_nac || new Date().toISOString().split('T')[0],
-        direccion_id: 1, // ID válido de dirección existente
-        ciclo_escolar_est: 1, // ID válido de ciclo escolar existente
-        contacto: 1 // ID válido de contacto existente
-      };
-      const response = await api.post<Estudiante>('/estudiantes', dataToSend);
+      const response = await api.get<Estudiante>(`/estudiantes/${id}`);
       return response.data;
     } catch (error) {
+      console.error('Error al obtener estudiante:', error);
       throw error;
     }
   },
 
-  // Asignar póliza a un estudiante
-  assignPolicy: async (studentId: string, policyData: PolizaData): Promise<Estudiante> => {
+  async createStudent(estudiante: NuevoEstudiante): Promise<Estudiante> {
     try {
-      const response = await api.post<Estudiante>(`/estudiantes/${studentId}/poliza`, policyData);
+      const response = await api.post<Estudiante>('/estudiantes', estudiante);
       return response.data;
     } catch (error) {
+      console.error('Error al crear estudiante:', error);
       throw error;
     }
   },
 
-  // Asignar fechas de pasantía
-  assignInternshipDates: async (studentId: string, datesData: FechasData): Promise<Estudiante> => {
+  async updateStudent(id: string, estudiante: Partial<Estudiante>): Promise<Estudiante> {
     try {
-      const response = await api.post<Estudiante>(`/estudiantes/${studentId}/fechas`, datesData);
+      const response = await api.put<Estudiante>(`/estudiantes/${id}`, estudiante);
       return response.data;
     } catch (error) {
+      console.error('Error al actualizar estudiante:', error);
       throw error;
     }
   },
 
-  // Actualizar estado del estudiante
-  updateStudentStatus: async (studentId: string, status: 'Activo' | 'Inactivo' | 'Eliminado'): Promise<Estudiante> => {
+  async deleteStudent(id: string): Promise<void> {
     try {
-      const response = await api.patch<Estudiante>(`/estudiantes/${studentId}/estado`, { estado: status });
+      await api.delete(`/estudiantes/${id}`);
+    } catch (error) {
+      console.error('Error al eliminar estudiante:', error);
+      throw error;
+    }
+  },
+
+  async assignPolicy(id: string, polizaData: PolizaData): Promise<Estudiante> {
+    try {
+      const response = await api.put<Estudiante>(`/estudiantes/${id}/poliza`, polizaData);
       return response.data;
     } catch (error) {
+      console.error('Error al asignar póliza:', error);
+      throw error;
+    }
+  },
+
+  async assignDates(id: string, fechasData: FechasData): Promise<Estudiante> {
+    try {
+      const response = await api.put<Estudiante>(`/estudiantes/${id}/fechas`, fechasData);
+      return response.data;
+    } catch (error) {
+      console.error('Error al asignar fechas:', error);
       throw error;
     }
   }

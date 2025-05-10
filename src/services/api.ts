@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const API_URL = 'http://localhost:5000/api';
+console.log('Configurando API con URL:', API_URL);
+
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -9,9 +12,17 @@ const api = axios.create({
 
 // Interceptor para manejar errores
 api.interceptors.response.use(
-  response => response,
+  response => {
+    console.log('Respuesta exitosa:', response.config.url);
+    return response;
+  },
   error => {
-    console.error('Error en la petición:', error);
+    console.error('Error en la petición:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.message
+    });
     return Promise.reject(error);
   }
 );
