@@ -7,13 +7,14 @@ export interface FamiliaProfesional {
 }
 
 export interface Taller {
-  id_taller: number;
+  id_taller: string;
   nombre_taller: string;
-  familia_taller: string;
+  familia_taller: {
+    id_fam: string;
+    nombre_fam: string;
+  };
   cod_titulo_taller: string;
-  horaspas_taller: number;
-  estado_taller: string;
-  familia?: FamiliaProfesional;
+  estado_taller: 'Activo' | 'Inactivo';
 }
 
 export interface NuevoTaller {
@@ -31,8 +32,23 @@ export interface NuevaFamilia {
 const tallerService = {
   // Talleres
   getAllTalleres: async (): Promise<Taller[]> => {
-    const response = await api.get('/talleres');
-    return response.data;
+    try {
+      const response = await api.get<Taller[]>('/talleres');
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener talleres:', error);
+      throw new Error('No se pudieron cargar los talleres');
+    }
+  },
+
+  getTallerById: async (id: string): Promise<Taller> => {
+    try {
+      const response = await api.get<Taller>(`/talleres/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener taller:', error);
+      throw new Error('No se pudo cargar el taller');
+    }
   },
 
   createTaller: async (taller: NuevoTaller): Promise<Taller> => {

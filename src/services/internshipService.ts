@@ -1,4 +1,4 @@
-import api from '../config/api';
+import api from './api';
 
 export interface Provincia {
   id_prov: number;
