@@ -25,7 +25,7 @@ export interface Estudiante {
   };
   direccion_id: {
     id_dir: number;
-    sector_dir: any;
+    sector_dir: string;
     calle_dir: string;
     num_res_dir: string;
     estado_dir: string;
@@ -56,12 +56,20 @@ export interface NuevoEstudiante {
   tipo_documento_est: string;
   documento_id_est: string;
   nombre_est: string;
+  seg_nombre_est?: string | null;
   apellido_est: string;
+  seg_apellido_est?: string | null;
   fecha_nac_est: string;
-  contacto_est: string;
-  taller_est: string;
-  direccion_id: string;
-  ciclo_escolar_est: string;
+  usuario_est: number | null;
+  contacto_est: number | null;
+  taller_est: number | null;
+  direccion_id: number | null;
+  ciclo_escolar_est: number | null;
+  horaspasrealizadas_est?: number | null;
+  nombre_poliza?: string | null;
+  numero_poliza?: string | null;
+  fecha_inicio_pasantia?: string | null;
+  fecha_fin_pasantia?: string | null;
 }
 
 export interface PolizaData {
@@ -101,6 +109,7 @@ const studentService = {
 
   async createStudent(estudiante: NuevoEstudiante): Promise<Estudiante> {
     try {
+      console.log('OBJETO QUE SE ENVÍA:', estudiante);
       const response = await api.post<Estudiante>('/estudiantes', estudiante);
       return response.data;
     } catch (error) {

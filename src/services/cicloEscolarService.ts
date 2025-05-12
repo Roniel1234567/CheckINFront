@@ -20,7 +20,7 @@ const cicloEscolarService = {
     return res.data as CicloEscolar[];
   },
   createCicloEscolar: async (data: NuevoCicloEscolar): Promise<CicloEscolar> => {
-    const res = await api.post('/ciclo_escolar', data);
+    const res = await api.post('/ciclos', data);
     return res.data as CicloEscolar;
   },
 };

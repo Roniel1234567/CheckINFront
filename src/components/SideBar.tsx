@@ -25,7 +25,7 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
 
   const menuItems = [
     { id: 'Dashboard', text: 'Dashboard', icon: <Icons.Dashboard />, path: '/Dashboard' },
-    { id: 'estudiante', text: 'Estudiantes', icon: <Icons.School />, path: '/estudiante' },
+    { id: 'estudiante', text: 'Estudiantes', icon: <Icons.School />, path: '/estudiantes' },
     { id: 'users', text: 'Usuarios', icon: <Icons.Person />, path: '/Usuarios' },
     { id: 'talleres', text: 'Talleres', icon: <Icons.Build />, path: '/talleres' },
     { id: 'companies', text: 'Centros de Trabajo', icon: <Icons.Business />, path: '/Centros-Trabajo' },

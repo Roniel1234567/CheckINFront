@@ -21,7 +21,6 @@ import Tutors from './pages/dashboardAccess/subPages/Tutors';
 import PlazasCentro from './pages/dashboardAccess/PlazasCentro';
 import Evaluaciones from './pages/dashboardAccess/Evaluaciones';
 import Talleres from './pages/dashboardAccess/subPages/Talleres';
-import DashboardLayout from './layouts/DashboardLayout';
 
 
 function App() {
@@ -38,22 +37,20 @@ function App() {
           <Route path="/ManualdeUsuario" element={<UserManual />} />
           <Route path="/Login" element={<Login />} />
 
-          {/* Rutas del dashboard con layout */}
-          <Route path="/" element={<DashboardLayout />}>
-            <Route path='/dashboard' element={<Dashboard />} /> {/* Ruta por defecto */}
-            <Route path="usuarios" element={<Users />} />
-            <Route path="estudiantes" element={<Students />} />
-            <Route path="usuarios/tutores" element={<Tutors />} />
-            <Route path="usuarios/supervisores" element={<Supervisors />} />
-            <Route path="usuarios/administradores" element={<Administrators />} />
-            <Route path="usuarios/observadores" element={<Observers />} />
-            <Route path="visitas" element={<Visits />} />
-            <Route path="pasantias" element={<Internships />} />
-            <Route path="centros-trabajo" element={<Companies />} />
-            <Route path="plazas" element={<PlazasCentro />} />
-            <Route path="evaluaciones" element={<Evaluaciones />} />
-            <Route path="talleres" element={<Talleres />} />
-          </Route>
+          {/* Rutas del dashboard directas, sin layout */}
+          <Route path='/dashboard' element={<Dashboard />} />
+          <Route path="usuarios" element={<Users />} />
+          <Route path="estudiantes" element={<Students />} />
+          <Route path="usuarios/tutores" element={<Tutors />} />
+          <Route path="usuarios/supervisores" element={<Supervisors />} />
+          <Route path="usuarios/administradores" element={<Administrators />} />
+          <Route path="usuarios/observadores" element={<Observers />} />
+          <Route path="visitas" element={<Visits />} />
+          <Route path="pasantias" element={<Internships />} />
+          <Route path="centros-trabajo" element={<Companies />} />
+          <Route path="plazas" element={<PlazasCentro />} />
+          <Route path="evaluaciones" element={<Evaluaciones />} />
+          <Route path="talleres" element={<Talleres />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

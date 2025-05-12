@@ -89,6 +89,15 @@ export const userService = {
     } catch (error) {
       return handleApiError(error as AxiosError<ApiError>);
     }
+  },
+
+  createUser: async (userData: Partial<User> & { contrasena_usuario: string }): Promise<User> => {
+    try {
+      const { data } = await axios.post<User>(`${API_URL}/usuarios`, userData);
+      return data;
+    } catch (error) {
+      return handleApiError(error as AxiosError<ApiError>);
+    }
   }
 };
 

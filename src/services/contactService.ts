@@ -1,9 +1,11 @@
 import api from './api';
 
 export interface Contacto {
-  id_contacto: string;
+  id_contacto: number;
   telefono_contacto: string;
   email_contacto: string;
+  estado_contacto?: string;
+  creacion_contacto?: string;
 }
 
 export interface NuevoContacto {

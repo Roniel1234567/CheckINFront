@@ -23,7 +23,7 @@ export interface Sector {
 
 const direccionService = {
   getAllDirecciones: async (): Promise<Direccion[]> => {
-    const res = await api.get('/direccion');
+    const res = await api.get('/direcciones');
     return res.data as Direccion[];
   },
   getAllSectores: async (): Promise<Sector[]> => {
@@ -31,7 +31,7 @@ const direccionService = {
     return res.data as Sector[];
   },
   createDireccion: async (data: NuevaDireccion): Promise<Direccion> => {
-    const res = await api.post('/direccion', data);
+    const res = await api.post('/direcciones', data);
     return res.data as Direccion;
   },
 };
