@@ -12,6 +12,7 @@ import SideBar from '../../../components/SideBar';
 import DashboardAppBar from '../../../components/DashboardAppBar';
 import { userService } from '../../../../services/userService';
 import contactService from '../../../services/contactService';
+import axios from 'axios';
 
 const Students = () => {
   const theme = MUI.useTheme();
@@ -26,6 +27,8 @@ const Students = () => {
   const [provincias, setProvincias] = useState<Provincia[]>([]);
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
   const [sectores, setSectores] = useState<Sector[]>([]);
+  const [usuarioDisponible, setUsuarioDisponible] = useState(true);
+  const [documentoDisponible, setDocumentoDisponible] = useState(true);
 
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -255,6 +258,34 @@ const Students = () => {
     });
   };
 
+  const checkUsuario = async (usuario) => {
+    if (!usuario) return;
+    try {
+      await axios.get(`${import.meta.env.VITE_API_URL}/usuarios/buscar/${usuario}`);
+      setUsuarioDisponible(false); // Si existe, no está disponible
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        setUsuarioDisponible(true); // No existe, está disponible
+      } else {
+        setUsuarioDisponible(true); // Si hay error de red, asume disponible
+      }
+    }
+  };
+
+  const checkDocumento = async (documento) => {
+    if (!documento) return;
+    try {
+      await axios.get(`${import.meta.env.VITE_API_URL}/estudiantes/${documento}`);
+      setDocumentoDisponible(false); // Si existe, no está disponible
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        setDocumentoDisponible(true); // No existe, está disponible
+      } else {
+        setDocumentoDisponible(true); // Si hay error de red, asume disponible
+      }
+    }
+  };
+
   useEffect(() => {
     loadData();
     internshipService.getAllProvincias().then(setProvincias);
@@ -423,14 +454,15 @@ const Students = () => {
                       label="Documento"
                       name="documento"
                       value={formData.documento}
-                      onChange={handleInputChange}
+                      onChange={(e) => {
+                        handleInputChange(e);
+                        checkDocumento(e.target.value);
+                      }}
+                      onBlur={(e) => checkDocumento(e.target.value)}
                       required
+                      error={!documentoDisponible}
+                      helperText={!documentoDisponible ? "Este documento ya está en uso" : ""}
                     />
-                    {error && error.toLowerCase().includes('documento') && (
-                      <MUI.Typography variant="caption" color="error" sx={{ ml: 1 }}>
-                        Este documento ya está en uso
-                      </MUI.Typography>
-                    )}
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>
                     <MUI.TextField
@@ -689,14 +721,15 @@ const Students = () => {
                       label="Usuario"
                       name="usuario"
                       value={formData.usuario}
-                      onChange={handleInputChange}
+                      onChange={(e) => {
+                        handleInputChange(e);
+                        checkUsuario(e.target.value);
+                      }}
+                      onBlur={(e) => checkUsuario(e.target.value)}
                       required
+                      error={!usuarioDisponible}
+                      helperText={!usuarioDisponible ? "Este usuario ya existe" : ""}
                     />
-                    {error === 'El nombre de usuario ya está en uso. Por favor, elige otro.' && (
-                      <MUI.Typography variant="caption" color="error" sx={{ ml: 1 }}>
-                        Este usuario ya existe
-                      </MUI.Typography>
-                    )}
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>
                     <MUI.TextField
@@ -792,7 +825,13 @@ const Students = () => {
                 </MUI.Grid>
                 <MUI.Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                   <MUI.Button onClick={() => setOpenForm(false)}>Cancelar</MUI.Button>
-                  <MUI.Button type="submit" variant="contained">Guardar</MUI.Button>
+                  <MUI.Button
+                    type="submit"
+                    variant="contained"
+                    disabled={!usuarioDisponible || !documentoDisponible}
+                  >
+                    Guardar
+                  </MUI.Button>
                 </MUI.Box>
               </MUI.Box>
             </MUI.DialogContent>
