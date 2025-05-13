@@ -14,6 +14,7 @@ import { userService } from '../../../../services/userService';
 import contactService from '../../../services/contactService';
 import axios from 'axios';
 import personaContactoEstudianteService from '../../../services/personaContactoEstudianteService';
+import { uploadDocsEstudiante } from '../../../services/docEstudianteService';
 
 const Students = () => {
   const theme = MUI.useTheme();
@@ -30,6 +31,7 @@ const Students = () => {
   const [sectores, setSectores] = useState<Sector[]>([]);
   const [usuarioDisponible, setUsuarioDisponible] = useState(true);
   const [documentoDisponible, setDocumentoDisponible] = useState(true);
+  const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({open: false, message: '', severity: 'success'});
 
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -194,6 +196,22 @@ const Students = () => {
         correo: formData.correoPersonaContacto || undefined,
         estudiante: formData.documento, // documento_id_est
       });
+      // Espera 300ms antes de subir los documentos para evitar error de llave foránea
+      await new Promise(res => setTimeout(res, 300));
+      try {
+        await uploadDocsEstudiante(formData.documento, {
+          id_doc_file: formData.id_doc_file!,
+          cv_doc_file: formData.cv_doc_file!,
+          anexo_iv_doc_file: formData.anexo_iv_doc_file!,
+          anexo_v_doc_file: formData.anexo_v_doc_file!,
+          acta_nac_doc_file: formData.acta_nac_doc_file!,
+          ced_padres_doc_file: formData.ced_padres_doc_file!,
+          vac_covid_doc_file: formData.vac_covid_doc_file!,
+        });
+        setSnackbar({open: true, message: 'Documentos subidos correctamente', severity: 'success'});
+      } catch (err) {
+        setSnackbar({open: true, message: 'Error al subir los documentos', severity: 'error'});
+      }
       // Solo cerrar el formulario si todo fue exitoso
       setOpenForm(false);
       loadData();
@@ -929,6 +947,16 @@ const Students = () => {
               </MUI.Box>
             </MUI.DialogContent>
           </MUI.Dialog>
+          <MUI.Snackbar
+            open={snackbar.open}
+            autoHideDuration={4000}
+            onClose={() => setSnackbar({...snackbar, open: false})}
+            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          >
+            <MUI.Alert onClose={() => setSnackbar({...snackbar, open: false})} severity={snackbar.severity} sx={{ width: '100%' }}>
+              {snackbar.message}
+            </MUI.Alert>
+          </MUI.Snackbar>
         </MUI.Box>
       </MUI.Box>
     </MUI.Box>
