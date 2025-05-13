@@ -14,7 +14,10 @@ import { userService } from '../../../../services/userService';
 import contactService from '../../../services/contactService';
 import axios from 'axios';
 import personaContactoEstudianteService from '../../../services/personaContactoEstudianteService';
-import { uploadDocsEstudiante } from '../../../services/docEstudianteService';
+import { uploadDocsEstudiante, downloadDocEstudiante } from '../../../services/docEstudianteService';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import DownloadIcon from '@mui/icons-material/Download';
 
 const Students = () => {
   const theme = MUI.useTheme();
@@ -209,7 +212,7 @@ const Students = () => {
           vac_covid_doc_file: formData.vac_covid_doc_file!,
         });
         setSnackbar({open: true, message: 'Documentos subidos correctamente', severity: 'success'});
-      } catch (err) {
+      } catch {
         setSnackbar({open: true, message: 'Error al subir los documentos', severity: 'error'});
       }
       // Solo cerrar el formulario si todo fue exitoso
@@ -304,13 +307,14 @@ const Students = () => {
     });
   };
 
-  const checkUsuario = async (usuario) => {
+  const checkUsuario = async (usuario: string) => {
     if (!usuario) return;
     try {
       await axios.get(`${import.meta.env.VITE_API_URL}/usuarios/buscar/${usuario}`);
       setUsuarioDisponible(false); // Si existe, no está disponible
-    } catch (error) {
-      if (error.response && error.response.status === 404) {
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number } };
+      if (err.response && err.response.status === 404) {
         setUsuarioDisponible(true); // No existe, está disponible
       } else {
         setUsuarioDisponible(true); // Si hay error de red, asume disponible
@@ -318,13 +322,14 @@ const Students = () => {
     }
   };
 
-  const checkDocumento = async (documento) => {
+  const checkDocumento = async (documento: string) => {
     if (!documento) return;
     try {
       await axios.get(`${import.meta.env.VITE_API_URL}/estudiantes/${documento}`);
       setDocumentoDisponible(false); // Si existe, no está disponible
-    } catch (error) {
-      if (error.response && error.response.status === 404) {
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number } };
+      if (err.response && err.response.status === 404) {
         setDocumentoDisponible(true); // No existe, está disponible
       } else {
         setDocumentoDisponible(true); // Si hay error de red, asume disponible
@@ -377,6 +382,78 @@ const Students = () => {
     estudiante.documento_id_est.includes(searchTerm)
   );
 
+  // Componente para menú de documentos
+  const tiposDocs = [
+    { key: 'ced_est', label: 'Cédula' },
+    { key: 'cv_doc', label: 'CV' },
+    { key: 'anexo_iv_doc', label: 'Anexo IV' },
+    { key: 'anexo_v_doc', label: 'Anexo V' },
+    { key: 'acta_nac_doc', label: 'Acta Nacimiento' },
+    { key: 'ced_padres_doc', label: 'Cédula Padres' },
+    { key: 'vac_covid_doc', label: 'Vacuna COVID' },
+  ];
+
+  function DocumentosMenu({ documento }: { documento: string }) {
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const handleOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
+    const handleClose = () => setAnchorEl(null);
+
+    const handleDownload = async (tipo: string, label: string) => {
+      try {
+        const blobData = await downloadDocEstudiante(documento, tipo);
+        const blob = new Blob([blobData], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${label}_${documento}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch {
+        alert('No se pudo descargar el archivo');
+      }
+      handleClose();
+    };
+
+    const handleView = async (tipo: string) => {
+      try {
+        const blobData = await downloadDocEstudiante(documento, tipo);
+        const blob = new Blob([blobData], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } catch {
+        alert('No se pudo visualizar el archivo');
+      }
+      handleClose();
+    };
+
+    return (
+      <>
+        <MUI.Tooltip title="Ver documentos">
+          <MUI.IconButton onClick={handleOpen} size="small" color="secondary">
+            <AttachFileIcon />
+          </MUI.IconButton>
+        </MUI.Tooltip>
+        <MUI.Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}>
+          {tiposDocs.map(({ key, label }) => (
+            <MUI.MenuItem key={key} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 200 }}>
+              <span>{label}</span>
+              <span>
+                <MUI.IconButton size="small" onClick={() => handleView(key)}>
+                  <VisibilityIcon fontSize="small" />
+                </MUI.IconButton>
+                <MUI.IconButton size="small" onClick={() => handleDownload(key, label)}>
+                  <DownloadIcon fontSize="small" />
+                </MUI.IconButton>
+              </span>
+            </MUI.MenuItem>
+          ))}
+        </MUI.Menu>
+      </>
+    );
+  }
+
   if (error) {
     return (
       <MUI.Box sx={{ p: 2 }}>
@@ -420,6 +497,7 @@ const Students = () => {
                   <MUI.TableCell>Contacto</MUI.TableCell>
                   <MUI.TableCell>Fechas</MUI.TableCell>
                   <MUI.TableCell>Póliza</MUI.TableCell>
+                  <MUI.TableCell>Documentos</MUI.TableCell>
                   <MUI.TableCell>Acciones</MUI.TableCell>
                 </MUI.TableRow>
               </MUI.TableHead>
@@ -455,6 +533,9 @@ const Students = () => {
                       ) : (
                         <MUI.Chip icon={<AddIcon />} label="Sin póliza" size="small" color="default" />
                       )}
+                    </MUI.TableCell>
+                    <MUI.TableCell>
+                      <DocumentosMenu documento={estudiante.documento_id_est} />
                     </MUI.TableCell>
                     <MUI.TableCell>
                       <MUI.IconButton size="small" color="primary">
@@ -500,11 +581,11 @@ const Students = () => {
                       label="Documento"
                       name="documento"
                       value={formData.documento}
-                      onChange={(e) => {
-                        handleInputChange(e);
+                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+                        handleInputChange(e as React.ChangeEvent<HTMLInputElement>);
                         checkDocumento(e.target.value);
                       }}
-                      onBlur={(e) => checkDocumento(e.target.value)}
+                      onBlur={(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => checkDocumento(e.target.value)}
                       required
                       error={!documentoDisponible}
                       helperText={!documentoDisponible ? "Este documento ya está en uso" : ""}
@@ -832,11 +913,11 @@ const Students = () => {
                       label="Usuario"
                       name="usuario"
                       value={formData.usuario}
-                      onChange={(e) => {
-                        handleInputChange(e);
+                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+                        handleInputChange(e as React.ChangeEvent<HTMLInputElement>);
                         checkUsuario(e.target.value);
                       }}
-                      onBlur={(e) => checkUsuario(e.target.value)}
+                      onBlur={(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => checkUsuario(e.target.value)}
                       required
                       error={!usuarioDisponible}
                       helperText={!usuarioDisponible ? "Este usuario ya existe" : ""}
