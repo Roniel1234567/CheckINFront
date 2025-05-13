@@ -13,6 +13,7 @@ import DashboardAppBar from '../../../components/DashboardAppBar';
 import { userService } from '../../../../services/userService';
 import contactService from '../../../services/contactService';
 import axios from 'axios';
+import personaContactoEstudianteService from '../../../services/personaContactoEstudianteService';
 
 const Students = () => {
   const theme = MUI.useTheme();
@@ -68,6 +69,12 @@ const Students = () => {
     numero_poliza: '',
     fecha_inicio_pasantia: '',
     fecha_fin_pasantia: '',
+    // Persona de contacto
+    nombrePersonaContacto: '',
+    apellidoPersonaContacto: '',
+    relacionPersonaContacto: '',
+    telefonoPersonaContacto: '',
+    correoPersonaContacto: '',
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,6 +185,16 @@ const Students = () => {
       });
       console.log('OBJETO QUE SE ENVÍA:', nuevoEstudiante);
       await studentService.createStudent(nuevoEstudiante);
+      // Crear persona de contacto obligatoria
+      await personaContactoEstudianteService.createPersonaContactoEst({
+        nombre: formData.nombrePersonaContacto,
+        apellido: formData.apellidoPersonaContacto,
+        relacion: formData.relacionPersonaContacto as 'Padre' | 'Madre' | 'Tutor',
+        telefono: formData.telefonoPersonaContacto,
+        correo: formData.correoPersonaContacto || undefined,
+        estudiante: formData.documento, // documento_id_est
+      });
+      // Solo cerrar el formulario si todo fue exitoso
       setOpenForm(false);
       loadData();
       setFormData({
@@ -213,10 +230,16 @@ const Students = () => {
         numero_poliza: '',
         fecha_inicio_pasantia: '',
         fecha_fin_pasantia: '',
+        nombrePersonaContacto: '',
+        apellidoPersonaContacto: '',
+        relacionPersonaContacto: '',
+        telefonoPersonaContacto: '',
+        correoPersonaContacto: '',
       });
     } catch (error) {
       console.error('Error al crear estudiante:', error);
       setError('Error al crear el estudiante');
+      // No cierres el formulario si hay error
     }
   };
 
@@ -255,6 +278,11 @@ const Students = () => {
       numero_poliza: '',
       fecha_inicio_pasantia: '',
       fecha_fin_pasantia: '',
+      nombrePersonaContacto: '',
+      apellidoPersonaContacto: '',
+      relacionPersonaContacto: '',
+      telefonoPersonaContacto: '',
+      correoPersonaContacto: '',
     });
   };
 
@@ -710,6 +738,66 @@ const Students = () => {
                       value={formData.fecha_fin_pasantia}
                       onChange={handleInputChange}
                       InputLabelProps={{ shrink: true }}
+                    />
+                  </MUI.Grid>
+                </MUI.Grid>
+                <MUI.Grid item xs={12}>
+                  <MUI.Typography variant="h6" sx={{ mt: 4, mb: 2 }}>Persona de contacto</MUI.Typography>
+                </MUI.Grid>
+                <MUI.Grid container spacing={2}>
+                  <MUI.Grid item xs={12} sm={6}>
+                    <MUI.TextField
+                      fullWidth
+                      label="Nombre"
+                      name="nombrePersonaContacto"
+                      value={formData.nombrePersonaContacto}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12} sm={6}>
+                    <MUI.TextField
+                      fullWidth
+                      label="Apellido"
+                      name="apellidoPersonaContacto"
+                      value={formData.apellidoPersonaContacto}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12} sm={6}>
+                    <MUI.FormControl fullWidth required>
+                      <MUI.InputLabel id="relacion-label">Relación</MUI.InputLabel>
+                      <MUI.Select
+                        labelId="relacion-label"
+                        name="relacionPersonaContacto"
+                        value={formData.relacionPersonaContacto}
+                        label="Relación"
+                        onChange={handleSelectChange}
+                      >
+                        <MUI.MenuItem value="Padre">Padre</MUI.MenuItem>
+                        <MUI.MenuItem value="Madre">Madre</MUI.MenuItem>
+                        <MUI.MenuItem value="Tutor">Tutor</MUI.MenuItem>
+                      </MUI.Select>
+                    </MUI.FormControl>
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12} sm={6}>
+                    <MUI.TextField
+                      fullWidth
+                      label="Teléfono"
+                      name="telefonoPersonaContacto"
+                      value={formData.telefonoPersonaContacto}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12} sm={6}>
+                    <MUI.TextField
+                      fullWidth
+                      label="Correo (opcional)"
+                      name="correoPersonaContacto"
+                      value={formData.correoPersonaContacto}
+                      onChange={handleInputChange}
                     />
                   </MUI.Grid>
                 </MUI.Grid>
