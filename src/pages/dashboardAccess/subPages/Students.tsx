@@ -698,6 +698,7 @@ const Students = () => {
                       type="number"
                       value={formData.horaspasrealizadas}
                       onChange={handleInputChange}
+                      disabled
                     />
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>
@@ -707,6 +708,7 @@ const Students = () => {
                       name="nombre_poliza"
                       value={formData.nombre_poliza}
                       onChange={handleInputChange}
+                      disabled
                     />
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>
@@ -716,6 +718,7 @@ const Students = () => {
                       name="numero_poliza"
                       value={formData.numero_poliza}
                       onChange={handleInputChange}
+                      disabled
                     />
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>
@@ -727,6 +730,7 @@ const Students = () => {
                       value={formData.fecha_inicio_pasantia}
                       onChange={handleInputChange}
                       InputLabelProps={{ shrink: true }}
+                      disabled
                     />
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>
@@ -738,6 +742,7 @@ const Students = () => {
                       value={formData.fecha_fin_pasantia}
                       onChange={handleInputChange}
                       InputLabelProps={{ shrink: true }}
+                      disabled
                     />
                   </MUI.Grid>
                 </MUI.Grid>
