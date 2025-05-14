@@ -38,6 +38,7 @@ const Students = () => {
 
   // Estado del formulario
   const [formData, setFormData] = useState({
+    nacionalidad: 'Dominicana',
     tipoDocumento: 'Cédula',
     documento: '',
     nombre: '',
@@ -80,6 +81,7 @@ const Students = () => {
     relacionPersonaContacto: '',
     telefonoPersonaContacto: '',
     correoPersonaContacto: '',
+    nacionalidadOtra: '',
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,6 +164,7 @@ const Students = () => {
         return Number(id);
       };
       const nuevoEstudiante: NuevoEstudiante = {
+        nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : 'Dominicana',
         tipo_documento_est: formData.tipoDocumento,
         documento_id_est: formData.documento,
         nombre_est: formData.nombre,
@@ -219,6 +222,7 @@ const Students = () => {
       setOpenForm(false);
       loadData();
       setFormData({
+        nacionalidad: 'Dominicana',
         tipoDocumento: 'Cédula',
         documento: '',
         nombre: '',
@@ -256,6 +260,7 @@ const Students = () => {
         relacionPersonaContacto: '',
         telefonoPersonaContacto: '',
         correoPersonaContacto: '',
+        nacionalidadOtra: '',
       });
     } catch (error) {
       console.error('Error al crear estudiante:', error);
@@ -267,6 +272,7 @@ const Students = () => {
   // Función para autollenar el formulario con datos de ejemplo
   const handleAutofill = () => {
     setFormData({
+      nacionalidad: 'Dominicana',
       tipoDocumento: 'Cédula',
       documento: '12345678',
       nombre: 'Juan',
@@ -304,6 +310,7 @@ const Students = () => {
       relacionPersonaContacto: '',
       telefonoPersonaContacto: '',
       correoPersonaContacto: '',
+      nacionalidadOtra: '',
     });
   };
 
@@ -335,6 +342,23 @@ const Students = () => {
         setDocumentoDisponible(true); // Si hay error de red, asume disponible
       }
     }
+  };
+
+  const handleNacionalidadChange = (e: SelectChangeEvent<string>) => {
+    const value = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      nacionalidad: value,
+      tipoDocumento: value === 'Dominicana' ? 'Cédula' : 'Pasaporte',
+      nacionalidadOtra: '',
+    }));
+  };
+
+  const handleNacionalidadOtraChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      nacionalidadOtra: e.target.value
+    }));
   };
 
   useEffect(() => {
@@ -562,6 +586,34 @@ const Students = () => {
                 <MUI.Grid container spacing={2}>
                   <MUI.Grid item xs={12} sm={6}>
                     <MUI.FormControl fullWidth required>
+                      <MUI.InputLabel id="nacionalidad-label">Nacionalidad</MUI.InputLabel>
+                      <MUI.Select
+                        labelId="nacionalidad-label"
+                        name="nacionalidad"
+                        value={formData.nacionalidad}
+                        label="Nacionalidad"
+                        onChange={handleNacionalidadChange}
+                      >
+                        <MUI.MenuItem value="Dominicana">Dominicana</MUI.MenuItem>
+                        <MUI.MenuItem value="Otra">Otra</MUI.MenuItem>
+                      </MUI.Select>
+                      <MUI.FormHelperText>Si es de otro país, escriba su nacionalidad</MUI.FormHelperText>
+                    </MUI.FormControl>
+                  </MUI.Grid>
+                  {formData.nacionalidad === 'Otra' && (
+                    <MUI.Grid item xs={12} sm={6}>
+                      <MUI.TextField
+                        fullWidth
+                        label="Especifique su nacionalidad"
+                        name="nacionalidadOtra"
+                        value={formData.nacionalidadOtra || ''}
+                        onChange={handleNacionalidadOtraChange}
+                        required
+                      />
+                    </MUI.Grid>
+                  )}
+                  <MUI.Grid item xs={12} sm={6}>
+                    <MUI.FormControl fullWidth required>
                       <MUI.InputLabel id="tipo-doc-label">Tipo de Documento</MUI.InputLabel>
                       <MUI.Select
                         labelId="tipo-doc-label"
@@ -569,9 +621,13 @@ const Students = () => {
                         value={formData.tipoDocumento}
                         label="Tipo de Documento"
                         onChange={handleSelectChange}
+                        disabled
                       >
-                        <MUI.MenuItem value="Cédula">Cédula</MUI.MenuItem>
-                        <MUI.MenuItem value="Pasaporte">Pasaporte</MUI.MenuItem>
+                        {formData.nacionalidad === 'Dominicana' ? (
+                          <MUI.MenuItem value="Cédula">Cédula</MUI.MenuItem>
+                        ) : (
+                          <MUI.MenuItem value="Pasaporte">Pasaporte</MUI.MenuItem>
+                        )}
                       </MUI.Select>
                     </MUI.FormControl>
                   </MUI.Grid>
