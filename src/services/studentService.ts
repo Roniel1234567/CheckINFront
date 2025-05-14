@@ -70,6 +70,7 @@ export interface NuevoEstudiante {
   numero_poliza?: string | null;
   fecha_inicio_pasantia?: string | null;
   fecha_fin_pasantia?: string | null;
+  nacionalidad?: string | null;
 }
 
 export interface PolizaData {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import '../../../styles/index.scss';
 import * as MUI from '@mui/material';
-import { Add as AddIcon, Search as SearchIcon, Edit as EditIcon, Delete as DeleteIcon, DateRange as DateRangeIcon } from '@mui/icons-material';
+import { Add as AddIcon, Search as SearchIcon, Edit as EditIcon, Delete as DeleteIcon, DateRange as DateRangeIcon, FilterList as FilterListIcon } from '@mui/icons-material';
 import { SelectChangeEvent } from '@mui/material';
 import studentService, { Estudiante, NuevoEstudiante } from '../../../services/studentService';
 import tallerService, { Taller } from '../../../services/tallerService';
@@ -35,6 +35,9 @@ const Students = () => {
   const [usuarioDisponible, setUsuarioDisponible] = useState(true);
   const [documentoDisponible, setDocumentoDisponible] = useState(true);
   const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({open: false, message: '', severity: 'success'});
+  const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedTalleres, setSelectedTalleres] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<{start: string, end: string}>({start: '', end: ''});
 
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -400,11 +403,43 @@ const Students = () => {
     }
   };
 
-  const filteredEstudiantes = estudiantes.filter(estudiante => 
-    estudiante.nombre_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    estudiante.apellido_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    estudiante.documento_id_est.includes(searchTerm)
+  // Filtrar talleres con usuarios activos
+  const talleresActivos = talleres.filter(taller =>
+    estudiantes.some(est => String(est.taller_est?.id_taller) === String(taller.id_taller) && est.usuario_est?.estado_usuario === 'Activo')
   );
+
+  const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
+    setFilterAnchorEl(event.currentTarget);
+  };
+  const handleFilterClose = () => {
+    setFilterAnchorEl(null);
+  };
+  const handleTallerChange = (event: SelectChangeEvent<string[]>) => {
+    const value = event.target.value as string[];
+    setSelectedTalleres(typeof value === 'string' ? value.split(',') : value);
+  };
+  const handleDateChange = (type: 'start' | 'end', value: string) => {
+    setDateRange(prev => ({ ...prev, [type]: value }));
+  };
+
+  // Filtro compuesto
+  const filteredEstudiantes = estudiantes.filter(estudiante => {
+    const nombreMatch = estudiante.nombre_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      estudiante.apellido_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      estudiante.documento_id_est.includes(searchTerm);
+    const tallerMatch = selectedTalleres.length === 0 || (estudiante.taller_est && selectedTalleres.includes(String(estudiante.taller_est.id_taller)));
+    const fechaInicio = dateRange.start ? new Date(dateRange.start) : null;
+    const fechaFin = dateRange.end ? new Date(dateRange.end) : null;
+    let fechaMatch = true;
+    if (fechaInicio && fechaFin && estudiante.fecha_inicio_pasantia && estudiante.fecha_fin_pasantia) {
+      const inicio = new Date(estudiante.fecha_inicio_pasantia);
+      const fin = new Date(estudiante.fecha_fin_pasantia);
+      fechaMatch = inicio >= fechaInicio && fin <= fechaFin;
+    }
+    // Solo mostrar estudiantes con usuario activo
+    const usuarioActivo = estudiante.usuario_est?.estado_usuario === 'Activo';
+    return nombreMatch && tallerMatch && fechaMatch && usuarioActivo;
+  });
 
   // Componente para menú de documentos
   const tiposDocs = [
@@ -425,7 +460,7 @@ const Students = () => {
     const handleDownload = async (tipo: string, label: string) => {
       try {
         const blobData = await downloadDocEstudiante(documento, tipo);
-        const blob = new Blob([blobData], { type: 'application/pdf' });
+        const blob = new Blob([blobData as Blob], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -443,7 +478,7 @@ const Students = () => {
     const handleView = async (tipo: string) => {
       try {
         const blobData = await downloadDocEstudiante(documento, tipo);
-        const blob = new Blob([blobData], { type: 'application/pdf' });
+        const blob = new Blob([blobData as Blob], { type: 'application/pdf' });
         const url = window.URL.createObjectURL(blob);
         window.open(url, '_blank');
       } catch {
@@ -493,41 +528,91 @@ const Students = () => {
         <DashboardAppBar notifications={notifications} toggleDrawer={() => setDrawerOpen(!drawerOpen)} />
         <MUI.Box sx={{ p: { xs: 2, md: 4 } }}>
           <MUI.Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <MUI.TextField
-              placeholder="Buscar estudiante..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: 'gray' }} />,
-              }}
-              sx={{ width: 300 }}
-            />
+            <MUI.Paper elevation={3} sx={{ display: 'flex', alignItems: 'center', borderRadius: 3, boxShadow: 3, px: 2, py: 1, width: 400, bgcolor: '#f5f7fa' }}>
+              <MUI.TextField
+                placeholder="Buscar estudiante..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'gray' }} />,
+                  disableUnderline: true,
+                  sx: { bgcolor: 'transparent', border: 'none' }
+                }}
+                variant="standard"
+                sx={{ flex: 1, bgcolor: 'transparent', border: 'none' }}
+              />
+              <MUI.IconButton onClick={handleFilterClick} color="primary" sx={{ ml: 1 }}>
+                <FilterListIcon />
+              </MUI.IconButton>
+              <MUI.Menu anchorEl={filterAnchorEl} open={Boolean(filterAnchorEl)} onClose={handleFilterClose}>
+                <MUI.Box sx={{ px: 2, py: 1, minWidth: 250 }}>
+                  <MUI.Typography variant="subtitle2" sx={{ mb: 1 }}>Filtrar por taller</MUI.Typography>
+                  <MUI.FormControl fullWidth>
+                    <MUI.Select
+                      multiple
+                      value={selectedTalleres}
+                      onChange={handleTallerChange}
+                      renderValue={(selected) =>
+                        talleresActivos.filter(t => selected.includes(String(t.id_taller))).map(t => t.nombre_taller).join(', ')
+                      }
+                    >
+                      {talleresActivos.map((taller) => (
+                        <MUI.MenuItem key={taller.id_taller} value={String(taller.id_taller)}>
+                          <MUI.Checkbox checked={selectedTalleres.includes(String(taller.id_taller))} />
+                          <MUI.ListItemText primary={taller.nombre_taller} />
+                        </MUI.MenuItem>
+                      ))}
+                    </MUI.Select>
+                  </MUI.FormControl>
+                  <MUI.Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>Filtrar por fechas de pasantía</MUI.Typography>
+                  <MUI.TextField
+                    label="Fecha inicio"
+                    type="date"
+                    value={dateRange.start}
+                    onChange={e => handleDateChange('start', e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    sx={{ mb: 1 }}
+                  />
+                  <MUI.TextField
+                    label="Fecha fin"
+                    type="date"
+                    value={dateRange.end}
+                    onChange={e => handleDateChange('end', e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                  />
+                </MUI.Box>
+              </MUI.Menu>
+            </MUI.Paper>
             <MUI.Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => setOpenForm(true)}
+              sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#1976d2', color: '#fff', '&:hover': { bgcolor: '#115293' } }}
             >
               Nuevo Estudiante
             </MUI.Button>
           </MUI.Box>
 
-          <MUI.TableContainer>
-            <MUI.Table>
-              <MUI.TableHead>
+          <MUI.TableContainer component={MUI.Paper} elevation={3} sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#fff' }}>
+            <MUI.Table sx={{ minWidth: 900 }}>
+              <MUI.TableHead sx={{ bgcolor: '#f5f7fa' }}>
                 <MUI.TableRow>
-                  <MUI.TableCell>Documento</MUI.TableCell>
-                  <MUI.TableCell>Nombre</MUI.TableCell>
-                  <MUI.TableCell>Taller</MUI.TableCell>
-                  <MUI.TableCell>Contacto</MUI.TableCell>
-                  <MUI.TableCell>Fechas</MUI.TableCell>
-                  <MUI.TableCell>Póliza</MUI.TableCell>
-                  <MUI.TableCell>Documentos</MUI.TableCell>
-                  <MUI.TableCell>Acciones</MUI.TableCell>
+                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Documento</MUI.TableCell>
+                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Nombre</MUI.TableCell>
+                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Taller</MUI.TableCell>
+                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Contacto</MUI.TableCell>
+                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Fechas</MUI.TableCell>
+                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Póliza</MUI.TableCell>
+                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Horas acumuladas</MUI.TableCell>
+                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Documentos</MUI.TableCell>
+                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Acciones</MUI.TableCell>
                 </MUI.TableRow>
               </MUI.TableHead>
               <MUI.TableBody>
                 {filteredEstudiantes.map((estudiante) => (
-                  <MUI.TableRow key={estudiante.documento_id_est}>
+                  <MUI.TableRow key={estudiante.documento_id_est} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: '#e3f2fd' } }}>
                     <MUI.TableCell>{estudiante.documento_id_est}</MUI.TableCell>
                     <MUI.TableCell>{`${estudiante.nombre_est} ${estudiante.apellido_est}`}</MUI.TableCell>
                     <MUI.TableCell>{estudiante.taller_est?.nombre_taller || '-'}</MUI.TableCell>
@@ -557,6 +642,9 @@ const Students = () => {
                       ) : (
                         <MUI.Chip icon={<AddIcon />} label="Sin póliza" size="small" color="default" />
                       )}
+                    </MUI.TableCell>
+                    <MUI.TableCell>
+                      {estudiante.horaspasrealizadas_est ?? '-'}
                     </MUI.TableCell>
                     <MUI.TableCell>
                       <DocumentosMenu documento={estudiante.documento_id_est} />
@@ -781,7 +869,7 @@ const Students = () => {
                       >
                         {sectores.map((sec) => (
                           <MUI.MenuItem key={sec.id_sec} value={sec.id_sec}>
-                            {sec.sector || 'Sin nombre'}
+                            {sec.nombre_sec || 'Sin nombre'}
                           </MUI.MenuItem>
                         ))}
                       </MUI.Select>
