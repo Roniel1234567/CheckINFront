@@ -50,6 +50,7 @@ export interface Estudiante {
   numero_poliza?: string;
   fecha_inicio_pasantia?: string;
   fecha_fin_pasantia?: string;
+  nacionalidad?: string | null;
 }
 
 export interface NuevoEstudiante {

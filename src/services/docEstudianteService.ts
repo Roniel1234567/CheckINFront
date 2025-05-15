@@ -31,4 +31,14 @@ export const downloadDocEstudiante = async (documento: string, tipo: string) => 
     responseType: 'blob'
   });
   return response.data; // Blob
+};
+
+export const getDocsEstudiante = async (documento: string) => {
+  const response = await axios.get(`${import.meta.env.VITE_API_URL}/docs-estudiante/${documento}`);
+  return response.data;
+};
+
+export const getDocsEstudianteByDocumento = async (documento: string) => {
+  const response = await axios.get(`${import.meta.env.VITE_API_URL}/docs-estudiante/estudiante/${documento}`);
+  return response.data;
 }; 

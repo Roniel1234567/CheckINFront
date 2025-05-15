@@ -14,10 +14,44 @@ import { userService } from '../../../../services/userService';
 import contactService from '../../../services/contactService';
 import axios from 'axios';
 import personaContactoEstudianteService from '../../../services/personaContactoEstudianteService';
-import { uploadDocsEstudiante, downloadDocEstudiante } from '../../../services/docEstudianteService';
+import { uploadDocsEstudiante, downloadDocEstudiante, getDocsEstudianteByDocumento } from '../../../services/docEstudianteService';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DownloadIcon from '@mui/icons-material/Download';
+
+// Define el tipo para la dirección completa
+interface DireccionCompleta {
+  id_dir: number;
+  sector_dir: {
+    id_sec: number;
+    sector: string;
+    ciudad_sec: number;
+    ciudad: {
+      id_ciu: number;
+      ciudad: string;
+      provincia_ciu: number;
+      provincia: {
+        id_prov: number;
+        provincia: string;
+      };
+    };
+  };
+  calle_dir: string;
+  num_res_dir: string;
+}
+
+// Define el tipo para los documentos del estudiante
+interface DocsEstudiante {
+  id_doc_file?: string;
+  cv_doc_file?: string;
+  anexo_iv_doc_file?: string;
+  anexo_v_doc_file?: string;
+  acta_nac_doc_file?: string;
+  ced_padres_doc_file?: string;
+  vac_covid_doc_file?: string;
+  ced_est?: string;
+  cv_doc?: string;
+}
 
 const Students = () => {
   const theme = MUI.useTheme();
@@ -38,6 +72,12 @@ const Students = () => {
   const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedTalleres, setSelectedTalleres] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{start: string, end: string}>({start: '', end: ''});
+  const [editMode, setEditMode] = useState(false);
+  const [editingEstudiante, setEditingEstudiante] = useState<Estudiante | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [estudianteToDelete, setEstudianteToDelete] = useState<Estudiante | null>(null);
+  const [docsEstudiante, setDocsEstudiante] = useState<DocsEstudiante | null>(null);
+  const [pendingLocation, setPendingLocation] = useState<{provincia?: string, ciudad?: string, sector?: string} | null>(null);
 
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -122,6 +162,31 @@ const Students = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (editMode && editingEstudiante) {
+        // Modo edición
+        await studentService.updateStudent(editingEstudiante.documento_id_est, {
+          tipo_documento_est: formData.tipoDocumento,
+          documento_id_est: formData.documento,
+          nombre_est: formData.nombre,
+          seg_nombre_est: formData.segNombre !== '' ? formData.segNombre : undefined,
+          apellido_est: formData.apellido,
+          seg_apellido_est: formData.segApellido !== '' ? formData.segApellido : undefined,
+          fecha_nac_est: formData.fechaNacimiento,
+          taller_est: formData.taller !== '' ? { id_taller: Number(formData.taller), nombre_taller: '', cod_titulo_taller: '', estado_taller: '' } : undefined,
+          horaspasrealizadas_est: formData.horaspasrealizadas !== '' ? String(formData.horaspasrealizadas) : undefined,
+          nombre_poliza: formData.nombre_poliza !== '' ? formData.nombre_poliza : undefined,
+          numero_poliza: formData.numero_poliza !== '' ? formData.numero_poliza : undefined,
+          fecha_inicio_pasantia: formData.fecha_inicio_pasantia !== '' ? formData.fecha_inicio_pasantia : undefined,
+          fecha_fin_pasantia: formData.fecha_fin_pasantia !== '' ? formData.fecha_fin_pasantia : undefined,
+          nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : 'Dominicana',
+        });
+        setSnackbar({ open: true, message: 'Estudiante actualizado correctamente', severity: 'success' });
+        setOpenForm(false);
+        setEditMode(false);
+        setEditingEstudiante(null);
+        loadData();
+        return;
+      }
       // 1. Crear usuario
       let nuevoUsuario;
       let usuarioCreado;
@@ -380,11 +445,10 @@ const Students = () => {
 
   useEffect(() => {
     if (formData.ciudad) {
-      internshipService.getSectoresByCiudad(Number(formData.ciudad)).then(setSectores);
+      internshipService.getSectoresByCiudad(Number(formData.ciudad)).then((sectores) => setSectores(sectores as unknown as Sector[]));
     } else {
       setSectores([]);
     }
-    setFormData(prev => ({ ...prev, sector: '' }));
   }, [formData.ciudad]);
 
   const loadData = async () => {
@@ -513,6 +577,287 @@ const Students = () => {
     );
   }
 
+  const handleEditClick = async (estudiante: Estudiante) => {
+    setEditMode(true);
+    setEditingEstudiante(estudiante);
+    setOpenForm(true);
+
+    // Obtener dirección completa
+    let direccionCompleta: DireccionCompleta | null = null;
+    try {
+      direccionCompleta = await direccionService.getDireccionByEstudianteDocumento(estudiante.documento_id_est) as DireccionCompleta;
+    } catch {
+      direccionCompleta = null;
+    }
+
+    // Extraer IDs
+    let provinciaId = '';
+    let ciudadId = '';
+    let sectorId = '';
+    if (direccionCompleta && direccionCompleta.sector_dir) {
+      sectorId = String(direccionCompleta.sector_dir.id_sec);
+      ciudadId = String(direccionCompleta.sector_dir.ciudad_sec);
+      provinciaId = String(direccionCompleta.sector_dir.ciudad.provincia_ciu);
+    }
+
+    // Obtener datos de contacto y documentos
+    let personaContacto = null;
+    let docs: DocsEstudiante | null = null;
+    try {
+      personaContacto = await personaContactoEstudianteService.getPersonaContactoByDocumento(estudiante.documento_id_est);
+    } catch {
+      personaContacto = null;
+    }
+    try {
+      const docsResp = await getDocsEstudianteByDocumento(estudiante.documento_id_est);
+      docs = docsResp && Array.isArray(docsResp) && docsResp.length > 0 ? docsResp[0] : docsResp;
+      setDocsEstudiante(docs);
+    } catch {
+      setDocsEstudiante(null);
+    }
+
+    if (provinciaId && ciudadId && sectorId) {
+      const ciudadesProv = await internshipService.getCiudadesByProvincia(Number(provinciaId));
+      setCiudades(ciudadesProv);
+      const sectoresCiudad = await internshipService.getSectoresByCiudad(Number(ciudadId));
+      setSectores(sectoresCiudad as unknown as Sector[]);
+      setPendingLocation({
+        provincia: String(provinciaId),
+        ciudad: String(ciudadId),
+        sector: String(sectorId)
+      });
+      setFormData(prev => ({
+        ...prev,
+        provincia: String(provinciaId),
+        calle: direccionCompleta ? direccionCompleta.calle_dir : '',
+        numero: direccionCompleta ? direccionCompleta.num_res_dir : '',
+        nacionalidad: estudiante.nacionalidad === 'Dominicana' ? 'Dominicana' : 'Otra',
+        nacionalidadOtra: estudiante.nacionalidad && estudiante.nacionalidad !== 'Dominicana' ? estudiante.nacionalidad : '',
+        tipoDocumento: estudiante.tipo_documento_est,
+        documento: estudiante.documento_id_est,
+        nombre: estudiante.nombre_est,
+        segNombre: estudiante.seg_nombre_est || '',
+        apellido: estudiante.apellido_est,
+        segApellido: estudiante.seg_apellido_est || '',
+        fechaNacimiento: estudiante.fecha_nac_est,
+        telefono: estudiante.contacto_est?.telefono_contacto || '',
+        email: estudiante.contacto_est?.email_contacto || '',
+        taller: estudiante.taller_est ? String(estudiante.taller_est.id_taller) : '',
+        inicioCiclo: estudiante.ciclo_escolar_est?.inicio_ciclo ? String(estudiante.ciclo_escolar_est.inicio_ciclo) : '',
+        finCiclo: estudiante.ciclo_escolar_est?.fin_ciclo ? String(estudiante.ciclo_escolar_est.fin_ciclo) : '',
+        estadoCiclo: estudiante.ciclo_escolar_est?.estado_ciclo || 'Actual',
+        usuario: estudiante.usuario_est?.dato_usuario || '',
+        contrasena: '',
+        id_doc_file: docs?.id_doc_file as unknown as File || null,
+        cv_doc_file: docs?.cv_doc_file as unknown as File || null,
+        anexo_iv_doc_file: docs?.anexo_iv_doc_file as unknown as File || null,
+        anexo_v_doc_file: docs?.anexo_v_doc_file as unknown as File || null,
+        acta_nac_doc_file: docs?.acta_nac_doc_file as unknown as File || null,
+        ced_padres_doc_file: docs?.ced_padres_doc_file as unknown as File || null,
+        vac_covid_doc_file: docs?.vac_covid_doc_file as unknown as File || null,
+        horaspasrealizadas: estudiante.horaspasrealizadas_est || '',
+        nombre_poliza: estudiante.nombre_poliza || '',
+        numero_poliza: estudiante.numero_poliza || '',
+        fecha_inicio_pasantia: estudiante.fecha_inicio_pasantia || '',
+        fecha_fin_pasantia: estudiante.fecha_fin_pasantia || '',
+        nombrePersonaContacto: personaContacto?.nombre || '',
+        apellidoPersonaContacto: personaContacto?.apellido || '',
+        relacionPersonaContacto: personaContacto?.relacion || '',
+        telefonoPersonaContacto: personaContacto?.telefono || '',
+        correoPersonaContacto: personaContacto?.correo || '',
+      }));
+      return;
+    }
+    // Si no hay provincia/ciudad/sector, setea igual pero vacíos
+    setFormData(prev => ({
+      ...prev,
+      provincia: provinciaId || '',
+      ciudad: ciudadId || '',
+      sector: sectorId || '',
+      calle: direccionCompleta ? direccionCompleta.calle_dir : '',
+      numero: direccionCompleta ? direccionCompleta.num_res_dir : '',
+      nacionalidad: estudiante.nacionalidad === 'Dominicana' ? 'Dominicana' : 'Otra',
+      nacionalidadOtra: estudiante.nacionalidad && estudiante.nacionalidad !== 'Dominicana' ? estudiante.nacionalidad : '',
+      tipoDocumento: estudiante.tipo_documento_est,
+      documento: estudiante.documento_id_est,
+      nombre: estudiante.nombre_est,
+      segNombre: estudiante.seg_nombre_est || '',
+      apellido: estudiante.apellido_est,
+      segApellido: estudiante.seg_apellido_est || '',
+      fechaNacimiento: estudiante.fecha_nac_est,
+      telefono: estudiante.contacto_est?.telefono_contacto || '',
+      email: estudiante.contacto_est?.email_contacto || '',
+      taller: estudiante.taller_est ? String(estudiante.taller_est.id_taller) : '',
+      inicioCiclo: estudiante.ciclo_escolar_est?.inicio_ciclo ? String(estudiante.ciclo_escolar_est.inicio_ciclo) : '',
+      finCiclo: estudiante.ciclo_escolar_est?.fin_ciclo ? String(estudiante.ciclo_escolar_est.fin_ciclo) : '',
+      estadoCiclo: estudiante.ciclo_escolar_est?.estado_ciclo || 'Actual',
+      usuario: estudiante.usuario_est?.dato_usuario || '',
+      contrasena: '',
+      id_doc_file: docs?.id_doc_file as unknown as File || null,
+      cv_doc_file: docs?.cv_doc_file as unknown as File || null,
+      anexo_iv_doc_file: docs?.anexo_iv_doc_file as unknown as File || null,
+      anexo_v_doc_file: docs?.anexo_v_doc_file as unknown as File || null,
+      acta_nac_doc_file: docs?.acta_nac_doc_file as unknown as File || null,
+      ced_padres_doc_file: docs?.ced_padres_doc_file as unknown as File || null,
+      vac_covid_doc_file: docs?.vac_covid_doc_file as unknown as File || null,
+      horaspasrealizadas: estudiante.horaspasrealizadas_est || '',
+      nombre_poliza: estudiante.nombre_poliza || '',
+      numero_poliza: estudiante.numero_poliza || '',
+      fecha_inicio_pasantia: estudiante.fecha_inicio_pasantia || '',
+      fecha_fin_pasantia: estudiante.fecha_fin_pasantia || '',
+      nombrePersonaContacto: personaContacto?.nombre || '',
+      apellidoPersonaContacto: personaContacto?.apellido || '',
+      relacionPersonaContacto: personaContacto?.relacion || '',
+      telefonoPersonaContacto: personaContacto?.telefono || '',
+      correoPersonaContacto: personaContacto?.correo || '',
+    }));
+  };
+
+  const handleDeleteClick = (estudiante: Estudiante) => {
+    setEstudianteToDelete(estudiante);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (estudianteToDelete && estudianteToDelete.usuario_est?.id_usuario) {
+      await userService.updateUser(estudianteToDelete.usuario_est.id_usuario, { estado_usuario: 'Eliminado' });
+      setSnackbar({ open: true, message: 'Estudiante eliminado correctamente', severity: 'success' });
+      setDeleteDialogOpen(false);
+      setEstudianteToDelete(null);
+      loadData();
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setEstudianteToDelete(null);
+  };
+
+  // Función para abrir el formulario de registro (nuevo estudiante)
+  const handleOpenNewForm = () => {
+    setEditMode(false);
+    setEditingEstudiante(null);
+    setDocsEstudiante(null);
+    setFormData({
+      nacionalidad: 'Dominicana',
+      tipoDocumento: 'Cédula',
+      documento: '',
+      nombre: '',
+      segNombre: '',
+      apellido: '',
+      segApellido: '',
+      fechaNacimiento: '',
+      telefono: '',
+      email: '',
+      taller: '',
+      provincia: '',
+      ciudad: '',
+      sector: '',
+      calle: '',
+      numero: '',
+      inicioCiclo: '',
+      finCiclo: '',
+      estadoCiclo: 'Actual',
+      usuario: '',
+      contrasena: '',
+      id_doc_file: null,
+      cv_doc_file: null,
+      anexo_iv_doc_file: null,
+      anexo_v_doc_file: null,
+      acta_nac_doc_file: null,
+      ced_padres_doc_file: null,
+      vac_covid_doc_file: null,
+      horaspasrealizadas: '',
+      nombre_poliza: '',
+      numero_poliza: '',
+      fecha_inicio_pasantia: '',
+      fecha_fin_pasantia: '',
+      nombrePersonaContacto: '',
+      apellidoPersonaContacto: '',
+      relacionPersonaContacto: '',
+      telefonoPersonaContacto: '',
+      correoPersonaContacto: '',
+      nacionalidadOtra: '',
+    });
+    setOpenForm(true);
+  };
+
+  // Al cerrar el formulario, limpiar todo
+  const handleCloseForm = () => {
+    setOpenForm(false);
+    setEditMode(false);
+    setEditingEstudiante(null);
+    setDocsEstudiante(null);
+    setFormData({
+      nacionalidad: 'Dominicana',
+      tipoDocumento: 'Cédula',
+      documento: '',
+      nombre: '',
+      segNombre: '',
+      apellido: '',
+      segApellido: '',
+      fechaNacimiento: '',
+      telefono: '',
+      email: '',
+      taller: '',
+      provincia: '',
+      ciudad: '',
+      sector: '',
+      calle: '',
+      numero: '',
+      inicioCiclo: '',
+      finCiclo: '',
+      estadoCiclo: 'Actual',
+      usuario: '',
+      contrasena: '',
+      id_doc_file: null,
+      cv_doc_file: null,
+      anexo_iv_doc_file: null,
+      anexo_v_doc_file: null,
+      acta_nac_doc_file: null,
+      ced_padres_doc_file: null,
+      vac_covid_doc_file: null,
+      horaspasrealizadas: '',
+      nombre_poliza: '',
+      numero_poliza: '',
+      fecha_inicio_pasantia: '',
+      fecha_fin_pasantia: '',
+      nombrePersonaContacto: '',
+      apellidoPersonaContacto: '',
+      relacionPersonaContacto: '',
+      telefonoPersonaContacto: '',
+      correoPersonaContacto: '',
+      nacionalidadOtra: '',
+    });
+  };
+
+  useEffect(() => {
+    if (pendingLocation) {
+      console.log('Pendientes:', pendingLocation);
+      console.log('Sectores disponibles:', sectores.map(s => String(s.id_sec)));
+      
+      // Forzamos la selección, sin importar verificaciones
+      if (pendingLocation.ciudad || pendingLocation.sector) {
+        console.log('FORZANDO selección:', {
+          ciudad: pendingLocation.ciudad,
+          sector: pendingLocation.sector
+        });
+        
+        // Aplicamos todos los valores pendientes directamente
+        setFormData(prev => ({
+          ...prev,
+          ciudad: pendingLocation.ciudad ? pendingLocation.ciudad : prev.ciudad,
+          sector: pendingLocation.sector ? pendingLocation.sector : prev.sector
+        }));
+        
+        // Si hay sector seleccionado, consideramos terminada la operación
+        if (pendingLocation.sector) {
+          setPendingLocation(null);
+        }
+      }
+    }
+  }, [ciudades, sectores, pendingLocation]);
+
   if (error) {
     return (
       <MUI.Box sx={{ p: 2 }}>
@@ -588,7 +933,7 @@ const Students = () => {
             <MUI.Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => setOpenForm(true)}
+              onClick={handleOpenNewForm}
               sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#1976d2', color: '#fff', '&:hover': { bgcolor: '#115293' } }}
             >
               Nuevo Estudiante
@@ -650,10 +995,10 @@ const Students = () => {
                       <DocumentosMenu documento={estudiante.documento_id_est} />
                     </MUI.TableCell>
                     <MUI.TableCell>
-                      <MUI.IconButton size="small" color="primary">
+                      <MUI.IconButton size="small" color="primary" onClick={() => handleEditClick(estudiante)}>
                         <EditIcon />
                       </MUI.IconButton>
-                      <MUI.IconButton size="small" color="error">
+                      <MUI.IconButton size="small" color="error" onClick={() => handleDeleteClick(estudiante)}>
                         <DeleteIcon />
                       </MUI.IconButton>
                     </MUI.TableCell>
@@ -663,8 +1008,8 @@ const Students = () => {
             </MUI.Table>
           </MUI.TableContainer>
 
-          <MUI.Dialog open={openForm} onClose={() => setOpenForm(false)} maxWidth="md" fullWidth>
-            <MUI.DialogTitle>Nuevo Estudiante</MUI.DialogTitle>
+          <MUI.Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
+            <MUI.DialogTitle>{editMode ? 'Editar Estudiante' : 'Nuevo Estudiante'}</MUI.DialogTitle>
             <MUI.DialogContent>
               <MUI.Button variant="outlined" color="secondary" onClick={handleAutofill} sx={{ mb: 2 }}>
                 Autollenar
@@ -867,9 +1212,9 @@ const Students = () => {
                         onChange={handleSelectChange}
                         disabled={!formData.ciudad || sectores.length === 0}
                       >
-                        {sectores.map((sec) => (
-                          <MUI.MenuItem key={sec.id_sec} value={sec.id_sec}>
-                            {sec.nombre_sec || 'Sin nombre'}
+                        {sectores.map((sec: Sector) => (
+                          <MUI.MenuItem key={sec.id_sec} value={String(sec.id_sec)}>
+                            {sec.sector || 'Sin nombre'}
                           </MUI.MenuItem>
                         ))}
                       </MUI.Select>
@@ -1111,6 +1456,11 @@ const Students = () => {
                         {formData.id_doc_file.name}
                       </MUI.Typography>
                     )}
+                    {!formData.id_doc_file && docsEstudiante?.ced_est && (
+                      <MUI.Typography variant="caption" color="success.main">
+                        SUBIDO
+                      </MUI.Typography>
+                    )}
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>
                     <MUI.Button variant="outlined" component="label" fullWidth>
@@ -1120,6 +1470,11 @@ const Students = () => {
                     {formData.cv_doc_file instanceof File && (
                       <MUI.Typography variant="caption" color="primary">
                         {formData.cv_doc_file.name}
+                      </MUI.Typography>
+                    )}
+                    {!formData.cv_doc_file && docsEstudiante?.cv_doc && (
+                      <MUI.Typography variant="caption" color="success.main">
+                        SUBIDO
                       </MUI.Typography>
                     )}
                   </MUI.Grid>
@@ -1182,6 +1537,13 @@ const Students = () => {
               {snackbar.message}
             </MUI.Alert>
           </MUI.Snackbar>
+          <MUI.Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
+            <MUI.DialogTitle>¿Estás seguro de que quieres eliminar este estudiante?</MUI.DialogTitle>
+            <MUI.DialogActions>
+              <MUI.Button onClick={handleDeleteCancel} color="primary">No</MUI.Button>
+              <MUI.Button onClick={handleDeleteConfirm} color="error">Sí</MUI.Button>
+            </MUI.DialogActions>
+          </MUI.Dialog>
         </MUI.Box>
       </MUI.Box>
     </MUI.Box>

@@ -15,6 +15,11 @@ const personaContactoEstudianteService = {
     const response = await api.post<PersonaContactoEstudiante>('/persona-contacto-estudiante', data);
     return response.data;
   },
+
+  async getPersonaContactoByDocumento(documento: string): Promise<PersonaContactoEstudiante> {
+    const response = await api.get<PersonaContactoEstudiante>(`/persona-contacto-estudiante/estudiante/${documento}`);
+    return response.data;
+  },
 };
 
 export default personaContactoEstudianteService; 
