@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import '../../../styles/index.scss';
 import * as MUI from '@mui/material';
-import { Add as AddIcon, Search as SearchIcon, Edit as EditIcon, Delete as DeleteIcon, DateRange as DateRangeIcon, FilterList as FilterListIcon } from '@mui/icons-material';
+import { Add as AddIcon, Search as SearchIcon, Edit as EditIcon, Delete as DeleteIcon, DateRange as DateRangeIcon, FilterList as FilterListIcon, Shield as ShieldIcon, Event as EventIcon } from '@mui/icons-material';
 import { SelectChangeEvent } from '@mui/material';
 import studentService, { Estudiante, NuevoEstudiante } from '../../../services/studentService';
 import tallerService, { Taller } from '../../../services/tallerService';
@@ -78,6 +78,10 @@ const Students = () => {
   const [estudianteToDelete, setEstudianteToDelete] = useState<Estudiante | null>(null);
   const [docsEstudiante, setDocsEstudiante] = useState<DocsEstudiante | null>(null);
   const [pendingLocation, setPendingLocation] = useState<{provincia?: string, ciudad?: string, sector?: string} | null>(null);
+  const [openPolizaDialog, setOpenPolizaDialog] = useState(false);
+  const [openFechasDialog, setOpenFechasDialog] = useState(false);
+  const [polizaData, setPolizaData] = useState({ nombre_poliza: '', numero_poliza: '', estudiante: 'all' });
+  const [fechasData, setFechasData] = useState({ fecha_inicio_pasantia: '', fecha_fin_pasantia: '', horaspasrealizadas_est: '', estudiante: 'all' });
 
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -476,11 +480,6 @@ const Students = () => {
     }
   };
 
-  // Filtrar talleres con usuarios activos
-  const talleresActivos = talleres.filter(taller =>
-    estudiantes.some(est => String(est.taller_est?.id_taller) === String(taller.id_taller) && est.usuario_est?.estado_usuario === 'Activo')
-  );
-
   const handleFilterClick = (event: React.MouseEvent<HTMLElement>) => {
     setFilterAnchorEl(event.currentTarget);
   };
@@ -489,7 +488,7 @@ const Students = () => {
   };
   const handleTallerChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value as string[];
-    setSelectedTalleres(typeof value === 'string' ? value.split(',') : value);
+    setSelectedTalleres(value);
   };
   const handleDateChange = (type: 'start' | 'end', value: string) => {
     setDateRange(prev => ({ ...prev, [type]: value }));
@@ -497,20 +496,40 @@ const Students = () => {
 
   // Filtro compuesto
   const filteredEstudiantes = estudiantes.filter(estudiante => {
+    // Filtro por nombre, apellido o documento
     const nombreMatch = estudiante.nombre_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
       estudiante.apellido_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
       estudiante.documento_id_est.includes(searchTerm);
-    const tallerMatch = selectedTalleres.length === 0 || (estudiante.taller_est && selectedTalleres.includes(String(estudiante.taller_est.id_taller)));
-    const fechaInicio = dateRange.start ? new Date(dateRange.start) : null;
-    const fechaFin = dateRange.end ? new Date(dateRange.end) : null;
+
+    // Filtro por taller
+    const tallerMatch = selectedTalleres.length === 0 ||
+      (estudiante.taller_est && selectedTalleres.includes(String(estudiante.taller_est.id_taller)));
+
+    // Filtro por fechas
     let fechaMatch = true;
-    if (fechaInicio && fechaFin && estudiante.fecha_inicio_pasantia && estudiante.fecha_fin_pasantia) {
-      const inicio = new Date(estudiante.fecha_inicio_pasantia);
-      const fin = new Date(estudiante.fecha_fin_pasantia);
-      fechaMatch = inicio >= fechaInicio && fin <= fechaFin;
+    const filtroInicio = dateRange.start ? new Date(dateRange.start) : null;
+    const filtroFin = dateRange.end ? new Date(dateRange.end) : null;
+    const estInicio = estudiante.fecha_inicio_pasantia ? new Date(estudiante.fecha_inicio_pasantia) : null;
+    const estFin = estudiante.fecha_fin_pasantia ? new Date(estudiante.fecha_fin_pasantia) : null;
+
+    if ((filtroInicio || filtroFin)) {
+      // Si hay filtro de fechas, pero el estudiante no tiene fechas, no lo muestres
+      if (!estInicio || !estFin) {
+        fechaMatch = false;
+      } else {
+        if (filtroInicio && filtroFin) {
+          fechaMatch = estInicio >= filtroInicio && estFin <= filtroFin;
+        } else if (filtroInicio) {
+          fechaMatch = estInicio >= filtroInicio;
+        } else if (filtroFin) {
+          fechaMatch = estFin <= filtroFin;
+        }
+      }
     }
+
     // Solo mostrar estudiantes con usuario activo
     const usuarioActivo = estudiante.usuario_est?.estado_usuario === 'Activo';
+
     return nombreMatch && tallerMatch && fechaMatch && usuarioActivo;
   });
 
@@ -892,9 +911,7 @@ const Students = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
-                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'gray' }} />,
-                  disableUnderline: true,
-                  sx: { bgcolor: 'transparent', border: 'none' }
+                  startAdornment: <SearchIcon sx={{ mr: 1, color: 'gray' }} />, disableUnderline: true, sx: { bgcolor: 'transparent', border: 'none' }
                 }}
                 variant="standard"
                 sx={{ flex: 1, bgcolor: 'transparent', border: 'none' }}
@@ -902,57 +919,74 @@ const Students = () => {
               <MUI.IconButton onClick={handleFilterClick} color="primary" sx={{ ml: 1 }}>
                 <FilterListIcon />
               </MUI.IconButton>
-              <MUI.Menu anchorEl={filterAnchorEl} open={Boolean(filterAnchorEl)} onClose={handleFilterClose}>
-                <MUI.Box sx={{ px: 2, py: 1, minWidth: 250 }}>
-                  <MUI.Typography variant="subtitle2" sx={{ mb: 1 }}>Filtrar por taller</MUI.Typography>
-                  <MUI.FormControl fullWidth>
-                    <MUI.Select
-                      multiple
-                      value={selectedTalleres}
-                      onChange={handleTallerChange}
-                      renderValue={(selected) =>
-                        talleresActivos.filter(t => selected.includes(String(t.id_taller))).map(t => t.nombre_taller).join(', ')
-                      }
-                    >
-                      {talleresActivos.map((taller) => (
-                        <MUI.MenuItem key={taller.id_taller} value={String(taller.id_taller)}>
-                          <MUI.Checkbox checked={selectedTalleres.includes(String(taller.id_taller))} />
-                          <MUI.ListItemText primary={taller.nombre_taller} />
-                        </MUI.MenuItem>
-                      ))}
-                    </MUI.Select>
-                  </MUI.FormControl>
-                  <MUI.Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>Filtrar por fechas de pasantía</MUI.Typography>
-                  <MUI.TextField
-                    label="Fecha inicio"
-                    type="date"
-                    value={dateRange.start}
-                    onChange={e => handleDateChange('start', e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                    sx={{ mb: 1 }}
-                  />
-                  <MUI.TextField
-                    label="Fecha fin"
-                    type="date"
-                    value={dateRange.end}
-                    onChange={e => handleDateChange('end', e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                  />
-                </MUI.Box>
-              </MUI.Menu>
             </MUI.Paper>
-            <MUI.Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenNewForm}
-              sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#1976d2', color: '#fff', '&:hover': { bgcolor: '#115293' } }}
-            >
-              Nuevo Estudiante
-            </MUI.Button>
+            <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <MUI.IconButton onClick={() => setOpenPolizaDialog(true)} color="primary">
+                <ShieldIcon />
+              </MUI.IconButton>
+              <MUI.IconButton onClick={() => setOpenFechasDialog(true)} color="primary">
+                <EventIcon />
+              </MUI.IconButton>
+              <MUI.Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleOpenNewForm}
+                sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#1976d2', color: '#fff', '&:hover': { bgcolor: '#115293' } }}
+              >
+                Nuevo Estudiante
+              </MUI.Button>
+            </MUI.Box>
           </MUI.Box>
-
+          <MUI.Menu
+            anchorEl={filterAnchorEl}
+            open={Boolean(filterAnchorEl)}
+            onClose={handleFilterClose}
+          >
+            <MUI.Box sx={{ p: 2, minWidth: 250 }}>
+              <MUI.Typography variant="subtitle1" sx={{ mb: 1 }}>Filtrar por taller</MUI.Typography>
+              <MUI.FormControl fullWidth>
+                <MUI.Select
+                  multiple
+                  value={selectedTalleres}
+                  onChange={handleTallerChange}
+                  renderValue={(selected) =>
+                    (selected as string[]).map(id => {
+                      const t = talleres.find(t => String(t.id_taller) === id);
+                      return t ? t.nombre_taller : id;
+                    }).join(', ')
+                  }
+                >
+                  {talleres.map((taller) => (
+                    <MUI.MenuItem key={taller.id_taller} value={String(taller.id_taller)}>
+                      <MUI.Checkbox checked={selectedTalleres.indexOf(String(taller.id_taller)) > -1} />
+                      <MUI.ListItemText primary={taller.nombre_taller} />
+                    </MUI.MenuItem>
+                  ))}
+                </MUI.Select>
+              </MUI.FormControl>
+              <MUI.Typography variant="subtitle1" sx={{ mt: 2, mb: 1 }}>Filtrar por fechas</MUI.Typography>
+              <MUI.TextField
+                label="Fecha inicio"
+                type="date"
+                value={dateRange.start}
+                onChange={e => handleDateChange('start', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                sx={{ mb: 1 }}
+              />
+              <MUI.TextField
+                label="Fecha fin"
+                type="date"
+                value={dateRange.end}
+                onChange={e => handleDateChange('end', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <MUI.Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                <MUI.Button onClick={handleFilterClose} color="primary">Cerrar</MUI.Button>
+              </MUI.Box>
+            </MUI.Box>
+          </MUI.Menu>
           <MUI.TableContainer component={MUI.Paper} elevation={3} sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#fff' }}>
             <MUI.Table sx={{ minWidth: 900 }}>
               <MUI.TableHead sx={{ bgcolor: '#f5f7fa' }}>
@@ -1555,6 +1589,51 @@ const Students = () => {
             <MUI.DialogActions>
               <MUI.Button onClick={handleDeleteCancel} color="primary">No</MUI.Button>
               <MUI.Button onClick={handleDeleteConfirm} color="error">Sí</MUI.Button>
+            </MUI.DialogActions>
+          </MUI.Dialog>
+          <MUI.Dialog open={openPolizaDialog} onClose={() => setOpenPolizaDialog(false)}>
+            <MUI.DialogTitle>Actualizar Póliza de Seguro</MUI.DialogTitle>
+            <MUI.DialogContent>
+              <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                <MUI.TextField label="Nombre de póliza" value={polizaData.nombre_poliza} onChange={e => setPolizaData({ ...polizaData, nombre_poliza: e.target.value })} fullWidth />
+                <MUI.TextField label="Número de póliza" value={polizaData.numero_poliza} onChange={e => setPolizaData({ ...polizaData, numero_poliza: e.target.value })} fullWidth />
+                <MUI.FormControl fullWidth>
+                  <MUI.InputLabel>Aplicar a</MUI.InputLabel>
+                  <MUI.Select value={polizaData.estudiante} onChange={e => setPolizaData({ ...polizaData, estudiante: e.target.value })} label="Aplicar a">
+                    <MUI.MenuItem value="all">Todos los estudiantes activos</MUI.MenuItem>
+                    {estudiantes.filter(e => e.usuario_est?.estado_usuario === 'Activo').map(e => (
+                      <MUI.MenuItem key={e.documento_id_est} value={e.documento_id_est}>{e.nombre_est} {e.apellido_est} ({e.documento_id_est})</MUI.MenuItem>
+                    ))}
+                  </MUI.Select>
+                </MUI.FormControl>
+              </MUI.Box>
+            </MUI.DialogContent>
+            <MUI.DialogActions>
+              <MUI.Button onClick={() => setOpenPolizaDialog(false)}>Cancelar</MUI.Button>
+              <MUI.Button variant="contained" color="primary" disabled>Actualizar</MUI.Button>
+            </MUI.DialogActions>
+          </MUI.Dialog>
+          <MUI.Dialog open={openFechasDialog} onClose={() => setOpenFechasDialog(false)}>
+            <MUI.DialogTitle>Actualizar Fechas y Horas de Pasantía</MUI.DialogTitle>
+            <MUI.DialogContent>
+              <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                <MUI.TextField label="Fecha inicio pasantía" type="date" InputLabelProps={{ shrink: true }} value={fechasData.fecha_inicio_pasantia} onChange={e => setFechasData({ ...fechasData, fecha_inicio_pasantia: e.target.value })} fullWidth />
+                <MUI.TextField label="Fecha fin pasantía" type="date" InputLabelProps={{ shrink: true }} value={fechasData.fecha_fin_pasantia} onChange={e => setFechasData({ ...fechasData, fecha_fin_pasantia: e.target.value })} fullWidth />
+                <MUI.TextField label="Horas realizadas" type="number" value={fechasData.horaspasrealizadas_est} onChange={e => setFechasData({ ...fechasData, horaspasrealizadas_est: e.target.value })} fullWidth />
+                <MUI.FormControl fullWidth>
+                  <MUI.InputLabel>Aplicar a</MUI.InputLabel>
+                  <MUI.Select value={fechasData.estudiante} onChange={e => setFechasData({ ...fechasData, estudiante: e.target.value })} label="Aplicar a">
+                    <MUI.MenuItem value="all">Todos los estudiantes activos</MUI.MenuItem>
+                    {estudiantes.filter(e => e.usuario_est?.estado_usuario === 'Activo').map(e => (
+                      <MUI.MenuItem key={e.documento_id_est} value={e.documento_id_est}>{e.nombre_est} {e.apellido_est} ({e.documento_id_est})</MUI.MenuItem>
+                    ))}
+                  </MUI.Select>
+                </MUI.FormControl>
+              </MUI.Box>
+            </MUI.DialogContent>
+            <MUI.DialogActions>
+              <MUI.Button onClick={() => setOpenFechasDialog(false)}>Cancelar</MUI.Button>
+              <MUI.Button variant="contained" color="primary" disabled>Actualizar</MUI.Button>
             </MUI.DialogActions>
           </MUI.Dialog>
         </MUI.Box>
