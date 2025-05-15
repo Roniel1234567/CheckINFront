@@ -82,6 +82,8 @@ const Students = () => {
   const [openFechasDialog, setOpenFechasDialog] = useState(false);
   const [polizaData, setPolizaData] = useState({ nombre_poliza: '', numero_poliza: '', estudiante: 'all' });
   const [fechasData, setFechasData] = useState({ fecha_inicio_pasantia: '', fecha_fin_pasantia: '', horaspasrealizadas_est: '', estudiante: 'all' });
+  const [searchEstudiante, setSearchEstudiante] = useState('');
+  const [filterTaller, setFilterTaller] = useState('');
 
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -533,6 +535,17 @@ const Students = () => {
     return nombreMatch && tallerMatch && fechaMatch && usuarioActivo;
   });
 
+  const estudiantesFiltrados = estudiantes
+    .filter(e => e.usuario_est?.estado_usuario === 'Activo')
+    .filter(e =>
+      (!searchEstudiante ||
+        e.nombre_est.toLowerCase().includes(searchEstudiante.toLowerCase()) ||
+        e.apellido_est.toLowerCase().includes(searchEstudiante.toLowerCase()) ||
+        e.documento_id_est.includes(searchEstudiante)
+      ) &&
+      (!filterTaller || (e.taller_est && String(e.taller_est.id_taller) === filterTaller))
+    );
+
   // Componente para menú de documentos
   const tiposDocs = [
     { key: 'ced_est', label: 'Cédula' },
@@ -918,6 +931,19 @@ const Students = () => {
     } catch (error) {
       setSnackbar({ open: true, message: 'Error al actualizar póliza', severity: 'error' });
     }
+  };
+
+  // --- ACTUALIZAR POLIZA DE SEGURO ---
+  const handlePolizaSelectChange = (e: SelectChangeEvent<string>) => {
+    setPolizaData({ ...polizaData, estudiante: e.target.value });
+    setSearchEstudiante('');
+    setFilterTaller('');
+  };
+
+  const handlePolizaMenuClose = () => {
+    setFilterAnchorEl(null);
+    setSearchEstudiante('');
+    setFilterTaller('');
   };
 
   if (error) {
@@ -1627,15 +1653,34 @@ const Students = () => {
               <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
                 <MUI.TextField label="Nombre de póliza" value={polizaData.nombre_poliza} onChange={e => setPolizaData({ ...polizaData, nombre_poliza: e.target.value })} fullWidth />
                 <MUI.TextField label="Número de póliza" value={polizaData.numero_poliza} onChange={e => setPolizaData({ ...polizaData, numero_poliza: e.target.value })} fullWidth />
-                <MUI.FormControl fullWidth>
-                  <MUI.InputLabel>Aplicar a</MUI.InputLabel>
-                  <MUI.Select value={polizaData.estudiante} onChange={e => setPolizaData({ ...polizaData, estudiante: e.target.value })} label="Aplicar a">
-                    <MUI.MenuItem value="all">Todos los estudiantes activos</MUI.MenuItem>
-                    {estudiantes.filter(e => e.usuario_est?.estado_usuario === 'Activo').map(e => (
-                      <MUI.MenuItem key={e.documento_id_est} value={e.documento_id_est}>{e.nombre_est} {e.apellido_est} ({e.documento_id_est})</MUI.MenuItem>
-                    ))}
-                  </MUI.Select>
-                </MUI.FormControl>
+                <MUI.Autocomplete
+                  options={[
+                    { label: 'Todos los estudiantes activos', value: 'all' },
+                    ...estudiantesFiltrados.map(e => ({
+                      label: `${e.nombre_est} ${e.apellido_est} (${e.documento_id_est})${e.taller_est ? ' - ' + e.taller_est.nombre_taller : ''}`,
+                      value: e.documento_id_est
+                    }))
+                  ]}
+                  value={
+                    polizaData.estudiante === 'all'
+                      ? { label: 'Todos los estudiantes activos', value: 'all' }
+                      : estudiantesFiltrados
+                          .map(e => ({
+                            label: `${e.nombre_est} ${e.apellido_est} (${e.documento_id_est})${e.taller_est ? ' - ' + e.taller_est.nombre_taller : ''}`,
+                            value: e.documento_id_est
+                          }))
+                          .find(opt => opt.value === polizaData.estudiante) || null
+                  }
+                  onChange={(_, newValue) => {
+                    setPolizaData({ ...polizaData, estudiante: newValue ? newValue.value : '' });
+                  }}
+                  renderInput={(params) => (
+                    <MUI.TextField {...params} label="Aplicar a" placeholder="Buscar estudiante..." fullWidth />
+                  )}
+                  isOptionEqualToValue={(option, value) => option.value === value.value}
+                  sx={{ bgcolor: '#f5f7fa', borderRadius: 2, '& .MuiAutocomplete-inputRoot': { p: 1.2 } }}
+                  noOptionsText="No hay estudiantes que coincidan"
+                />
               </MUI.Box>
             </MUI.DialogContent>
             <MUI.DialogActions>
