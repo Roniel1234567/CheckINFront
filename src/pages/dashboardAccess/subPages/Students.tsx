@@ -98,6 +98,7 @@ const Students = () => {
     sector: '',
     calle: '',
     numero: '',
+    direccionId: '',
     // Ciclo escolar
     inicioCiclo: '',
     finCiclo: '',
@@ -164,6 +165,11 @@ const Students = () => {
     try {
       if (editMode && editingEstudiante) {
         // Modo edición
+        // Obtener el id del ciclo escolar si existe
+        let cicloEscolarId: number | null = null;
+        if (editingEstudiante.ciclo_escolar_est && editingEstudiante.ciclo_escolar_est.id_ciclo) {
+          cicloEscolarId = Number(editingEstudiante.ciclo_escolar_est.id_ciclo);
+        }
         await studentService.updateStudent(editingEstudiante.documento_id_est, {
           tipo_documento_est: formData.tipoDocumento,
           documento_id_est: formData.documento,
@@ -179,6 +185,8 @@ const Students = () => {
           fecha_inicio_pasantia: formData.fecha_inicio_pasantia !== '' ? formData.fecha_inicio_pasantia : undefined,
           fecha_fin_pasantia: formData.fecha_fin_pasantia !== '' ? formData.fecha_fin_pasantia : undefined,
           nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : 'Dominicana',
+          direccion_id: formData.direccionId ? Number(formData.direccionId) : null,
+          ciclo_escolar_est: cicloEscolarId && cicloEscolarId !== 0 ? cicloEscolarId : null,
         });
         setSnackbar({ open: true, message: 'Estudiante actualizado correctamente', severity: 'success' });
         setOpenForm(false);
@@ -306,6 +314,7 @@ const Students = () => {
         sector: '',
         calle: '',
         numero: '',
+        direccionId: '',
         inicioCiclo: '',
         finCiclo: '',
         estadoCiclo: 'Actual',
@@ -631,6 +640,7 @@ const Students = () => {
         provincia: String(provinciaId),
         calle: direccionCompleta ? direccionCompleta.calle_dir : '',
         numero: direccionCompleta ? direccionCompleta.num_res_dir : '',
+        direccionId: direccionCompleta ? String(direccionCompleta.id_dir) : '',
         nacionalidad: estudiante.nacionalidad === 'Dominicana' ? 'Dominicana' : 'Otra',
         nacionalidadOtra: estudiante.nacionalidad && estudiante.nacionalidad !== 'Dominicana' ? estudiante.nacionalidad : '',
         tipoDocumento: estudiante.tipo_documento_est,
@@ -676,6 +686,7 @@ const Students = () => {
       sector: sectorId || '',
       calle: direccionCompleta ? direccionCompleta.calle_dir : '',
       numero: direccionCompleta ? direccionCompleta.num_res_dir : '',
+      direccionId: '',
       nacionalidad: estudiante.nacionalidad === 'Dominicana' ? 'Dominicana' : 'Otra',
       nacionalidadOtra: estudiante.nacionalidad && estudiante.nacionalidad !== 'Dominicana' ? estudiante.nacionalidad : '',
       tipoDocumento: estudiante.tipo_documento_est,
@@ -755,6 +766,7 @@ const Students = () => {
       sector: '',
       calle: '',
       numero: '',
+      direccionId: '',
       inicioCiclo: '',
       finCiclo: '',
       estadoCiclo: 'Actual',
@@ -805,6 +817,7 @@ const Students = () => {
       sector: '',
       calle: '',
       numero: '',
+      direccionId: '',
       inicioCiclo: '',
       finCiclo: '',
       estadoCiclo: 'Actual',
