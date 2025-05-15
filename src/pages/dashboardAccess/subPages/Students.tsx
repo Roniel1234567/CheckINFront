@@ -890,6 +890,36 @@ const Students = () => {
     }
   }, [ciudades, sectores, pendingLocation]);
 
+  // --- ACTUALIZAR POLIZA DE SEGURO ---
+  const handlePolizaUpdate = async () => {
+    if (!polizaData.nombre_poliza || !polizaData.numero_poliza) return;
+    setSnackbar({ open: true, message: 'Actualizando póliza...', severity: 'success' });
+    try {
+      if (polizaData.estudiante === 'all') {
+        // Actualizar todos los estudiantes activos
+        const activos = estudiantes.filter(e => e.usuario_est?.estado_usuario === 'Activo');
+        await Promise.all(
+          activos.map(e => studentService.assignPolicy(e.documento_id_est, {
+            nombre_poliza: polizaData.nombre_poliza,
+            numero_poliza: polizaData.numero_poliza
+          }))
+        );
+      } else {
+        // Actualizar solo el estudiante seleccionado
+        await studentService.assignPolicy(polizaData.estudiante, {
+          nombre_poliza: polizaData.nombre_poliza,
+          numero_poliza: polizaData.numero_poliza
+        });
+      }
+      setSnackbar({ open: true, message: 'Póliza actualizada correctamente', severity: 'success' });
+      setOpenPolizaDialog(false);
+      setPolizaData({ nombre_poliza: '', numero_poliza: '', estudiante: 'all' });
+      loadData();
+    } catch (error) {
+      setSnackbar({ open: true, message: 'Error al actualizar póliza', severity: 'error' });
+    }
+  };
+
   if (error) {
     return (
       <MUI.Box sx={{ p: 2 }}>
@@ -1610,7 +1640,9 @@ const Students = () => {
             </MUI.DialogContent>
             <MUI.DialogActions>
               <MUI.Button onClick={() => setOpenPolizaDialog(false)}>Cancelar</MUI.Button>
-              <MUI.Button variant="contained" color="primary" disabled>Actualizar</MUI.Button>
+              <MUI.Button variant="contained" color="primary" onClick={handlePolizaUpdate} disabled={!polizaData.nombre_poliza || !polizaData.numero_poliza || !polizaData.estudiante}>
+                Actualizar
+              </MUI.Button>
             </MUI.DialogActions>
           </MUI.Dialog>
           <MUI.Dialog open={openFechasDialog} onClose={() => setOpenFechasDialog(false)}>
