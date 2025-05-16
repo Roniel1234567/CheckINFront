@@ -26,6 +26,16 @@ const contactService = {
   getAllContactos: async (): Promise<Contacto[]> => {
     const response = await api.get<Contacto[]>('/contactos');
     return response.data;
+  },
+  // Validación en tiempo real de email
+  existeEmailContacto: async (email: string): Promise<{ exists: boolean }> => {
+    const response = await api.get<{ exists: boolean }>(`/contactos/existe-email/${encodeURIComponent(email)}`);
+    return response.data;
+  },
+  // Validación en tiempo real de teléfono
+  existeTelefonoContacto: async (telefono: string): Promise<{ exists: boolean }> => {
+    const response = await api.get<{ exists: boolean }>(`/contactos/existe-telefono/${encodeURIComponent(telefono)}`);
+    return response.data;
   }
 };
 

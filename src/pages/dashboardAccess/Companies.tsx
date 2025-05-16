@@ -15,6 +15,7 @@ import {
 } from '../../../services/CompaniesCRUD';
 import { SelectChangeEvent } from '@mui/material';
 import { personaContactoEmpresaService } from '../../services/personaContactoEmpresaService';
+import contactService from '../../services/contactService';
 
 // Estado inicial del formulario
 interface FormData {
@@ -79,6 +80,10 @@ function Companies() {
     message: '',
     severity: 'success'
   });
+
+  const [nombreCentroDisponible, setNombreCentroDisponible] = useState(true);
+  const [telefonoDisponible, setTelefonoDisponible] = useState(true);
+  const [emailDisponible, setEmailDisponible] = useState(true);
 
   // Cargar datos iniciales
   const loadCentrosTrabajo = async () => {
@@ -183,6 +188,43 @@ function Companies() {
       ...prev,
       [name]: value
     }));
+    if (name === 'nombre_centro') checkNombreCentro(value);
+    if (name === 'telefono_contacto') checkTelefono(value);
+    if (name === 'email_contacto') checkEmail(value);
+  };
+
+  const checkNombreCentro = async (nombre: string) => {
+    if (!nombre) {
+      setNombreCentroDisponible(true);
+      return;
+    }
+    try {
+      const res = await fetch(`http://localhost:5000/api/centros-trabajo/existe-nombre/${encodeURIComponent(nombre)}`);
+      const data = await res.json();
+      setNombreCentroDisponible(!data.exists);
+    } catch {
+      setNombreCentroDisponible(true); // Si hay error, asume disponible
+    }
+  };
+
+  const checkTelefono = async (telefono: string) => {
+    if (!telefono) return;
+    try {
+      const data = await contactService.existeTelefonoContacto(telefono);
+      setTelefonoDisponible(!data.exists);
+    } catch {
+      setTelefonoDisponible(true);
+    }
+  };
+
+  const checkEmail = async (email: string) => {
+    if (!email) return;
+    try {
+      const data = await contactService.existeEmailContacto(email);
+      setEmailDisponible(!data.exists);
+    } catch {
+      setEmailDisponible(true);
+    }
   };
 
   // Simulación de carga inicial
@@ -498,6 +540,8 @@ function Companies() {
                     value={formData.nombre_centro}
                     onChange={handleFormChange}
                     variant="outlined"
+                    error={!nombreCentroDisponible && !!formData.nombre_centro}
+                    helperText={!nombreCentroDisponible && !!formData.nombre_centro ? 'Ya existe un centro con ese nombre' : ''}
                   />
                 </MUI.Grid>
                 <MUI.Grid item xs={12} md={6}>
@@ -508,6 +552,8 @@ function Companies() {
                     value={formData.telefono_contacto}
                     onChange={handleFormChange}
                     variant="outlined"
+                    error={!telefonoDisponible}
+                    helperText={!telefonoDisponible ? 'Ya existe un contacto con ese teléfono' : ''}
                   />
                 </MUI.Grid>
                 <MUI.Grid item xs={12}>
@@ -518,6 +564,8 @@ function Companies() {
                     value={formData.email_contacto}
                     onChange={handleFormChange}
                     variant="outlined"
+                    error={!emailDisponible}
+                    helperText={!emailDisponible ? 'Ya existe un contacto con ese correo' : ''}
                   />
                 </MUI.Grid>
               </MUI.Grid>
