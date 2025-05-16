@@ -1349,9 +1349,7 @@ const Students = () => {
           <MUI.Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
             <MUI.DialogTitle>{editMode ? 'Editar Estudiante' : 'Nuevo Estudiante'}</MUI.DialogTitle>
             <MUI.DialogContent>
-              <MUI.Button variant="outlined" color="secondary" onClick={handleAutofill} sx={{ mb: 2 }}>
-                Autollenar
-              </MUI.Button>
+
               <MUI.Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
                 <MUI.Typography variant="h6" sx={{ mb: 2 }}>Datos personales</MUI.Typography>
                 <MUI.Grid container spacing={2}>
