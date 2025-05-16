@@ -14,6 +14,7 @@ import {
   type Taller 
 } from '../../../services/CompaniesCRUD';
 import { SelectChangeEvent } from '@mui/material';
+import { personaContactoEmpresaService } from '../../services/personaContactoEmpresaService';
 
 // Estado inicial del formulario
 interface FormData {
@@ -24,6 +25,12 @@ interface FormData {
   num_res_dir: string;
   sector_dir: number;
   estado_centro: 'Activo' | 'Inactivo';
+  // Persona de contacto empresa
+  nombre_persona_contacto: string;
+  apellido_persona_contacto: string;
+  telefono_persona_contacto: string;
+  extension_persona_contacto: string;
+  departamento_persona_contacto: string;
 }
 
 function Companies() {
@@ -41,7 +48,12 @@ function Companies() {
     calle_dir: '',
     num_res_dir: '',
     sector_dir: 0,
-    estado_centro: 'Activo'
+    estado_centro: 'Activo',
+    nombre_persona_contacto: '',
+    apellido_persona_contacto: '',
+    telefono_persona_contacto: '',
+    extension_persona_contacto: '',
+    departamento_persona_contacto: '',
   });
   const [openTallerDialog, setOpenTallerDialog] = useState(false);
   const [selectedTaller, setSelectedTaller] = useState<string | null>(null);
@@ -61,6 +73,12 @@ function Companies() {
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
   const [sectores, setSectores] = useState<Sector[]>([]);
   const [talleres, setTalleres] = useState<Taller[]>([]);
+
+  const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success' | 'error'}>({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   // Cargar datos iniciales
   const loadCentrosTrabajo = async () => {
@@ -102,7 +120,8 @@ function Companies() {
   const handleCreateCentro = async () => {
     try {
       setLoading(true);
-      await CompaniesCRUD.createCompany({
+      // 1. Crear el centro de trabajo
+      const centroCreado = await CompaniesCRUD.createCompany({
         nombre_centro: formData.nombre_centro,
         estado_centro: 'Activo',
         contacto_centro: {
@@ -117,9 +136,28 @@ function Companies() {
           estado_dir: 'Activo'
         }
       });
+      // 2. Crear la persona de contacto empresa usando el id_centro
+      await personaContactoEmpresaService.createPersonaContactoEmpresa({
+        nombre_persona_contacto: formData.nombre_persona_contacto,
+        apellido_persona_contacto: formData.apellido_persona_contacto,
+        telefono: formData.telefono_persona_contacto,
+        extension: formData.extension_persona_contacto,
+        departamento: formData.departamento_persona_contacto,
+        centro_trabajo: centroCreado.id_centro
+      });
+      setSnackbar({
+        open: true,
+        message: 'Centro y persona de contacto registrados correctamente',
+        severity: 'success'
+      });
       setOpenDialog(false);
       loadCentrosTrabajo();
     } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Error al registrar el centro o la persona de contacto',
+        severity: 'error'
+      });
       setError('Error al crear el centro de trabajo');
     } finally {
       setLoading(false);
@@ -569,6 +607,63 @@ function Companies() {
                   />
                 </MUI.Grid>
               </MUI.Grid>
+
+              {/* Persona de Contacto Empresa */}
+              <MUI.Typography variant="h6" sx={{ color: '#1a237e', mb: 1, mt: 2 }}>
+                Persona de Contacto de la Empresa
+              </MUI.Typography>
+              <MUI.Grid container spacing={2}>
+                <MUI.Grid item xs={12} md={6}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Nombre"
+                    name="nombre_persona_contacto"
+                    value={formData.nombre_persona_contacto}
+                    onChange={handleFormChange}
+                    variant="outlined"
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={6}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Apellido"
+                    name="apellido_persona_contacto"
+                    value={formData.apellido_persona_contacto}
+                    onChange={handleFormChange}
+                    variant="outlined"
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={6}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Teléfono"
+                    name="telefono_persona_contacto"
+                    value={formData.telefono_persona_contacto}
+                    onChange={handleFormChange}
+                    variant="outlined"
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={3}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Extensión"
+                    name="extension_persona_contacto"
+                    value={formData.extension_persona_contacto}
+                    onChange={handleFormChange}
+                    variant="outlined"
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={3}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Departamento"
+                    name="departamento_persona_contacto"
+                    value={formData.departamento_persona_contacto}
+                    onChange={handleFormChange}
+                    variant="outlined"
+                  />
+                </MUI.Grid>
+              </MUI.Grid>
             </MUI.Box>
           </MUI.DialogContent>
           <MUI.DialogActions>
@@ -718,6 +813,18 @@ function Companies() {
           </MUI.DialogActions>
         </MUI.Dialog>
         </MUI.Box>
+
+        {/* Snackbar de feedback */}
+        <MUI.Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={() => setSnackbar({...snackbar, open: false})}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        >
+          <MUI.Alert onClose={() => setSnackbar({...snackbar, open: false})} severity={snackbar.severity} sx={{ width: '100%' }}>
+            {snackbar.message}
+          </MUI.Alert>
+        </MUI.Snackbar>
       </MUI.Box>
     </MUI.Box>
   );
