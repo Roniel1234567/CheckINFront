@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import '../../../styles/index.scss';
 import * as MUI from '@mui/material';
-import { Add as AddIcon, Search as SearchIcon, Edit as EditIcon, Delete as DeleteIcon, DateRange as DateRangeIcon, FilterList as FilterListIcon, Shield as ShieldIcon, Event as EventIcon } from '@mui/icons-material';
+import { Add as AddIcon, Search as SearchIcon, Edit as EditIcon, Delete as DeleteIcon, DateRange as DateRangeIcon, FilterList as FilterListIcon, Shield as ShieldIcon, Event as EventIcon, History as HistoryIcon, Restore as RestoreIcon } from '@mui/icons-material';
 import { SelectChangeEvent } from '@mui/material';
 import studentService, { Estudiante, NuevoEstudiante } from '../../../services/studentService';
 import tallerService, { Taller } from '../../../services/tallerService';
@@ -84,6 +84,8 @@ const Students = () => {
   const [fechasData, setFechasData] = useState({ fecha_inicio_pasantia: '', fecha_fin_pasantia: '', horaspasrealizadas_est: '', estudiante: 'all' });
   const [searchEstudiante, setSearchEstudiante] = useState('');
   const [filterTaller, setFilterTaller] = useState('');
+  const [showHistorial, setShowHistorial] = useState(false);
+  const [restaurando, setRestaurando] = useState<string | null>(null);
 
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -983,6 +985,17 @@ const Students = () => {
     return `${day}/${month}/${year}`;
   };
 
+  // Filtro para historial (eliminados)
+  const filteredEliminados = estudiantes.filter(estudiante => {
+    const nombreMatch = estudiante.nombre_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      estudiante.apellido_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      estudiante.documento_id_est.includes(searchTerm);
+    const tallerMatch = selectedTalleres.length === 0 ||
+      (estudiante.taller_est && selectedTalleres.includes(String(estudiante.taller_est.id_taller)));
+    const usuarioEliminado = estudiante.usuario_est?.estado_usuario === 'Eliminado';
+    return nombreMatch && tallerMatch && usuarioEliminado;
+  });
+
   if (error) {
     return (
       <MUI.Box sx={{ p: 2 }}>
@@ -1000,7 +1013,7 @@ const Students = () => {
           <MUI.Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <MUI.Paper elevation={3} sx={{ display: 'flex', alignItems: 'center', borderRadius: 3, boxShadow: 3, px: 2, py: 1, width: 400, bgcolor: '#f5f7fa' }}>
               <MUI.TextField
-                placeholder="Buscar estudiante..."
+                placeholder={showHistorial ? "Buscar eliminado..." : "Buscar estudiante..."}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -1014,6 +1027,14 @@ const Students = () => {
               </MUI.IconButton>
             </MUI.Paper>
             <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {!showHistorial && (
+                <MUI.IconButton onClick={() => setShowHistorial(true)} color="secondary">
+                  <HistoryIcon />
+                </MUI.IconButton>
+              )}
+              {showHistorial && (
+                <MUI.Button onClick={() => setShowHistorial(false)} color="primary" variant="outlined">Volver</MUI.Button>
+              )}
               <MUI.IconButton onClick={() => setOpenPolizaDialog(true)} color="primary">
                 <ShieldIcon />
               </MUI.IconButton>
@@ -1080,593 +1101,146 @@ const Students = () => {
               </MUI.Box>
             </MUI.Box>
           </MUI.Menu>
-          <MUI.TableContainer component={MUI.Paper} elevation={3} sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#fff' }}>
-            <MUI.Table sx={{ minWidth: 900 }}>
-              <MUI.TableHead sx={{ bgcolor: '#f5f7fa' }}>
-                <MUI.TableRow>
-                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Documento</MUI.TableCell>
-                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Nombre</MUI.TableCell>
-                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Taller</MUI.TableCell>
-                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Contacto</MUI.TableCell>
-                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Fechas</MUI.TableCell>
-                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Póliza</MUI.TableCell>
-                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Horas acumuladas</MUI.TableCell>
-                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Documentos</MUI.TableCell>
-                  <MUI.TableCell sx={{ fontWeight: 'bold' }}>Acciones</MUI.TableCell>
-                </MUI.TableRow>
-              </MUI.TableHead>
-              <MUI.TableBody>
-                {filteredEstudiantes.map((estudiante) => (
-                  <MUI.TableRow key={estudiante.documento_id_est} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: '#e3f2fd' } }}>
-                    <MUI.TableCell>{estudiante.documento_id_est}</MUI.TableCell>
-                    <MUI.TableCell>{`${estudiante.nombre_est} ${estudiante.apellido_est}`}</MUI.TableCell>
-                    <MUI.TableCell>{estudiante.taller_est?.nombre_taller || '-'}</MUI.TableCell>
-                    <MUI.TableCell>{estudiante.contacto_est?.email_contacto || '-'}</MUI.TableCell>
-                    <MUI.TableCell>
-                      {estudiante.fecha_inicio_pasantia && estudiante.fecha_fin_pasantia ? (
-                        <MUI.Tooltip title="Fechas de Pasantía">
-                          <MUI.Chip
-                            icon={<DateRangeIcon />}
-                            label={`${formatDate(estudiante.fecha_inicio_pasantia)} - ${formatDate(estudiante.fecha_fin_pasantia)}`}
-                            size="small"
-                          />
-                        </MUI.Tooltip>
-                      ) : (
-                        <MUI.Chip icon={<AddIcon />} label="Sin fechas" size="small" color="default" />
-                      )}
-                    </MUI.TableCell>
-                    <MUI.TableCell>
-                      {estudiante.nombre_poliza ? (
-                        <MUI.Tooltip title={`Número: ${estudiante.numero_poliza || 'No especificado'}`}>
-                          <MUI.Chip
-                            label={estudiante.nombre_poliza}
-                            size="small"
-                            color="primary"
-                          />
-                        </MUI.Tooltip>
-                      ) : (
-                        <MUI.Chip icon={<AddIcon />} label="Sin póliza" size="small" color="default" />
-                      )}
-                    </MUI.TableCell>
-                    <MUI.TableCell>
-                      {estudiante.horaspasrealizadas_est ?? '-'}
-                    </MUI.TableCell>
-                    <MUI.TableCell>
-                      <DocumentosMenu documento={estudiante.documento_id_est} />
-                    </MUI.TableCell>
-                    <MUI.TableCell>
-                      <MUI.IconButton size="small" color="primary" onClick={() => handleEditClick(estudiante)}>
-                        <EditIcon />
-                      </MUI.IconButton>
-                      <MUI.IconButton size="small" color="error" onClick={() => handleDeleteClick(estudiante)}>
-                        <DeleteIcon />
-                      </MUI.IconButton>
-                    </MUI.TableCell>
+          {!showHistorial ? (
+            <MUI.TableContainer component={MUI.Paper} elevation={3} sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#fff' }}>
+              <MUI.Table sx={{ minWidth: 900 }}>
+                <MUI.TableHead sx={{ bgcolor: '#f5f7fa' }}>
+                  <MUI.TableRow>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Documento</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Nombre</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Taller</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Contacto</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Fechas</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Póliza</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Horas acumuladas</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Documentos</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Acciones</MUI.TableCell>
                   </MUI.TableRow>
-                ))}
-              </MUI.TableBody>
-            </MUI.Table>
-          </MUI.TableContainer>
-
-          <MUI.Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
-            <MUI.DialogTitle>{editMode ? 'Editar Estudiante' : 'Nuevo Estudiante'}</MUI.DialogTitle>
-            <MUI.DialogContent>
-              <MUI.Button variant="outlined" color="secondary" onClick={handleAutofill} sx={{ mb: 2 }}>
-                Autollenar
-              </MUI.Button>
-              <MUI.Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-                <MUI.Typography variant="h6" sx={{ mb: 2 }}>Datos personales</MUI.Typography>
-                <MUI.Grid container spacing={2}>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.FormControl fullWidth required>
-                      <MUI.InputLabel id="nacionalidad-label">Nacionalidad</MUI.InputLabel>
-                      <MUI.Select
-                        labelId="nacionalidad-label"
-                        name="nacionalidad"
-                        value={formData.nacionalidad}
-                        label="Nacionalidad"
-                        onChange={handleNacionalidadChange}
-                      >
-                        <MUI.MenuItem value="Dominicana">Dominicana</MUI.MenuItem>
-                        <MUI.MenuItem value="Otra">Otra</MUI.MenuItem>
-                      </MUI.Select>
-                      <MUI.FormHelperText>Si es de otro país, escriba su nacionalidad</MUI.FormHelperText>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-                  {formData.nacionalidad === 'Otra' && (
-                    <MUI.Grid item xs={12} sm={6}>
-                      <MUI.TextField
-                        fullWidth
-                        label="Especifique su nacionalidad"
-                        name="nacionalidadOtra"
-                        value={formData.nacionalidadOtra || ''}
-                        onChange={handleNacionalidadOtraChange}
-                        required
-                      />
-                    </MUI.Grid>
-                  )}
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.FormControl fullWidth required>
-                      <MUI.InputLabel id="tipo-doc-label">Tipo de Documento</MUI.InputLabel>
-                      <MUI.Select
-                        labelId="tipo-doc-label"
-                        name="tipoDocumento"
-                        value={formData.tipoDocumento}
-                        label="Tipo de Documento"
-                        onChange={handleSelectChange}
-                        disabled
-                      >
-                        {formData.nacionalidad === 'Dominicana' ? (
-                          <MUI.MenuItem value="Cédula">Cédula</MUI.MenuItem>
+                </MUI.TableHead>
+                <MUI.TableBody>
+                  {filteredEstudiantes.map((estudiante) => (
+                    <MUI.TableRow key={estudiante.documento_id_est} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: '#e3f2fd' } }}>
+                      <MUI.TableCell>{estudiante.documento_id_est}</MUI.TableCell>
+                      <MUI.TableCell>{`${estudiante.nombre_est} ${estudiante.apellido_est}`}</MUI.TableCell>
+                      <MUI.TableCell>{estudiante.taller_est?.nombre_taller || '-'}</MUI.TableCell>
+                      <MUI.TableCell>{estudiante.contacto_est?.email_contacto || '-'}</MUI.TableCell>
+                      <MUI.TableCell>
+                        {estudiante.fecha_inicio_pasantia && estudiante.fecha_fin_pasantia ? (
+                          <MUI.Tooltip title="Fechas de Pasantía">
+                            <MUI.Chip
+                              icon={<DateRangeIcon />}
+                              label={`${formatDate(estudiante.fecha_inicio_pasantia)} - ${formatDate(estudiante.fecha_fin_pasantia)}`}
+                              size="small"
+                            />
+                          </MUI.Tooltip>
                         ) : (
-                          <MUI.MenuItem value="Pasaporte">Pasaporte</MUI.MenuItem>
+                          <MUI.Chip icon={<AddIcon />} label="Sin fechas" size="small" color="default" />
                         )}
-                      </MUI.Select>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Documento"
-                      name="documento"
-                      value={formData.documento}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-                        handleInputChange(e as React.ChangeEvent<HTMLInputElement>);
-                        checkDocumento(e.target.value);
-                      }}
-                      onBlur={(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => checkDocumento(e.target.value)}
-                      required
-                      error={!documentoDisponible}
-                      helperText={!documentoDisponible ? "Este documento ya está en uso" : ""}
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Nombre"
-                      name="nombre"
-                      value={formData.nombre}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Segundo Nombre"
-                      name="segNombre"
-                      value={formData.segNombre}
-                      onChange={handleInputChange}
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Apellido"
-                      name="apellido"
-                      value={formData.apellido}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Segundo Apellido"
-                      name="segApellido"
-                      value={formData.segApellido}
-                      onChange={handleInputChange}
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      type="date"
-                      label="Fecha de Nacimiento"
-                      name="fechaNacimiento"
-                      value={formData.fechaNacimiento}
-                      onChange={handleInputChange}
-                      InputLabelProps={{ shrink: true }}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Teléfono"
-                      name="telefono"
-                      value={formData.telefono}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12}>
-                    <MUI.FormControl fullWidth>
-                      <MUI.InputLabel>Taller</MUI.InputLabel>
-                      <MUI.Select
-                        name="taller"
-                        value={formData.taller}
-                        onChange={handleSelectChange}
-                        required
-                      >
-                        {talleres.map((taller) => (
-                          <MUI.MenuItem key={taller.id_taller} value={taller.id_taller}>
-                            {taller.nombre_taller}
-                          </MUI.MenuItem>
-                        ))}
-                      </MUI.Select>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.FormControl fullWidth required>
-                      <MUI.InputLabel id="provincia-label">Provincia</MUI.InputLabel>
-                      <MUI.Select
-                        labelId="provincia-label"
-                        name="provincia"
-                        value={formData.provincia}
-                        label="Provincia"
-                        onChange={handleProvinciaChange}
-                      >
-                        {provincias.map((prov) => (
-                          <MUI.MenuItem key={prov.id_prov} value={prov.id_prov}>{prov.provincia}</MUI.MenuItem>
-                        ))}
-                      </MUI.Select>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.FormControl fullWidth required>
-                      <MUI.InputLabel id="ciudad-label">Ciudad</MUI.InputLabel>
-                      <MUI.Select
-                        labelId="ciudad-label"
-                        name="ciudad"
-                        value={formData.ciudad}
-                        label="Ciudad"
-                        onChange={handleCiudadChange}
-                        disabled={!formData.provincia}
-                      >
-                        {ciudades.map((ciu) => (
-                          <MUI.MenuItem key={ciu.id_ciu} value={ciu.id_ciu}>{ciu.ciudad}</MUI.MenuItem>
-                        ))}
-                      </MUI.Select>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.FormControl fullWidth required>
-                      <MUI.InputLabel id="sector-label">Sector</MUI.InputLabel>
-                      <MUI.Select
-                        labelId="sector-label"
-                        name="sector"
-                        value={formData.sector}
-                        label="Sector"
-                        onChange={handleSelectChange}
-                        disabled={!formData.ciudad || sectores.length === 0}
-                      >
-                        {sectores.map((sec: Sector) => (
-                          <MUI.MenuItem key={sec.id_sec} value={String(sec.id_sec)}>
-                            {sec.sector || 'Sin nombre'}
-                          </MUI.MenuItem>
-                        ))}
-                      </MUI.Select>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Calle"
-                      name="calle"
-                      value={formData.calle}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Número de residencia"
-                      name="numero"
-                      value={formData.numero}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Año de inicio ciclo escolar"
-                      name="inicioCiclo"
-                      type="number"
-                      value={formData.inicioCiclo}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Año de fin ciclo escolar"
-                      name="finCiclo"
-                      type="number"
-                      value={formData.finCiclo}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.FormControl fullWidth required>
-                      <MUI.InputLabel id="estado-ciclo-label">Estado ciclo escolar</MUI.InputLabel>
-                      <MUI.Select
-                        labelId="estado-ciclo-label"
-                        name="estadoCiclo"
-                        value={formData.estadoCiclo}
-                        label="Estado ciclo escolar"
-                        onChange={handleSelectChange}
-                      >
-                        <MUI.MenuItem value="Actual">Actual</MUI.MenuItem>
-                        <MUI.MenuItem value="Pasado">Pasado</MUI.MenuItem>
-                        <MUI.MenuItem value="Futuro">Futuro</MUI.MenuItem>
-                      </MUI.Select>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Horas pasantía realizadas"
-                      name="horaspasrealizadas"
-                      type="number"
-                      value={formData.horaspasrealizadas}
-                      onChange={handleInputChange}
-                      disabled
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Nombre de póliza"
-                      name="nombre_poliza"
-                      value={formData.nombre_poliza}
-                      onChange={handleInputChange}
-                      disabled
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Número de póliza"
-                      name="numero_poliza"
-                      value={formData.numero_poliza}
-                      onChange={handleInputChange}
-                      disabled
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Fecha inicio pasantía"
-                      name="fecha_inicio_pasantia"
-                      type="date"
-                      value={formData.fecha_inicio_pasantia}
-                      onChange={handleInputChange}
-                      InputLabelProps={{ shrink: true }}
-                      disabled
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Fecha fin pasantía"
-                      name="fecha_fin_pasantia"
-                      type="date"
-                      value={formData.fecha_fin_pasantia}
-                      onChange={handleInputChange}
-                      InputLabelProps={{ shrink: true }}
-                      disabled
-                    />
-                  </MUI.Grid>
-                </MUI.Grid>
-                <MUI.Grid item xs={12}>
-                  <MUI.Typography variant="h6" sx={{ mt: 4, mb: 2 }}>Persona de contacto</MUI.Typography>
-                </MUI.Grid>
-                <MUI.Grid container spacing={2}>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Nombre"
-                      name="nombrePersonaContacto"
-                      value={formData.nombrePersonaContacto}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Apellido"
-                      name="apellidoPersonaContacto"
-                      value={formData.apellidoPersonaContacto}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.FormControl fullWidth required>
-                      <MUI.InputLabel id="relacion-label">Relación</MUI.InputLabel>
-                      <MUI.Select
-                        labelId="relacion-label"
-                        name="relacionPersonaContacto"
-                        value={formData.relacionPersonaContacto}
-                        label="Relación"
-                        onChange={handleSelectChange}
-                      >
-                        <MUI.MenuItem value="Padre">Padre</MUI.MenuItem>
-                        <MUI.MenuItem value="Madre">Madre</MUI.MenuItem>
-                        <MUI.MenuItem value="Tutor">Tutor</MUI.MenuItem>
-                      </MUI.Select>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Teléfono"
-                      name="telefonoPersonaContacto"
-                      value={formData.telefonoPersonaContacto}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Correo (opcional)"
-                      name="correoPersonaContacto"
-                      value={formData.correoPersonaContacto}
-                      onChange={handleInputChange}
-                    />
-                  </MUI.Grid>
-                </MUI.Grid>
-                <MUI.Typography variant="h6" sx={{ mt: 4, mb: 2 }}>Datos de usuario</MUI.Typography>
-                <MUI.Grid container spacing={2}>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Usuario"
-                      name="usuario"
-                      value={formData.usuario}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-                        handleInputChange(e as React.ChangeEvent<HTMLInputElement>);
-                        checkUsuario(e.target.value);
-                      }}
-                      onBlur={(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => checkUsuario(e.target.value)}
-                      required
-                      error={!usuarioDisponible}
-                      helperText={!usuarioDisponible ? "Este usuario ya existe" : ""}
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Contraseña"
-                      name="contrasena"
-                      type="password"
-                      value={formData.contrasena}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Rol"
-                      name="rol"
-                      value={1}
-                      InputProps={{ readOnly: true }}
-                      helperText="Siempre será Estudiante"
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Estado"
-                      name="estado"
-                      value={'Activo'}
-                      InputProps={{ readOnly: true }}
-                      helperText="Siempre será Activo al crear"
-                    />
-                  </MUI.Grid>
-                </MUI.Grid>
-                <MUI.Typography variant="h6" sx={{ mt: 4, mb: 2 }}>Documentos requeridos</MUI.Typography>
-                <MUI.Grid container spacing={2}>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.Button variant="outlined" component="label" fullWidth>
-                      Cédula/ID
-                      <input type="file" name="id_doc_file" hidden onChange={handleFileChange} />
-                    </MUI.Button>
-                    {formData.id_doc_file instanceof File && (
-                      <MUI.Typography variant="caption" color="primary">
-                        {formData.id_doc_file.name}
-                      </MUI.Typography>
-                    )}
-                    {!formData.id_doc_file && docsEstudiante?.ced_est && (
-                      <MUI.Typography variant="caption" color="success.main">
-                        SUBIDO
-                      </MUI.Typography>
-                    )}
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.Button variant="outlined" component="label" fullWidth>
-                      CV
-                      <input type="file" name="cv_doc_file" hidden onChange={handleFileChange} />
-                    </MUI.Button>
-                    {formData.cv_doc_file instanceof File && (
-                      <MUI.Typography variant="caption" color="primary">
-                        {formData.cv_doc_file.name}
-                      </MUI.Typography>
-                    )}
-                    {!formData.cv_doc_file && docsEstudiante?.cv_doc && (
-                      <MUI.Typography variant="caption" color="success.main">
-                        SUBIDO
-                      </MUI.Typography>
-                    )}
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.Button variant="outlined" component="label" fullWidth>
-                      Anexo IV
-                      <input type="file" name="anexo_iv_doc_file" hidden onChange={handleFileChange} />
-                    </MUI.Button>
-                    {formData.anexo_iv_doc_file instanceof File && (
-                      <MUI.Typography variant="caption" color="primary">
-                        {formData.anexo_iv_doc_file.name}
-                      </MUI.Typography>
-                    )}
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.Button variant="outlined" component="label" fullWidth>
-                      Anexo V
-                      <input type="file" name="anexo_v_doc_file" hidden onChange={handleFileChange} />
-                    </MUI.Button>
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.Button variant="outlined" component="label" fullWidth>
-                      Acta de nacimiento
-                      <input type="file" name="acta_nac_doc_file" hidden onChange={handleFileChange} />
-                    </MUI.Button>
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.Button variant="outlined" component="label" fullWidth>
-                      Cédula de padres
-                      <input type="file" name="ced_padres_doc_file" hidden onChange={handleFileChange} />
-                    </MUI.Button>
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.Button variant="outlined" component="label" fullWidth>
-                      Vacuna COVID
-                      <input type="file" name="vac_covid_doc_file" hidden onChange={handleFileChange} />
-                    </MUI.Button>
-                  </MUI.Grid>
-                </MUI.Grid>
-                <MUI.Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                  <MUI.Button onClick={() => setOpenForm(false)}>Cancelar</MUI.Button>
-                  <MUI.Button
-                    type="submit"
-                    variant="contained"
-                    disabled={!usuarioDisponible || !documentoDisponible}
-                  >
-                    Guardar
-                  </MUI.Button>
-                </MUI.Box>
-              </MUI.Box>
-            </MUI.DialogContent>
-          </MUI.Dialog>
+                      </MUI.TableCell>
+                      <MUI.TableCell>
+                        {estudiante.nombre_poliza ? (
+                          <MUI.Tooltip title={`Número: ${estudiante.numero_poliza || 'No especificado'}`}>
+                            <MUI.Chip
+                              label={estudiante.nombre_poliza}
+                              size="small"
+                              color="primary"
+                            />
+                          </MUI.Tooltip>
+                        ) : (
+                          <MUI.Chip icon={<AddIcon />} label="Sin póliza" size="small" color="default" />
+                        )}
+                      </MUI.TableCell>
+                      <MUI.TableCell>
+                        {estudiante.horaspasrealizadas_est ?? '-'}
+                      </MUI.TableCell>
+                      <MUI.TableCell>
+                        <DocumentosMenu documento={estudiante.documento_id_est} />
+                      </MUI.TableCell>
+                      <MUI.TableCell>
+                        <MUI.IconButton size="small" color="primary" onClick={() => handleEditClick(estudiante)}>
+                          <EditIcon />
+                        </MUI.IconButton>
+                        <MUI.IconButton size="small" color="error" onClick={() => handleDeleteClick(estudiante)}>
+                          <DeleteIcon />
+                        </MUI.IconButton>
+                      </MUI.TableCell>
+                    </MUI.TableRow>
+                  ))}
+                </MUI.TableBody>
+              </MUI.Table>
+            </MUI.TableContainer>
+          ) : (
+            <MUI.TableContainer component={MUI.Paper} elevation={3} sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#fff' }}>
+              <MUI.Table sx={{ minWidth: 900 }}>
+                <MUI.TableHead sx={{ bgcolor: '#f5f7fa' }}>
+                  <MUI.TableRow>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Documento</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Nombre</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Taller</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Contacto</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Fechas</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Póliza</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Horas acumuladas</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Acciones</MUI.TableCell>
+                  </MUI.TableRow>
+                </MUI.TableHead>
+                <MUI.TableBody>
+                  {filteredEliminados.map((estudiante) => (
+                    <MUI.TableRow key={estudiante.documento_id_est} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: '#fffde7' } }}>
+                      <MUI.TableCell>{estudiante.documento_id_est}</MUI.TableCell>
+                      <MUI.TableCell>{`${estudiante.nombre_est} ${estudiante.apellido_est}`}</MUI.TableCell>
+                      <MUI.TableCell>{estudiante.taller_est?.nombre_taller || '-'}</MUI.TableCell>
+                      <MUI.TableCell>{estudiante.contacto_est?.email_contacto || '-'}</MUI.TableCell>
+                      <MUI.TableCell>
+                        {estudiante.fecha_inicio_pasantia && estudiante.fecha_fin_pasantia ? (
+                          <MUI.Tooltip title="Fechas de Pasantía">
+                            <MUI.Chip
+                              icon={<DateRangeIcon />}
+                              label={`${formatDate(estudiante.fecha_inicio_pasantia)} - ${formatDate(estudiante.fecha_fin_pasantia)}`}
+                              size="small"
+                            />
+                          </MUI.Tooltip>
+                        ) : (
+                          <MUI.Chip icon={<AddIcon />} label="Sin fechas" size="small" color="default" />
+                        )}
+                      </MUI.TableCell>
+                      <MUI.TableCell>
+                        {estudiante.nombre_poliza ? (
+                          <MUI.Tooltip title={`Número: ${estudiante.numero_poliza || 'No especificado'}`}>
+                            <MUI.Chip
+                              label={estudiante.nombre_poliza}
+                              size="small"
+                              color="primary"
+                            />
+                          </MUI.Tooltip>
+                        ) : (
+                          <MUI.Chip icon={<AddIcon />} label="Sin póliza" size="small" color="default" />
+                        )}
+                      </MUI.TableCell>
+                      <MUI.TableCell>
+                        {estudiante.horaspasrealizadas_est ?? '-'}
+                      </MUI.TableCell>
+                      <MUI.TableCell>
+                        <MUI.IconButton size="small" color="success" onClick={async () => {
+                          setRestaurando(estudiante.documento_id_est);
+                          try {
+                            await userService.updateUser(estudiante.usuario_est.id_usuario, { estado_usuario: 'Activo' });
+                            setSnackbar({ open: true, message: 'Estudiante restablecido correctamente', severity: 'success' });
+                            loadData();
+                          } catch {
+                            setSnackbar({ open: true, message: 'Error al restablecer estudiante', severity: 'error' });
+                          }
+                          setRestaurando(null);
+                        }} disabled={restaurando === estudiante.documento_id_est}>
+                          <RestoreIcon />
+                        </MUI.IconButton>
+                      </MUI.TableCell>
+                    </MUI.TableRow>
+                  ))}
+                </MUI.TableBody>
+              </MUI.Table>
+            </MUI.TableContainer>
+          )}
           <MUI.Snackbar
             open={snackbar.open}
             autoHideDuration={4000}
