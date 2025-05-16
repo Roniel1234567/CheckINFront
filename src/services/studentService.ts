@@ -167,6 +167,10 @@ const studentService = {
       console.error('Error al actualizar fechas de pasantía:', error);
       throw error;
     }
+  },
+
+  updatePolizaEstudiante: async (documento_id_est: string, id_poliza: number) => {
+    return api.put(`/estudiantes/${documento_id_est}/poliza`, { id_poliza });
   }
 };
 

@@ -18,6 +18,7 @@ import { uploadDocsEstudiante, downloadDocEstudiante, getDocsEstudianteByDocumen
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DownloadIcon from '@mui/icons-material/Download';
+import polizaService from '../../../services/polizaService';
 
 // Define el tipo para la dirección completa
 interface DireccionCompleta {
@@ -80,7 +81,15 @@ const Students = () => {
   const [pendingLocation, setPendingLocation] = useState<{provincia?: string, ciudad?: string, sector?: string} | null>(null);
   const [openPolizaDialog, setOpenPolizaDialog] = useState(false);
   const [openFechasDialog, setOpenFechasDialog] = useState(false);
-  const [polizaData, setPolizaData] = useState({ nombre_poliza: '', numero_poliza: '', estudiante: 'all' });
+  const [polizaData, setPolizaData] = useState({
+    compania: '',
+    tipo_poliza: '',
+    nombre_poliza: '',
+    numero_poliza: '',
+    fecha_inicio: '',
+    fecha_fin: '',
+    estudiante: 'all'
+  });
   const [fechasData, setFechasData] = useState({ fecha_inicio_pasantia: '', fecha_fin_pasantia: '', horaspasrealizadas_est: '', estudiante: 'all' });
   const [searchEstudiante, setSearchEstudiante] = useState('');
   const [filterTaller, setFilterTaller] = useState('');
@@ -100,21 +109,17 @@ const Students = () => {
     telefono: '',
     email: '',
     taller: '',
-    // Dirección
     provincia: '',
     ciudad: '',
     sector: '',
     calle: '',
     numero: '',
     direccionId: '',
-    // Ciclo escolar
     inicioCiclo: '',
     finCiclo: '',
     estadoCiclo: 'Actual',
-    // Usuario
     usuario: '',
     contrasena: '',
-    // Documentos
     id_doc_file: null as File | null,
     cv_doc_file: null as File | null,
     anexo_iv_doc_file: null as File | null,
@@ -123,11 +128,6 @@ const Students = () => {
     ced_padres_doc_file: null as File | null,
     vac_covid_doc_file: null as File | null,
     horaspasrealizadas: '',
-    nombre_poliza: '',
-    numero_poliza: '',
-    fecha_inicio_pasantia: '',
-    fecha_fin_pasantia: '',
-    // Persona de contacto
     nombrePersonaContacto: '',
     apellidoPersonaContacto: '',
     relacionPersonaContacto: '',
@@ -188,13 +188,9 @@ const Students = () => {
           fecha_nac_est: formData.fechaNacimiento,
           taller_est: formData.taller !== '' ? { id_taller: Number(formData.taller), nombre_taller: '', cod_titulo_taller: '', estado_taller: '' } : undefined,
           horaspasrealizadas_est: formData.horaspasrealizadas !== '' ? String(formData.horaspasrealizadas) : undefined,
-          nombre_poliza: formData.nombre_poliza !== '' ? formData.nombre_poliza : undefined,
-          numero_poliza: formData.numero_poliza !== '' ? formData.numero_poliza : undefined,
-          fecha_inicio_pasantia: formData.fecha_inicio_pasantia !== '' ? formData.fecha_inicio_pasantia : undefined,
-          fecha_fin_pasantia: formData.fecha_fin_pasantia !== '' ? formData.fecha_fin_pasantia : undefined,
           nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : 'Dominicana',
-          direccion_id: formData.direccionId ? Number(formData.direccionId) : null,
-          ciclo_escolar_est: cicloEscolarId && cicloEscolarId !== 0 ? cicloEscolarId : null,
+          direccion_id: formData.direccionId ? Number(formData.direccionId) : undefined,
+          ciclo_escolar_est: cicloEscolarId && cicloEscolarId !== 0 ? cicloEscolarId : undefined,
         });
         setSnackbar({ open: true, message: 'Estudiante actualizado correctamente', severity: 'success' });
         setOpenForm(false);
@@ -262,10 +258,6 @@ const Students = () => {
         direccion_id: nuevaDireccion && nuevaDireccion.id_dir ? Number(nuevaDireccion.id_dir) : null,
         ciclo_escolar_est: nuevoCiclo && nuevoCiclo.id_ciclo ? Number(nuevoCiclo.id_ciclo) : null,
         horaspasrealizadas_est: formData.horaspasrealizadas !== '' ? Number(formData.horaspasrealizadas) : null,
-        nombre_poliza: formData.nombre_poliza !== '' ? formData.nombre_poliza : null,
-        numero_poliza: formData.numero_poliza !== '' ? formData.numero_poliza : null,
-        fecha_inicio_pasantia: formData.fecha_inicio_pasantia !== '' ? formData.fecha_inicio_pasantia : null,
-        fecha_fin_pasantia: formData.fecha_fin_pasantia !== '' ? formData.fecha_fin_pasantia : null,
       };
       // Limpieza final: convierte cualquier string vacío a null
       (Object.keys(nuevoEstudiante) as (keyof NuevoEstudiante)[]).forEach((key) => {
@@ -336,10 +328,6 @@ const Students = () => {
         ced_padres_doc_file: null,
         vac_covid_doc_file: null,
         horaspasrealizadas: '',
-        nombre_poliza: '',
-        numero_poliza: '',
-        fecha_inicio_pasantia: '',
-        fecha_fin_pasantia: '',
         nombrePersonaContacto: '',
         apellidoPersonaContacto: '',
         relacionPersonaContacto: '',
@@ -352,51 +340,6 @@ const Students = () => {
       setError('Error al crear el estudiante');
       // No cierres el formulario si hay error
     }
-  };
-
-  // Función para autollenar el formulario con datos de ejemplo
-  const handleAutofill = () => {
-    setFormData({
-      nacionalidad: 'Dominicana',
-      tipoDocumento: 'Cédula',
-      documento: '12345678',
-      nombre: 'Juan',
-      segNombre: 'Carlos',
-      apellido: 'Pérez',
-      segApellido: 'Gómez',
-      fechaNacimiento: '2002-05-10',
-      telefono: '8091234567',
-      email: 'juan.perez@example.com',
-      taller: talleres.length > 0 ? String(talleres[0].id_taller) : '',
-      provincia: provincias.length > 0 ? String(provincias[0].id_prov) : '',
-      ciudad: ciudades.length > 0 ? String(ciudades[0].id_ciu) : '',
-      sector: sectores.length > 0 ? String(sectores[0].id_sec) : '',
-      calle: 'Calle Principal',
-      numero: '123',
-      inicioCiclo: '2023',
-      finCiclo: '2024',
-      estadoCiclo: 'Actual',
-      usuario: 'juanperez',
-      contrasena: '123456',
-      id_doc_file: null,
-      cv_doc_file: null,
-      anexo_iv_doc_file: null,
-      anexo_v_doc_file: null,
-      acta_nac_doc_file: null,
-      ced_padres_doc_file: null,
-      vac_covid_doc_file: null,
-      horaspasrealizadas: '',
-      nombre_poliza: '',
-      numero_poliza: '',
-      fecha_inicio_pasantia: '',
-      fecha_fin_pasantia: '',
-      nombrePersonaContacto: '',
-      apellidoPersonaContacto: '',
-      relacionPersonaContacto: '',
-      telefonoPersonaContacto: '',
-      correoPersonaContacto: '',
-      nacionalidadOtra: '',
-    });
   };
 
   const checkUsuario = async (usuario: string) => {
@@ -700,10 +643,6 @@ const Students = () => {
         ced_padres_doc_file: docs?.ced_padres_doc_file as unknown as File || null,
         vac_covid_doc_file: docs?.vac_covid_doc_file as unknown as File || null,
         horaspasrealizadas: estudiante.horaspasrealizadas_est || '',
-        nombre_poliza: estudiante.nombre_poliza || '',
-        numero_poliza: estudiante.numero_poliza || '',
-        fecha_inicio_pasantia: estudiante.fecha_inicio_pasantia || '',
-        fecha_fin_pasantia: estudiante.fecha_fin_pasantia || '',
         nombrePersonaContacto: personaContacto?.nombre || '',
         apellidoPersonaContacto: personaContacto?.apellido || '',
         relacionPersonaContacto: personaContacto?.relacion || '',
@@ -746,10 +685,6 @@ const Students = () => {
       ced_padres_doc_file: docs?.ced_padres_doc_file as unknown as File || null,
       vac_covid_doc_file: docs?.vac_covid_doc_file as unknown as File || null,
       horaspasrealizadas: estudiante.horaspasrealizadas_est || '',
-      nombre_poliza: estudiante.nombre_poliza || '',
-      numero_poliza: estudiante.numero_poliza || '',
-      fecha_inicio_pasantia: estudiante.fecha_inicio_pasantia || '',
-      fecha_fin_pasantia: estudiante.fecha_fin_pasantia || '',
       nombrePersonaContacto: personaContacto?.nombre || '',
       apellidoPersonaContacto: personaContacto?.apellido || '',
       relacionPersonaContacto: personaContacto?.relacion || '',
@@ -815,10 +750,6 @@ const Students = () => {
       ced_padres_doc_file: null,
       vac_covid_doc_file: null,
       horaspasrealizadas: '',
-      nombre_poliza: '',
-      numero_poliza: '',
-      fecha_inicio_pasantia: '',
-      fecha_fin_pasantia: '',
       nombrePersonaContacto: '',
       apellidoPersonaContacto: '',
       relacionPersonaContacto: '',
@@ -866,10 +797,6 @@ const Students = () => {
       ced_padres_doc_file: null,
       vac_covid_doc_file: null,
       horaspasrealizadas: '',
-      nombre_poliza: '',
-      numero_poliza: '',
-      fecha_inicio_pasantia: '',
-      fecha_fin_pasantia: '',
       nombrePersonaContacto: '',
       apellidoPersonaContacto: '',
       relacionPersonaContacto: '',
@@ -908,31 +835,40 @@ const Students = () => {
 
   // --- ACTUALIZAR POLIZA DE SEGURO ---
   const handlePolizaUpdate = async () => {
-    if (!polizaData.nombre_poliza || !polizaData.numero_poliza) return;
-    setSnackbar({ open: true, message: 'Actualizando póliza...', severity: 'success' });
+    if (!polizaData.nombre_poliza || !polizaData.numero_poliza || !polizaData.compania || !polizaData.tipo_poliza || !polizaData.fecha_inicio) return;
+    setSnackbar({ open: true, message: 'Asignando póliza...', severity: 'success' });
     try {
+      // 1. Insertar la póliza
+      const nuevaPoliza = await polizaService.createPoliza({
+        compania: polizaData.compania,
+        tipo_poliza: polizaData.tipo_poliza,
+        nombre_poliza: polizaData.nombre_poliza,
+        numero_poliza: polizaData.numero_poliza,
+        fecha_inicio: polizaData.fecha_inicio,
+        fecha_fin: polizaData.fecha_fin || null
+      });
+      // 2. Actualizar estudiante(s) con el id de la póliza SOLO si usuario_est.estado_usuario === 'Activo'
       if (polizaData.estudiante === 'all') {
-        // Actualizar todos los estudiantes activos
         const activos = estudiantes.filter(e => e.usuario_est?.estado_usuario === 'Activo');
         await Promise.all(
-          activos.map(e => studentService.assignPolicy(e.documento_id_est, {
-            nombre_poliza: polizaData.nombre_poliza,
-            numero_poliza: polizaData.numero_poliza
-          }))
+          activos.map(e => studentService.updatePolizaEstudiante(e.documento_id_est, nuevaPoliza.id_poliza))
         );
       } else {
-        // Actualizar solo el estudiante seleccionado
-        await studentService.assignPolicy(polizaData.estudiante, {
-          nombre_poliza: polizaData.nombre_poliza,
-          numero_poliza: polizaData.numero_poliza
-        });
+        const estudiante = estudiantes.find(e => e.documento_id_est === polizaData.estudiante && e.usuario_est?.estado_usuario === 'Activo');
+        if (estudiante) {
+          await studentService.updatePolizaEstudiante(estudiante.documento_id_est, nuevaPoliza.id_poliza);
+        }
       }
-      setSnackbar({ open: true, message: 'Póliza actualizada correctamente', severity: 'success' });
+      setSnackbar({ open: true, message: 'Póliza asignada correctamente', severity: 'success' });
       setOpenPolizaDialog(false);
-      setPolizaData({ nombre_poliza: '', numero_poliza: '', estudiante: 'all' });
+      setPolizaData({ compania: '', tipo_poliza: '', nombre_poliza: '', numero_poliza: '', fecha_inicio: '', fecha_fin: '', estudiante: 'all' });
       loadData();
-    } catch (error) {
-      setSnackbar({ open: true, message: 'Error al actualizar póliza', severity: 'error' });
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        setSnackbar({ open: true, message: 'Error: El endpoint /polizas o /estudiantes/:id/poliza no existe en el backend. Por favor, verifica la API.', severity: 'error' });
+      } else {
+        setSnackbar({ open: true, message: 'Error al asignar póliza', severity: 'error' });
+      }
     }
   };
 
@@ -1263,8 +1199,12 @@ const Students = () => {
             <MUI.DialogTitle>Actualizar Póliza de Seguro</MUI.DialogTitle>
             <MUI.DialogContent>
               <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                <MUI.TextField label="Compañía" value={polizaData.compania} onChange={e => setPolizaData({ ...polizaData, compania: e.target.value })} fullWidth />
+                <MUI.TextField label="Tipo de póliza" value={polizaData.tipo_poliza} onChange={e => setPolizaData({ ...polizaData, tipo_poliza: e.target.value })} fullWidth />
                 <MUI.TextField label="Nombre de póliza" value={polizaData.nombre_poliza} onChange={e => setPolizaData({ ...polizaData, nombre_poliza: e.target.value })} fullWidth />
                 <MUI.TextField label="Número de póliza" value={polizaData.numero_poliza} onChange={e => setPolizaData({ ...polizaData, numero_poliza: e.target.value })} fullWidth />
+                <MUI.TextField label="Fecha de inicio" type="date" InputLabelProps={{ shrink: true }} value={polizaData.fecha_inicio} onChange={e => setPolizaData({ ...polizaData, fecha_inicio: e.target.value })} fullWidth />
+                <MUI.TextField label="Fecha de fin (opcional)" type="date" InputLabelProps={{ shrink: true }} value={polizaData.fecha_fin} onChange={e => setPolizaData({ ...polizaData, fecha_fin: e.target.value })} fullWidth />
                 <MUI.Autocomplete
                   options={[
                     { label: 'Todos los estudiantes activos', value: 'all' },
@@ -1297,8 +1237,8 @@ const Students = () => {
             </MUI.DialogContent>
             <MUI.DialogActions>
               <MUI.Button onClick={() => setOpenPolizaDialog(false)}>Cancelar</MUI.Button>
-              <MUI.Button variant="contained" color="primary" onClick={handlePolizaUpdate} disabled={!polizaData.nombre_poliza || !polizaData.numero_poliza || !polizaData.estudiante}>
-                Actualizar
+              <MUI.Button variant="contained" color="primary" onClick={handlePolizaUpdate} disabled={!polizaData.nombre_poliza || !polizaData.numero_poliza || !polizaData.compania || !polizaData.tipo_poliza || !polizaData.fecha_inicio || !polizaData.estudiante}>
+                Asignar
               </MUI.Button>
             </MUI.DialogActions>
           </MUI.Dialog>
@@ -1622,50 +1562,6 @@ const Students = () => {
                       type="number"
                       value={formData.horaspasrealizadas}
                       onChange={handleInputChange}
-                      disabled
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Nombre de póliza"
-                      name="nombre_poliza"
-                      value={formData.nombre_poliza}
-                      onChange={handleInputChange}
-                      disabled
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Número de póliza"
-                      name="numero_poliza"
-                      value={formData.numero_poliza}
-                      onChange={handleInputChange}
-                      disabled
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Fecha inicio pasantía"
-                      name="fecha_inicio_pasantia"
-                      type="date"
-                      value={formData.fecha_inicio_pasantia}
-                      onChange={handleInputChange}
-                      InputLabelProps={{ shrink: true }}
-                      disabled
-                    />
-                  </MUI.Grid>
-                  <MUI.Grid item xs={12} sm={6}>
-                    <MUI.TextField
-                      fullWidth
-                      label="Fecha fin pasantía"
-                      name="fecha_fin_pasantia"
-                      type="date"
-                      value={formData.fecha_fin_pasantia}
-                      onChange={handleInputChange}
-                      InputLabelProps={{ shrink: true }}
                       disabled
                     />
                   </MUI.Grid>
