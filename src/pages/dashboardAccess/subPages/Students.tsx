@@ -976,6 +976,13 @@ const Students = () => {
     }
   };
 
+  // Función para formatear fechas tipo 'YYYY-MM-DD' a 'DD/MM/YYYY'
+  const formatDate = (dateStr: string | undefined) => {
+    if (!dateStr) return '';
+    const [year, month, day] = dateStr.split('-');
+    return `${day}/${month}/${year}`;
+  };
+
   if (error) {
     return (
       <MUI.Box sx={{ p: 2 }}>
@@ -1100,7 +1107,7 @@ const Students = () => {
                         <MUI.Tooltip title="Fechas de Pasantía">
                           <MUI.Chip
                             icon={<DateRangeIcon />}
-                            label={`${new Date(estudiante.fecha_inicio_pasantia).toLocaleDateString()} - ${new Date(estudiante.fecha_fin_pasantia).toLocaleDateString()}`}
+                            label={`${formatDate(estudiante.fecha_inicio_pasantia)} - ${formatDate(estudiante.fecha_fin_pasantia)}`}
                             size="small"
                           />
                         </MUI.Tooltip>
