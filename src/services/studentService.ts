@@ -157,6 +157,16 @@ const studentService = {
       console.error('Error al asignar fechas:', error);
       throw error;
     }
+  },
+
+  async updateFechasPasantia(id: string, data: { fecha_inicio_pasantia: string; fecha_fin_pasantia: string; horaspasrealizadas_est: number }): Promise<Estudiante> {
+    try {
+      const response = await api.put<Estudiante>(`/estudiantes/${id}/fechas`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al actualizar fechas de pasantía:', error);
+      throw error;
+    }
   }
 };
 

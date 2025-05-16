@@ -946,6 +946,36 @@ const Students = () => {
     setFilterTaller('');
   };
 
+  // --- ACTUALIZAR FECHAS Y HORAS DE PASANTÍA ---
+  const handleFechasUpdate = async () => {
+    if (!fechasData.fecha_inicio_pasantia || !fechasData.fecha_fin_pasantia || !fechasData.horaspasrealizadas_est || !fechasData.estudiante) return;
+    setSnackbar({ open: true, message: 'Actualizando fechas...', severity: 'success' });
+    try {
+      if (fechasData.estudiante === 'all') {
+        const activos = estudiantes.filter(e => e.usuario_est?.estado_usuario === 'Activo');
+        await Promise.all(
+          activos.map(e => studentService.updateFechasPasantia(e.documento_id_est, {
+            fecha_inicio_pasantia: fechasData.fecha_inicio_pasantia,
+            fecha_fin_pasantia: fechasData.fecha_fin_pasantia,
+            horaspasrealizadas_est: Number(fechasData.horaspasrealizadas_est)
+          }))
+        );
+      } else {
+        await studentService.updateFechasPasantia(fechasData.estudiante, {
+          fecha_inicio_pasantia: fechasData.fecha_inicio_pasantia,
+          fecha_fin_pasantia: fechasData.fecha_fin_pasantia,
+          horaspasrealizadas_est: Number(fechasData.horaspasrealizadas_est)
+        });
+      }
+      setSnackbar({ open: true, message: 'Fechas actualizadas correctamente', severity: 'success' });
+      setOpenFechasDialog(false);
+      setFechasData({ fecha_inicio_pasantia: '', fecha_fin_pasantia: '', horaspasrealizadas_est: '', estudiante: 'all' });
+      loadData();
+    } catch (error) {
+      setSnackbar({ open: true, message: 'Error al actualizar fechas', severity: 'error' });
+    }
+  };
+
   if (error) {
     return (
       <MUI.Box sx={{ p: 2 }}>
@@ -1697,20 +1727,41 @@ const Students = () => {
                 <MUI.TextField label="Fecha inicio pasantía" type="date" InputLabelProps={{ shrink: true }} value={fechasData.fecha_inicio_pasantia} onChange={e => setFechasData({ ...fechasData, fecha_inicio_pasantia: e.target.value })} fullWidth />
                 <MUI.TextField label="Fecha fin pasantía" type="date" InputLabelProps={{ shrink: true }} value={fechasData.fecha_fin_pasantia} onChange={e => setFechasData({ ...fechasData, fecha_fin_pasantia: e.target.value })} fullWidth />
                 <MUI.TextField label="Horas realizadas" type="number" value={fechasData.horaspasrealizadas_est} onChange={e => setFechasData({ ...fechasData, horaspasrealizadas_est: e.target.value })} fullWidth />
-                <MUI.FormControl fullWidth>
-                  <MUI.InputLabel>Aplicar a</MUI.InputLabel>
-                  <MUI.Select value={fechasData.estudiante} onChange={e => setFechasData({ ...fechasData, estudiante: e.target.value })} label="Aplicar a">
-                    <MUI.MenuItem value="all">Todos los estudiantes activos</MUI.MenuItem>
-                    {estudiantes.filter(e => e.usuario_est?.estado_usuario === 'Activo').map(e => (
-                      <MUI.MenuItem key={e.documento_id_est} value={e.documento_id_est}>{e.nombre_est} {e.apellido_est} ({e.documento_id_est})</MUI.MenuItem>
-                    ))}
-                  </MUI.Select>
-                </MUI.FormControl>
+                <MUI.Autocomplete
+                  options={[
+                    { label: 'Todos los estudiantes activos', value: 'all' },
+                    ...estudiantesFiltrados.map(e => ({
+                      label: `${e.nombre_est} ${e.apellido_est} (${e.documento_id_est})${e.taller_est ? ' - ' + e.taller_est.nombre_taller : ''}`,
+                      value: e.documento_id_est
+                    }))
+                  ]}
+                  value={
+                    fechasData.estudiante === 'all'
+                      ? { label: 'Todos los estudiantes activos', value: 'all' }
+                      : estudiantesFiltrados
+                          .map(e => ({
+                            label: `${e.nombre_est} ${e.apellido_est} (${e.documento_id_est})${e.taller_est ? ' - ' + e.taller_est.nombre_taller : ''}`,
+                            value: e.documento_id_est
+                          }))
+                          .find(opt => opt.value === fechasData.estudiante) || null
+                  }
+                  onChange={(_, newValue) => {
+                    setFechasData({ ...fechasData, estudiante: newValue ? newValue.value : '' });
+                  }}
+                  renderInput={(params) => (
+                    <MUI.TextField {...params} label="Aplicar a" placeholder="Buscar estudiante..." fullWidth />
+                  )}
+                  isOptionEqualToValue={(option, value) => option.value === value.value}
+                  sx={{ bgcolor: '#f5f7fa', borderRadius: 2, '& .MuiAutocomplete-inputRoot': { p: 1.2 } }}
+                  noOptionsText="No hay estudiantes que coincidan"
+                />
               </MUI.Box>
             </MUI.DialogContent>
             <MUI.DialogActions>
               <MUI.Button onClick={() => setOpenFechasDialog(false)}>Cancelar</MUI.Button>
-              <MUI.Button variant="contained" color="primary" disabled>Actualizar</MUI.Button>
+              <MUI.Button variant="contained" color="primary" onClick={handleFechasUpdate} disabled={!(fechasData.fecha_inicio_pasantia && fechasData.fecha_fin_pasantia && fechasData.horaspasrealizadas_est && fechasData.estudiante)}>
+                Actualizar
+              </MUI.Button>
             </MUI.DialogActions>
           </MUI.Dialog>
         </MUI.Box>
