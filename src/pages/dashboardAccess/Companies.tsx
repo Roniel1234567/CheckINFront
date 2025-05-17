@@ -16,6 +16,7 @@ import {
 import { SelectChangeEvent } from '@mui/material';
 import { personaContactoEmpresaService } from '../../services/personaContactoEmpresaService';
 import contactService from '../../services/contactService';
+import { userService } from '../../services/userService';
 
 // Estado inicial del formulario
 interface FormData {
@@ -32,6 +33,9 @@ interface FormData {
   telefono_persona_contacto: string;
   extension_persona_contacto: string;
   departamento_persona_contacto: string;
+  // Usuario empresa
+  usuario_empresa: string;
+  contrasena_empresa: string;
 }
 
 function Companies() {
@@ -54,6 +58,8 @@ function Companies() {
     telefono_persona_contacto: '',
     extension_persona_contacto: '',
     departamento_persona_contacto: '',
+    usuario_empresa: '',
+    contrasena_empresa: '',
   });
   const [openTallerDialog, setOpenTallerDialog] = useState(false);
   const [selectedTaller, setSelectedTaller] = useState<string | null>(null);
@@ -84,7 +90,10 @@ function Companies() {
   const [telefonoDisponible, setTelefonoDisponible] = useState(true);
   const [emailDisponible, setEmailDisponible] = useState(true);
 
-  const [setError] = useState<React.Dispatch<React.SetStateAction<string>>>();
+  const [error, setError] = useState<string>('');
+
+  // 1. Estado para usuarioEmpresaDisponible
+  const [usuarioEmpresaDisponible, setUsuarioEmpresaDisponible] = useState(true);
 
   // Cargar datos iniciales
   const loadCentrosTrabajo = async () => {
@@ -93,7 +102,7 @@ function Companies() {
       const data = await CompaniesCRUD.getAllCompanies();
       setCentrosTrabajo(data);
     } catch {
-      setError('Error al cargar los centros de trabajo');
+      if (setError) setError('Error al cargar los centros de trabajo');
     } finally {
       setLoading(false);
     }
@@ -113,7 +122,7 @@ function Companies() {
         setProvincias(provinciasData);
         setTalleres(talleresData);
       } catch {
-        setError('Error al cargar los datos');
+        if (setError) setError('Error al cargar los datos');
       } finally {
         setLoading(false);
       }
@@ -126,7 +135,16 @@ function Companies() {
   const handleCreateCentro = async () => {
     try {
       setLoading(true);
-      // 1. Crear el centro de trabajo
+      // 1. Crear usuario de empresa
+      const nuevoUsuario = await userService.createUser({
+        dato_usuario: formData.usuario_empresa,
+        contrasena_usuario: formData.contrasena_empresa,
+        rol_usuario: 2, // SIEMPRE 2 para empresa
+      });
+      const usuarioCreado = Array.isArray(nuevoUsuario) ? nuevoUsuario[0] : nuevoUsuario;
+      const idUsuario = usuarioCreado.id_usuario;
+
+      // 2. Crear el centro de trabajo con el id_usu
       const centroCreado = await CompaniesCRUD.createCompany({
         nombre_centro: formData.nombre_centro,
         estado_centro: 'Activo',
@@ -140,9 +158,11 @@ function Companies() {
           calle_dir: formData.calle_dir,
           num_res_dir: formData.num_res_dir,
           estado_dir: 'Activo'
-        }
+        },
+        id_usu: idUsuario as any // <-- forzamos el tipo para evitar error de TS
       });
-      // 2. Crear la persona de contacto empresa usando el id_centro
+
+      // 3. Crear la persona de contacto empresa usando el id_centro
       const personaContactoPayload = {
         nombre_persona_contacto: formData.nombre_persona_contacto,
         apellido_persona_contacto: formData.apellido_persona_contacto,
@@ -151,22 +171,22 @@ function Companies() {
         departamento: formData.departamento_persona_contacto,
         centro_trabajo: centroCreado.id_centro
       };
-      console.log('Payload persona de contacto empresa:', personaContactoPayload);
       await personaContactoEmpresaService.createPersonaContactoEmpresa(personaContactoPayload);
+
       setSnackbar({
         open: true,
-        message: 'Centro y persona de contacto registrados correctamente',
+        message: 'Centro, usuario y persona de contacto registrados correctamente',
         severity: 'success'
       });
       setOpenDialog(false);
       loadCentrosTrabajo();
-    } catch {
+    } catch (error) {
       setSnackbar({
         open: true,
-        message: 'Error al registrar el centro o la persona de contacto',
+        message: error?.response?.data?.message || 'Error al registrar el centro, usuario o persona de contacto',
         severity: 'error'
       });
-      setError('Error al crear el centro de trabajo');
+      if (setError) setError(error?.response?.data?.message || 'Error al crear el centro de trabajo');
     } finally {
       setLoading(false);
     }
@@ -179,7 +199,7 @@ function Companies() {
         await CompaniesCRUD.deleteCompany(id);
         loadCentrosTrabajo();
       } catch {
-        setError('Error al eliminar el centro de trabajo');
+        if (setError) setError('Error al eliminar el centro de trabajo');
       }
     }
   };
@@ -300,7 +320,7 @@ function Companies() {
         setCiudades(ciudadesData);
       } catch {
         console.error('Error loading ciudades:', error);
-        setError('Error al cargar las ciudades');
+        if (setError) setError('Error al cargar las ciudades');
       } finally {
         setLoading(false);
       }
@@ -320,7 +340,7 @@ function Companies() {
         setSectores(sectoresData);
       } catch {
         console.error('Error loading sectores:', error);
-        setError('Error al cargar los sectores');
+        if (setError) setError('Error al cargar los sectores');
       } finally {
         setLoading(false);
       }
@@ -334,6 +354,21 @@ function Companies() {
       ...prev,
       sector_dir: sectorId
     }));
+  };
+
+  // 2. Función para chequear usuario de empresa
+  const checkUsuarioEmpresa = async (usuario: string) => {
+    if (!usuario) return;
+    try {
+      await userService.getUserByUsername(usuario);
+      setUsuarioEmpresaDisponible(false); // Si existe, no está disponible
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        setUsuarioEmpresaDisponible(true); // No existe, está disponible
+      } else {
+        setUsuarioEmpresaDisponible(true); // Si hay error de red, asume disponible
+      }
+    }
   };
 
   return (
@@ -659,6 +694,42 @@ function Companies() {
                 </MUI.Grid>
               </MUI.Grid>
 
+              {/* Usuario de la Empresa */}
+              <MUI.Typography variant="h6" sx={{ color: '#1a237e', mb: 1, mt: 2 }}>
+                Usuario de la Empresa
+              </MUI.Typography>
+              <MUI.Grid container spacing={2}>
+                <MUI.Grid item xs={12} md={6}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Usuario"
+                    name="usuario_empresa"
+                    value={formData.usuario_empresa}
+                    onChange={e => {
+                      handleFormChange(e);
+                      checkUsuarioEmpresa(e.target.value);
+                    }}
+                    onBlur={e => checkUsuarioEmpresa(e.target.value)}
+                    variant="outlined"
+                    required
+                    error={!usuarioEmpresaDisponible}
+                    helperText={!usuarioEmpresaDisponible ? "Este usuario ya existe" : ""}
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={6}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Contraseña"
+                    name="contrasena_empresa"
+                    type="password"
+                    value={formData.contrasena_empresa}
+                    onChange={handleFormChange}
+                    variant="outlined"
+                    required
+                  />
+                </MUI.Grid>
+              </MUI.Grid>
+
               {/* Persona de Contacto Empresa */}
               <MUI.Typography variant="h6" sx={{ color: '#1a237e', mb: 1, mt: 2 }}>
                 Persona de Contacto de la Empresa
@@ -732,6 +803,7 @@ function Companies() {
               variant="contained"
               sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1b60' } }}
               onClick={handleCreateCentro}
+              disabled={!usuarioEmpresaDisponible}
             >
               Registrar
             </MUI.Button>
