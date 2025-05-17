@@ -41,7 +41,6 @@ function Companies() {
   const [loading, setLoading] = useState(true);
   const [centrosTrabajo, setCentrosTrabajo] = useState<CentroTrabajo[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
-  const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState<FormData>({
     nombre_centro: '',
     telefono_contacto: '',
@@ -85,13 +84,15 @@ function Companies() {
   const [telefonoDisponible, setTelefonoDisponible] = useState(true);
   const [emailDisponible, setEmailDisponible] = useState(true);
 
+  const [setError] = useState<React.Dispatch<React.SetStateAction<string>>>();
+
   // Cargar datos iniciales
   const loadCentrosTrabajo = async () => {
     try {
       setLoading(true);
       const data = await CompaniesCRUD.getAllCompanies();
       setCentrosTrabajo(data);
-    } catch (error) {
+    } catch {
       setError('Error al cargar los centros de trabajo');
     } finally {
       setLoading(false);
@@ -111,7 +112,7 @@ function Companies() {
         setCentrosTrabajo(centrosData);
         setProvincias(provinciasData);
         setTalleres(talleresData);
-      } catch (error) {
+      } catch {
         setError('Error al cargar los datos');
       } finally {
         setLoading(false);
@@ -142,14 +143,16 @@ function Companies() {
         }
       });
       // 2. Crear la persona de contacto empresa usando el id_centro
-      await personaContactoEmpresaService.createPersonaContactoEmpresa({
+      const personaContactoPayload = {
         nombre_persona_contacto: formData.nombre_persona_contacto,
         apellido_persona_contacto: formData.apellido_persona_contacto,
         telefono: formData.telefono_persona_contacto,
         extension: formData.extension_persona_contacto,
         departamento: formData.departamento_persona_contacto,
         centro_trabajo: centroCreado.id_centro
-      });
+      };
+      console.log('Payload persona de contacto empresa:', personaContactoPayload);
+      await personaContactoEmpresaService.createPersonaContactoEmpresa(personaContactoPayload);
       setSnackbar({
         open: true,
         message: 'Centro y persona de contacto registrados correctamente',
@@ -157,7 +160,7 @@ function Companies() {
       });
       setOpenDialog(false);
       loadCentrosTrabajo();
-    } catch (error) {
+    } catch {
       setSnackbar({
         open: true,
         message: 'Error al registrar el centro o la persona de contacto',
@@ -175,7 +178,7 @@ function Companies() {
       try {
         await CompaniesCRUD.deleteCompany(id);
         loadCentrosTrabajo();
-      } catch (error) {
+      } catch {
         setError('Error al eliminar el centro de trabajo');
       }
     }
@@ -295,7 +298,7 @@ function Companies() {
         setLoading(true);
         const ciudadesData = await CompaniesCRUD.getCiudadesByProvincia(provinciaId);
         setCiudades(ciudadesData);
-      } catch (error) {
+      } catch {
         console.error('Error loading ciudades:', error);
         setError('Error al cargar las ciudades');
       } finally {
@@ -315,7 +318,7 @@ function Companies() {
         setLoading(true);
         const sectoresData = await CompaniesCRUD.getSectoresByCiudad(ciudadId);
         setSectores(sectoresData);
-      } catch (error) {
+      } catch {
         console.error('Error loading sectores:', error);
         setError('Error al cargar los sectores');
       } finally {
