@@ -105,6 +105,15 @@ function Companies() {
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [viewCentro, setViewCentro] = useState<any>(null);
 
+  // Límites de caracteres para dirección
+  const MAX_CALLE = 50;
+  const MAX_NUM_RES = 20;
+
+  // Variable de validación para dirección
+  const direccionInvalida =
+    formData.calle_dir.length > MAX_CALLE ||
+    formData.num_res_dir.length > MAX_NUM_RES;
+
   // Cargar datos iniciales
   const loadCentrosTrabajo = async () => {
     try {
@@ -848,6 +857,13 @@ function Companies() {
                     value={formData.calle_dir}
                     onChange={handleFormChange}
                     variant="outlined"
+                    inputProps={{ maxLength: MAX_CALLE }}
+                    error={formData.calle_dir.length > MAX_CALLE}
+                    helperText={
+                      formData.calle_dir.length > MAX_CALLE
+                        ? `Máximo ${MAX_CALLE} caracteres`
+                        : `${formData.calle_dir.length}/${MAX_CALLE}`
+                    }
                   />
                 </MUI.Grid>
                 <MUI.Grid item xs={12} md={6}>
@@ -858,6 +874,13 @@ function Companies() {
                     value={formData.num_res_dir}
                     onChange={handleFormChange}
                     variant="outlined"
+                    inputProps={{ maxLength: MAX_NUM_RES }}
+                    error={formData.num_res_dir.length > MAX_NUM_RES}
+                    helperText={
+                      formData.num_res_dir.length > MAX_NUM_RES
+                        ? `Máximo ${MAX_NUM_RES} caracteres`
+                        : `${formData.num_res_dir.length}/${MAX_NUM_RES}`
+                    }
                   />
                 </MUI.Grid>
               </MUI.Grid>
@@ -971,7 +994,7 @@ function Companies() {
               variant="contained"
               sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1b60' } }}
               onClick={handleSaveCentro}
-              disabled={!usuarioEmpresaDisponible}
+              disabled={!usuarioEmpresaDisponible || direccionInvalida}
             >
               {editMode ? 'Editar' : 'Registrar'}
             </MUI.Button>
@@ -1121,13 +1144,45 @@ function Companies() {
           <MUI.DialogContent>
             {viewCentro && (
               <MUI.Box sx={{ p: 2 }}>
-                <MUI.Typography variant="h6">{viewCentro.nombre_centro}</MUI.Typography>
-                <MUI.Typography>Teléfono: {viewCentro.contacto_centro?.telefono_contacto}</MUI.Typography>
-                <MUI.Typography>Email: {viewCentro.contacto_centro?.email_contacto}</MUI.Typography>
-                <MUI.Typography>Dirección: {viewCentro.direccion_centro?.calle_dir} #{viewCentro.direccion_centro?.num_res_dir}</MUI.Typography>
-                <MUI.Typography>Sector: {viewCentro.direccion_centro?.sector_dir}</MUI.Typography>
-                <MUI.Typography>Estado: {viewCentro.estado_centro}</MUI.Typography>
-                <MUI.Typography>Usuario: {viewCentro.usuario?.dato_usuario}</MUI.Typography>
+                <MUI.Typography variant="h6" sx={{ mb: 2 }}>{viewCentro.nombre_centro}</MUI.Typography>
+                <MUI.Grid container spacing={2}>
+                  <MUI.Grid item xs={12} sm={6}>
+                    <MUI.Typography variant="subtitle2">Teléfono:</MUI.Typography>
+                    <MUI.Typography>{viewCentro.contacto_centro?.telefono_contacto || '-'}</MUI.Typography>
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12} sm={6}>
+                    <MUI.Typography variant="subtitle2">Email:</MUI.Typography>
+                    <MUI.Typography>{viewCentro.contacto_centro?.email_contacto || '-'}</MUI.Typography>
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12}>
+                    <MUI.Typography variant="subtitle2">Dirección:</MUI.Typography>
+                    <MUI.Typography>
+                      {viewCentro.direccion_centro?.calle_dir || '-'}
+                      {viewCentro.direccion_centro?.num_res_dir ? `, ${viewCentro.direccion_centro.num_res_dir}` : ''}
+                      {viewCentro.direccion_centro?.sector_dir?.sector ? `, Sector: ${viewCentro.direccion_centro.sector_dir.sector}` : ''}
+                      {viewCentro.direccion_centro?.sector_dir?.ciudad_sec && viewCentro.direccion_centro?.sector_dir?.ciudad?.ciudad ? `, Ciudad: ${viewCentro.direccion_centro.sector_dir.ciudad.ciudad}` : ''}
+                      {viewCentro.direccion_centro?.sector_dir?.ciudad?.provincia_ciu && viewCentro.direccion_centro?.sector_dir?.ciudad?.provincia?.provincia ? `, Provincia: ${viewCentro.direccion_centro.sector_dir.ciudad.provincia.provincia}` : ''}
+                    </MUI.Typography>
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12} sm={6}>
+                    <MUI.Typography variant="subtitle2">Estado:</MUI.Typography>
+                    <MUI.Typography>{viewCentro.estado_centro || '-'}</MUI.Typography>
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12} sm={6}>
+                    <MUI.Typography variant="subtitle2">Usuario:</MUI.Typography>
+                    <MUI.Typography>{viewCentro.usuario?.dato_usuario || '-'}</MUI.Typography>
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12}>
+                    <MUI.Typography variant="subtitle2" sx={{ mt: 2 }}>Persona de Contacto de la Empresa:</MUI.Typography>
+                    <MUI.Typography>
+                      <strong>Nombre:</strong> {viewCentro.persona_contacto_empresa?.nombre_persona_contacto || '-'}<br />
+                      <strong>Apellido:</strong> {viewCentro.persona_contacto_empresa?.apellido_persona_contacto || '-'}<br />
+                      <strong>Teléfono:</strong> {viewCentro.persona_contacto_empresa?.telefono || '-'}<br />
+                      <strong>Extensión:</strong> {viewCentro.persona_contacto_empresa?.extension || '-'}<br />
+                      <strong>Departamento:</strong> {viewCentro.persona_contacto_empresa?.departamento || '-'}
+                    </MUI.Typography>
+                  </MUI.Grid>
+                </MUI.Grid>
               </MUI.Box>
             )}
           </MUI.DialogContent>
