@@ -44,6 +44,10 @@ const direccionService = {
     const res = await axios.get(`${import.meta.env.VITE_API_URL}/direcciones/estudiante/${documento}`);
     return res.data;
   },
+  getDireccionByCentro: async (idCentro: number) => {
+    const response = await api.get(`/direcciones/centro/${idCentro}`);
+    return response.data;
+  },
 };
 
 export default direccionService; 

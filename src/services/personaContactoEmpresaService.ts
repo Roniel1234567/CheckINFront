@@ -11,5 +11,9 @@ export const personaContactoEmpresaService = {
   }) => {
     const response = await api.post('/persona-contacto-empresa', data);
     return response.data;
+  },
+  getPersonaContactoByCentro: async (idCentro: number) => {
+    const response = await api.get(`/persona-contacto-empresa/centro/${idCentro}`);
+    return response.data;
   }
 }; 

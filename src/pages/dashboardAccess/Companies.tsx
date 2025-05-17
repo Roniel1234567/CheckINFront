@@ -17,6 +17,7 @@ import { SelectChangeEvent } from '@mui/material';
 import { personaContactoEmpresaService } from '../../services/personaContactoEmpresaService';
 import contactService from '../../services/contactService';
 import { userService } from '../../services/userService';
+import direccionService from '../../services/direccionService';
 
 // Estado inicial del formulario
 interface FormData {
@@ -95,12 +96,22 @@ function Companies() {
   // 1. Estado para usuarioEmpresaDisponible
   const [usuarioEmpresaDisponible, setUsuarioEmpresaDisponible] = useState(true);
 
+  // 1. Estados para edición, visualización y eliminación
+  const [openForm, setOpenForm] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingCentro, setEditingCentro] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [centroToDelete, setCentroToDelete] = useState<any>(null);
+  const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [viewCentro, setViewCentro] = useState<any>(null);
+
   // Cargar datos iniciales
   const loadCentrosTrabajo = async () => {
     try {
       setLoading(true);
       const data = await CompaniesCRUD.getAllCompanies();
       setCentrosTrabajo(data);
+      console.log('Centros de trabajo recibidos:', data);
     } catch {
       if (setError) setError('Error al cargar los centros de trabajo');
     } finally {
@@ -131,78 +142,214 @@ function Companies() {
     loadData();
   }, []);
 
-  // Crear nuevo centro
-  const handleCreateCentro = async () => {
+  // Crear o editar centro
+  const handleSaveCentro = async () => {
     try {
       setLoading(true);
-      // 1. Crear usuario de empresa
-      const nuevoUsuario = await userService.createUser({
-        dato_usuario: formData.usuario_empresa,
-        contrasena_usuario: formData.contrasena_empresa,
-        rol_usuario: 2, // SIEMPRE 2 para empresa
-      });
-      const usuarioCreado = Array.isArray(nuevoUsuario) ? nuevoUsuario[0] : nuevoUsuario;
-      const idUsuario = usuarioCreado.id_usuario;
+      if (editMode && editingCentro) {
+        // --- MODO EDICIÓN ---
+        // 1. Actualizar usuario de empresa (solo si cambió usuario o contraseña)
+        if (editingCentro.usuario && (formData.usuario_empresa !== editingCentro.usuario.dato_usuario || formData.contrasena_empresa)) {
+          await userService.updateUser(editingCentro.usuario.id_usuario, {
+            dato_usuario: formData.usuario_empresa,
+            contrasena_usuario: formData.contrasena_empresa || undefined,
+            rol_usuario: 2, // Siempre empresa
+          });
+        }
+        // 2. Actualizar centro de trabajo (incluyendo persona de contacto de empresa)
+        await CompaniesCRUD.updateCompany(editingCentro.id_centro, {
+          nombre_centro: formData.nombre_centro,
+          estado_centro: formData.estado_centro,
+          contacto_centro: {
+            telefono_contacto: formData.telefono_contacto,
+            email_contacto: formData.email_contacto,
+            estado_contacto: 'Activo'
+          },
+          direccion_centro: {
+            sector_dir: formData.sector_dir,
+            calle_dir: formData.calle_dir,
+            num_res_dir: formData.num_res_dir,
+            estado_dir: 'Activo'
+          },
+          persona_contacto_empresa: {
+            nombre_persona_contacto: formData.nombre_persona_contacto,
+            apellido_persona_contacto: formData.apellido_persona_contacto,
+            telefono: formData.telefono_persona_contacto,
+            extension: formData.extension_persona_contacto,
+            departamento: formData.departamento_persona_contacto
+          }
+        });
+        setSnackbar({
+          open: true,
+          message: 'Centro actualizado correctamente',
+          severity: 'success'
+        });
+        setOpenDialog(false);
+        loadCentrosTrabajo();
+      } else {
+        // --- MODO REGISTRO ---
+        // 1. Crear usuario de empresa
+        const nuevoUsuario = await userService.createUser({
+          dato_usuario: formData.usuario_empresa,
+          contrasena_usuario: formData.contrasena_empresa,
+          rol_usuario: 2, // SIEMPRE 2 para empresa
+        });
+        const usuarioCreado = Array.isArray(nuevoUsuario) ? nuevoUsuario[0] : nuevoUsuario;
+        const idUsuario = usuarioCreado.id_usuario;
 
-      // 2. Crear el centro de trabajo con el id_usu
-      const centroCreado = await CompaniesCRUD.createCompany({
-        nombre_centro: formData.nombre_centro,
-        estado_centro: 'Activo',
-        contacto_centro: {
-          telefono_contacto: formData.telefono_contacto,
-          email_contacto: formData.email_contacto,
-          estado_contacto: 'Activo'
-        },
-        direccion_centro: {
-          sector_dir: formData.sector_dir,
-          calle_dir: formData.calle_dir,
-          num_res_dir: formData.num_res_dir,
-          estado_dir: 'Activo'
-        },
-        id_usu: idUsuario as any // <-- forzamos el tipo para evitar error de TS
-      });
+        // 2. Crear el centro de trabajo con el id_usu
+        const centroCreado = await CompaniesCRUD.createCompany({
+          nombre_centro: formData.nombre_centro,
+          estado_centro: 'Activo',
+          contacto_centro: {
+            telefono_contacto: formData.telefono_contacto,
+            email_contacto: formData.email_contacto,
+            estado_contacto: 'Activo'
+          },
+          direccion_centro: {
+            sector_dir: formData.sector_dir,
+            calle_dir: formData.calle_dir,
+            num_res_dir: formData.num_res_dir,
+            estado_dir: 'Activo'
+          },
+          // id_usu: idUsuario // <-- Solo si el backend lo requiere explícitamente
+        });
 
-      // 3. Crear la persona de contacto empresa usando el id_centro
-      const personaContactoPayload = {
-        nombre_persona_contacto: formData.nombre_persona_contacto,
-        apellido_persona_contacto: formData.apellido_persona_contacto,
-        telefono: formData.telefono_persona_contacto,
-        extension: formData.extension_persona_contacto,
-        departamento: formData.departamento_persona_contacto,
-        centro_trabajo: centroCreado.id_centro
-      };
-      await personaContactoEmpresaService.createPersonaContactoEmpresa(personaContactoPayload);
+        // 3. Crear la persona de contacto empresa usando el id_centro
+        const personaContactoPayload = {
+          nombre_persona_contacto: formData.nombre_persona_contacto,
+          apellido_persona_contacto: formData.apellido_persona_contacto,
+          telefono: formData.telefono_persona_contacto,
+          extension: formData.extension_persona_contacto,
+          departamento: formData.departamento_persona_contacto,
+          centro_trabajo: centroCreado.id_centro
+        };
+        await personaContactoEmpresaService.createPersonaContactoEmpresa(personaContactoPayload);
 
+        setSnackbar({
+          open: true,
+          message: 'Centro, usuario y persona de contacto registrados correctamente',
+          severity: 'success'
+        });
+        setOpenDialog(false);
+        loadCentrosTrabajo();
+      }
+    } catch (error: any) {
       setSnackbar({
         open: true,
-        message: 'Centro, usuario y persona de contacto registrados correctamente',
-        severity: 'success'
-      });
-      setOpenDialog(false);
-      loadCentrosTrabajo();
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error?.response?.data?.message || 'Error al registrar el centro, usuario o persona de contacto',
+        message: error?.response?.data?.message || 'Error al registrar o actualizar el centro',
         severity: 'error'
       });
-      if (setError) setError(error?.response?.data?.message || 'Error al crear el centro de trabajo');
+      if (setError) setError(error?.response?.data?.message || 'Error al crear o actualizar el centro de trabajo');
     } finally {
       setLoading(false);
     }
   };
 
-  // Eliminar centro
-  const handleDelete = async (id: number) => {
-    if (window.confirm('¿Está seguro de eliminar este centro de trabajo?')) {
-      try {
-        await CompaniesCRUD.deleteCompany(id);
-        loadCentrosTrabajo();
-      } catch {
-        if (setError) setError('Error al eliminar el centro de trabajo');
+  // 2. Handler para editar
+  const handleEditClick = async (centro: any) => {
+    setEditMode(true);
+    setEditingCentro(centro);
+    setOpenDialog(true);
+
+    // 1. Cargar datos de persona de contacto de empresa
+    let personaContacto = null;
+    try {
+      personaContacto = await personaContactoEmpresaService.getPersonaContactoByCentro(centro.id_centro);
+    } catch {
+      personaContacto = null;
+    }
+
+    // 2. Cargar dirección completa (sector, ciudad, provincia) igual que en Students.tsx
+    let direccionCompleta: any = null;
+    try {
+      direccionCompleta = await direccionService.getDireccionByCentro(centro.id_centro);
+    } catch {
+      direccionCompleta = null;
+    }
+
+    let provinciaId = '';
+    let ciudadId = '';
+    let sectorId = '';
+    if (direccionCompleta && direccionCompleta.sector_dir) {
+      sectorId = String(direccionCompleta.sector_dir.id_sec);
+      ciudadId = String(direccionCompleta.sector_dir.ciudad_sec || direccionCompleta.sector_dir.ciudad?.id_ciu || '');
+      provinciaId = String(direccionCompleta.sector_dir.ciudad?.provincia_ciu || '');
+    }
+
+    // Cargar provincias si no están cargadas
+    if (!provincias.length) {
+      const provinciasData = await CompaniesCRUD.getProvincias();
+      setProvincias(provinciasData);
+    }
+
+    // Cargar ciudades y sectores igual que en Students.tsx
+    let ciudadesProv = [];
+    let sectoresCiudad = [];
+    if (provinciaId) {
+      ciudadesProv = await CompaniesCRUD.getCiudadesByProvincia(Number(provinciaId));
+      setCiudades(ciudadesProv);
+      if (ciudadId) {
+        sectoresCiudad = await CompaniesCRUD.getSectoresByCiudad(Number(ciudadId));
+        setSectores(sectoresCiudad);
       }
     }
+    setSelectedProvincia(provinciaId ? Number(provinciaId) : '');
+    setSelectedCiudad(ciudadId ? Number(ciudadId) : '');
+    setSelectedSector(sectorId ? Number(sectorId) : '');
+
+    // Tipar personaContacto como any para evitar errores de acceso
+    const pc: any = personaContacto || {};
+
+    setFormData({
+      nombre_centro: centro.nombre_centro || '',
+      telefono_contacto: centro.contacto_centro?.telefono_contacto || '',
+      email_contacto: centro.contacto_centro?.email_contacto || '',
+      calle_dir: direccionCompleta?.calle_dir || centro.direccion_centro?.calle_dir || '',
+      num_res_dir: direccionCompleta?.num_res_dir || centro.direccion_centro?.num_res_dir || '',
+      sector_dir: sectorId ? Number(sectorId) : 0,
+      estado_centro: centro.estado_centro || 'Activo',
+      nombre_persona_contacto: pc.nombre_persona_contacto || '',
+      apellido_persona_contacto: pc.apellido_persona_contacto || '',
+      telefono_persona_contacto: pc.telefono || '',
+      extension_persona_contacto: pc.extension || '',
+      departamento_persona_contacto: pc.departamento || '',
+      usuario_empresa: (centro as any).usuario?.dato_usuario || '',
+      contrasena_empresa: '',
+    });
   };
+
+  // 3. Handler para ver
+  const handleViewClick = (centro: any) => {
+    setViewCentro(centro);
+    setOpenViewDialog(true);
+  };
+
+  // 4. Handler para eliminar
+  const handleDeleteClick = (centro: any) => {
+    setCentroToDelete(centro);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (centroToDelete && centroToDelete.usuario && centroToDelete.usuario.id_usuario) {
+      await userService.updateUser(centroToDelete.usuario.id_usuario, { estado_usuario: 'Eliminado' });
+      setSnackbar({ open: true, message: 'Centro eliminado correctamente', severity: 'success' });
+      setDeleteDialogOpen(false);
+      setCentroToDelete(null);
+      loadCentrosTrabajo();
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setCentroToDelete(null);
+  };
+
+  // Filtrar solo empresas con usuario activo (igual que en Students.tsx)
+  const empresasFiltradas = centrosTrabajo.filter(
+    centro => (centro as any).usuario?.estado_usuario === 'Activo'
+  );
 
   // Manejar cambios en el formulario
   const handleFormChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -421,7 +568,30 @@ function Companies() {
                 bgcolor: '#1a237e',
                 '&:hover': { bgcolor: '#0d1b60' }
               }}
-              onClick={() => setOpenDialog(true)}
+              onClick={() => {
+                setOpenDialog(true);
+                setEditMode(false);
+                setEditingCentro(null);
+                setFormData({
+                  nombre_centro: '',
+                  telefono_contacto: '',
+                  email_contacto: '',
+                  calle_dir: '',
+                  num_res_dir: '',
+                  sector_dir: 0,
+                  estado_centro: 'Activo',
+                  nombre_persona_contacto: '',
+                  apellido_persona_contacto: '',
+                  telefono_persona_contacto: '',
+                  extension_persona_contacto: '',
+                  departamento_persona_contacto: '',
+                  usuario_empresa: '',
+                  contrasena_empresa: '',
+                });
+                setSelectedProvincia('');
+                setSelectedCiudad('');
+                setSelectedSector('');
+              }}
             >
               Registrar Nuevo Centro de Trabajo
             </MUI.Button>
@@ -522,10 +692,8 @@ function Companies() {
                 </MUI.TableRow>
               </MUI.TableHead>
               <MUI.TableBody>
-                {centrosTrabajo
-                  .filter(centro => 
-                    centro.nombre_centro.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
+                {empresasFiltradas
+                  .filter(centro => centro.nombre_centro.toLowerCase().includes(searchTerm.toLowerCase()))
                   .map((centro) => (
                     <MUI.TableRow key={centro.id_centro}>
                       <MUI.TableCell>{centro.nombre_centro}</MUI.TableCell>
@@ -538,13 +706,13 @@ function Companies() {
                         />
                       </MUI.TableCell>
                       <MUI.TableCell>
-                        <MUI.IconButton size="small" sx={{ mr: 1 }}>
+                        <MUI.IconButton size="small" sx={{ mr: 1 }} onClick={() => handleViewClick(centro)}>
                           <Icons.Visibility />
                         </MUI.IconButton>
-                        <MUI.IconButton size="small" sx={{ mr: 1 }}>
+                        <MUI.IconButton size="small" sx={{ mr: 1 }} onClick={() => handleEditClick(centro)}>
                           <Icons.Edit />
                         </MUI.IconButton>
-                        <MUI.IconButton size="small" onClick={() => handleDelete(centro.id_centro)}>
+                        <MUI.IconButton size="small" onClick={() => handleDeleteClick(centro)}>
                           <Icons.Delete />
                         </MUI.IconButton>
                       </MUI.TableCell>
@@ -619,7 +787,7 @@ function Companies() {
                     fullWidth
                     label="Provincia"
                     value={selectedProvincia}
-                    onChange={handleProvinciaChange}
+                    onChange={(e) => handleProvinciaChange({ target: { value: e.target.value } } as SelectChangeEvent<number | ''>)}
                     variant="outlined"
                   >
                     <MUI.MenuItem value="">
@@ -638,7 +806,7 @@ function Companies() {
                     fullWidth
                     label="Ciudad"
                     value={selectedCiudad}
-                    onChange={handleCiudadChange}
+                    onChange={(e) => handleCiudadChange({ target: { value: e.target.value } } as SelectChangeEvent<number | ''>)}
                     variant="outlined"
                     disabled={!selectedProvincia}
                   >
@@ -658,7 +826,7 @@ function Companies() {
                     fullWidth
                     label="Sector"
                     value={selectedSector}
-                    onChange={handleSectorChange}
+                    onChange={(e) => handleSectorChange({ target: { value: e.target.value } } as SelectChangeEvent<number | ''>)}
                     variant="outlined"
                     disabled={!selectedCiudad}
                   >
@@ -705,7 +873,7 @@ function Companies() {
                     label="Usuario"
                     name="usuario_empresa"
                     value={formData.usuario_empresa}
-                    onChange={e => {
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       handleFormChange(e);
                       checkUsuarioEmpresa(e.target.value);
                     }}
@@ -802,10 +970,10 @@ function Companies() {
             <MUI.Button
               variant="contained"
               sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1b60' } }}
-              onClick={handleCreateCentro}
+              onClick={handleSaveCentro}
               disabled={!usuarioEmpresaDisponible}
             >
-              Registrar
+              {editMode ? 'Editar' : 'Registrar'}
             </MUI.Button>
           </MUI.DialogActions>
         </MUI.Dialog>
@@ -821,7 +989,7 @@ function Companies() {
           fullWidth
         >
           <MUI.DialogTitle>
-            {selectedTaller ? `Empresas - ${talleres.find(t => t.id_taller === selectedTaller)?.taller}` : 'Seleccionar Taller'}
+            {selectedTaller ? `Empresas - ${talleres.find(t => String(t.id_taller) === String(selectedTaller))?.nombre_taller}` : 'Seleccionar Taller'}
           </MUI.DialogTitle>
           <MUI.DialogContent>
             {!selectedTaller ? (
@@ -831,7 +999,7 @@ function Companies() {
                     <MUI.Button
                       fullWidth
                       variant="outlined"
-                      onClick={() => setSelectedTaller(taller.id_taller)}
+                      onClick={() => setSelectedTaller(String(taller.id_taller))}
                       sx={{
                         height: 100,
                         display: 'flex',
@@ -849,7 +1017,7 @@ function Companies() {
                         {taller.id_taller}
                       </MUI.Typography>
                       <MUI.Typography variant="body2" align="center" sx={{ fontSize: '0.75rem' }}>
-                        {taller.taller}
+                        {taller.nombre_taller}
                       </MUI.Typography>
                     </MUI.Button>
                   </MUI.Grid>
@@ -871,6 +1039,7 @@ function Companies() {
                     ),
                   }}
                 />
+                {/*
                 <MUI.TableContainer>
                   <MUI.Table>
                     <MUI.TableHead>
@@ -913,6 +1082,7 @@ function Companies() {
                     </MUI.TableBody>
                   </MUI.Table>
                 </MUI.TableContainer>
+                */}
               </MUI.Box>
             )}
           </MUI.DialogContent>
@@ -933,6 +1103,36 @@ function Companies() {
             >
               Cerrar
             </MUI.Button>
+          </MUI.DialogActions>
+        </MUI.Dialog>
+
+        {/* Diálogo de confirmación de eliminación */}
+        <MUI.Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
+          <MUI.DialogTitle>¿Estás seguro de que quieres eliminar este centro de trabajo?</MUI.DialogTitle>
+          <MUI.DialogActions>
+            <MUI.Button onClick={handleDeleteCancel} color="primary">No</MUI.Button>
+            <MUI.Button onClick={handleDeleteConfirm} color="error">Sí</MUI.Button>
+          </MUI.DialogActions>
+        </MUI.Dialog>
+
+        {/* Diálogo de visualización (solo lectura) */}
+        <MUI.Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="md" fullWidth>
+          <MUI.DialogTitle>Ver Centro de Trabajo</MUI.DialogTitle>
+          <MUI.DialogContent>
+            {viewCentro && (
+              <MUI.Box sx={{ p: 2 }}>
+                <MUI.Typography variant="h6">{viewCentro.nombre_centro}</MUI.Typography>
+                <MUI.Typography>Teléfono: {viewCentro.contacto_centro?.telefono_contacto}</MUI.Typography>
+                <MUI.Typography>Email: {viewCentro.contacto_centro?.email_contacto}</MUI.Typography>
+                <MUI.Typography>Dirección: {viewCentro.direccion_centro?.calle_dir} #{viewCentro.direccion_centro?.num_res_dir}</MUI.Typography>
+                <MUI.Typography>Sector: {viewCentro.direccion_centro?.sector_dir}</MUI.Typography>
+                <MUI.Typography>Estado: {viewCentro.estado_centro}</MUI.Typography>
+                <MUI.Typography>Usuario: {viewCentro.usuario?.dato_usuario}</MUI.Typography>
+              </MUI.Box>
+            )}
+          </MUI.DialogContent>
+          <MUI.DialogActions>
+            <MUI.Button onClick={() => setOpenViewDialog(false)}>Cerrar</MUI.Button>
           </MUI.DialogActions>
         </MUI.Dialog>
         </MUI.Box>
