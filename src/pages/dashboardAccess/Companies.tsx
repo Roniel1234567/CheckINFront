@@ -18,6 +18,7 @@ import { personaContactoEmpresaService } from '../../services/personaContactoEmp
 import contactService from '../../services/contactService';
 import { userService } from '../../services/userService';
 import direccionService from '../../services/direccionService';
+import axios from 'axios';
 
 // Estado inicial del formulario
 interface FormData {
@@ -543,6 +544,40 @@ function Companies() {
     }));
   };
 
+  const [openValidarEmpresas, setOpenValidarEmpresas] = useState(false);
+  const [empresasPendientes, setEmpresasPendientes] = useState<any[]>([]);
+  const [busquedaPendientes, setBusquedaPendientes] = useState('');
+
+  const cargarEmpresasPendientes = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/centros-trabajo/pendientes');
+      const data = await res.json();
+      console.log('Empresas pendientes recibidas:', data);
+      setEmpresasPendientes(data);
+    } catch (error) {
+      console.error('Error al cargar empresas pendientes:', error);
+      setEmpresasPendientes([]);
+    }
+  };
+
+  useEffect(() => {
+    if (openValidarEmpresas) {
+      cargarEmpresasPendientes();
+    }
+  }, [openValidarEmpresas]);
+
+  const handleValidarCentro = async (id: number, estado: 'Aceptada' | 'Rechazada') => {
+    try {
+      await axios.put(`http://localhost:5000/api/centros-trabajo/${id}/validar`, {
+        validacion: estado
+      });
+      cargarEmpresasPendientes();
+      loadCentrosTrabajo();
+    } catch (error) {
+      console.error('Error al validar centro:', error);
+    }
+  };
+
   return (
     <MUI.Box sx={{ display: 'flex', width:'100vw',minHeight: '100vh', bgcolor: MUI.alpha(theme.palette.background.paper, 0.6), p:0}}>
       {/* Sidebar */}
@@ -629,6 +664,16 @@ function Companies() {
               onClick={() => setShowHistorial(!showHistorial)}
             >
               {showHistorial ? 'Volver' : 'Historial'}
+            </MUI.Button>
+          </MUI.Grid>
+          <MUI.Grid item>
+            <MUI.Button
+              variant="contained"
+              color="warning"
+              onClick={() => setOpenValidarEmpresas(true)}
+              sx={{ mb: 2 }}
+            >
+              Validar empresas
             </MUI.Button>
           </MUI.Grid>
         </MUI.Grid>
@@ -1127,6 +1172,69 @@ function Companies() {
           <MUI.DialogActions>
             <MUI.Button onClick={() => setOpenViewDialog(false)}>Cerrar</MUI.Button>
           </MUI.DialogActions>
+        </MUI.Dialog>
+
+        <MUI.Dialog open={openValidarEmpresas} onClose={() => setOpenValidarEmpresas(false)} maxWidth="md" fullWidth>
+          <MUI.DialogTitle>Empresas pendientes de validación</MUI.DialogTitle>
+          <MUI.DialogContent>
+            <MUI.TextField
+              fullWidth
+              variant="outlined"
+              placeholder="Buscar por nombre o email..."
+              value={busquedaPendientes}
+              onChange={e => setBusquedaPendientes(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <MUI.Table>
+              <MUI.TableHead>
+                <MUI.TableRow>
+                  <MUI.TableCell>Nombre</MUI.TableCell>
+                  <MUI.TableCell>Contacto</MUI.TableCell>
+                  <MUI.TableCell>Validación</MUI.TableCell>
+                  <MUI.TableCell>Acciones</MUI.TableCell>
+                </MUI.TableRow>
+              </MUI.TableHead>
+              <MUI.TableBody>
+                {(Array.isArray(empresasPendientes) && empresasPendientes.length === 0) ? (
+                  <MUI.TableRow>
+                    <MUI.TableCell colSpan={4} align="center">
+                      No hay empresas pendientes de validación.
+                    </MUI.TableCell>
+                  </MUI.TableRow>
+                ) : (
+                  empresasPendientes
+                    .filter(centro =>
+                      centro.nombre_centro.toLowerCase().includes(busquedaPendientes.toLowerCase()) ||
+                      (centro.contacto_centro?.email_contacto || '').toLowerCase().includes(busquedaPendientes.toLowerCase())
+                    )
+                    .map((centro) => (
+                      <MUI.TableRow key={centro.id_centro}>
+                        <MUI.TableCell>{centro.nombre_centro}</MUI.TableCell>
+                        <MUI.TableCell>{centro.contacto_centro?.email_contacto || '-'}</MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.Chip label={centro.validacion} color="warning" />
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.Button 
+                            color="success"
+                            onClick={() => handleValidarCentro(centro.id_centro, 'Aceptada')}
+                            sx={{ mr: 1 }}
+                          >
+                            Aceptar
+                          </MUI.Button>
+                          <MUI.Button 
+                            color="error"
+                            onClick={() => handleValidarCentro(centro.id_centro, 'Rechazada')}
+                          >
+                            Rechazar
+                          </MUI.Button>
+                        </MUI.TableCell>
+                      </MUI.TableRow>
+                    ))
+                )}
+              </MUI.TableBody>
+            </MUI.Table>
+          </MUI.DialogContent>
         </MUI.Dialog>
         </MUI.Box>
 
