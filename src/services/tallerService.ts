@@ -18,6 +18,7 @@ export interface Taller {
 }
 
 export interface NuevoTaller {
+  id_taller?: string;
   nombre_taller: string;
   familia_taller: string;
   cod_titulo_taller: string;
@@ -52,7 +53,15 @@ const tallerService = {
   },
 
   createTaller: async (taller: NuevoTaller): Promise<Taller> => {
-    const response = await api.post('/talleres', taller);
+    // Transformar el formato para que sea compatible con el backend
+    const tallerData = {
+      nombre_taller: taller.nombre_taller,
+      familia_taller: { id_fam: taller.familia_taller },
+      cod_titulo_taller: taller.cod_titulo_taller,
+      horaspas_taller: taller.horaspas_taller
+    };
+    
+    const response = await api.post('/talleres', tallerData);
     return response.data;
   },
 

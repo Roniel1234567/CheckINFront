@@ -20,7 +20,7 @@ import Supervisors from './pages/dashboardAccess/subPages/Supervisors';
 import Tutors from './pages/dashboardAccess/subPages/Tutors';
 import PlazasCentro from './pages/dashboardAccess/PlazasCentro';
 import Evaluaciones from './pages/dashboardAccess/Evaluaciones';
-import Talleres from './pages/dashboardAccess/subPages/Talleres';
+import TallerConFamilias from './pages/dashboardAccess/TallerConFamilias';
 
 
 function App() {
@@ -50,7 +50,9 @@ function App() {
           <Route path="centros-trabajo" element={<Companies />} />
           <Route path="plazas" element={<PlazasCentro />} />
           <Route path="evaluaciones" element={<Evaluaciones />} />
-          <Route path="talleres" element={<Talleres />} />
+          <Route path="talleres" element={<TallerConFamilias />} />
+          {/* Ruta alternativa para gestión de talleres que apunta al mismo componente */}
+          <Route path="gestion-talleres" element={<TallerConFamilias />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
