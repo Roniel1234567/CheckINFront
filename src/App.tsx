@@ -21,6 +21,7 @@ import Tutors from './pages/dashboardAccess/subPages/Tutors';
 import PlazasCentro from './pages/dashboardAccess/PlazasCentro';
 import Evaluaciones from './pages/dashboardAccess/Evaluaciones';
 import TallerConFamilias from './pages/dashboardAccess/TallerConFamilias';
+import TutoresPage from './pages/dashboardAccess/Tutores';
 
 
 function App() {
@@ -51,6 +52,7 @@ function App() {
           <Route path="plazas" element={<PlazasCentro />} />
           <Route path="evaluaciones" element={<Evaluaciones />} />
           <Route path="talleres" element={<TallerConFamilias />} />
+          <Route path="tutores" element={<TutoresPage />} />
           {/* Ruta alternativa para gestión de talleres que apunta al mismo componente */}
           <Route path="gestion-talleres" element={<TallerConFamilias />} />
         </Routes>
