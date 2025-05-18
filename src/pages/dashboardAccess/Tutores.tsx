@@ -276,22 +276,33 @@ function TutoresPage() {
         // Actualizar tutor existente
         // Primero actualizar contacto
         if (selectedTutor.contacto_tutor_data) {
-          await api.put(`/contactos/${selectedTutor.contacto_tutor}`, {
+          await api.put(`/contactos/${selectedTutor.contacto_tutor_data.id_contacto}`, {
             telefono_contacto: formTelefono,
             email_contacto: formEmail
           });
         }
         
-        // Actualizar datos del tutor
+        // Obtener IDs según la estructura del objeto
+        const usuarioId = typeof selectedTutor.usuario_tutor === 'object' && selectedTutor.usuario_tutor !== null
+          ? selectedTutor.usuario_tutor.id_usuario
+          : selectedTutor.usuario_tutor;
+        
+        const contactoId = typeof selectedTutor.contacto_tutor === 'object' && selectedTutor.contacto_tutor !== null
+          ? selectedTutor.contacto_tutor.id_contacto
+          : selectedTutor.contacto_tutor;
+        
+        // Actualizar datos del tutor manteniendo las referencias originales
         await api.put(`/tutores/${selectedTutor.id_tutor}`, {
           nombre_tutor: formNombre,
           apellido_tutor: formApellido,
-          taller_tutor: parseInt(formTaller)
+          taller_tutor: parseInt(formTaller),
+          usuario_tutor: usuarioId,
+          contacto_tutor: contactoId
         });
         
         // Si se proporciona una nueva contraseña, actualizar usuario
-        if (formContrasena.trim() !== '' && selectedTutor.usuario_tutor) {
-          await api.put(`/usuarios/${selectedTutor.usuario_tutor}`, {
+        if (formContrasena.trim() !== '') {
+          await api.put(`/usuarios/${usuarioId}`, {
             contrasena_usuario: formContrasena
           });
         }
