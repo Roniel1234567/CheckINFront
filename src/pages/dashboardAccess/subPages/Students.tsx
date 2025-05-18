@@ -618,9 +618,9 @@ const Students = () => {
         calle: direccionCompleta ? direccionCompleta.calle_dir : '',
         numero: direccionCompleta ? direccionCompleta.num_res_dir : '',
         direccionId: direccionCompleta ? String(direccionCompleta.id_dir) : '',
-        nacionalidad: estudiante.nacionalidad === 'Dominicana' ? 'Dominicana' : 'Otra',
-        nacionalidadOtra: estudiante.nacionalidad && estudiante.nacionalidad !== 'Dominicana' ? estudiante.nacionalidad : '',
-        tipoDocumento: estudiante.tipo_documento_est,
+        nacionalidad: (estudiante.nacionalidad || '').trim().toLowerCase() === 'dominicana' ? 'Dominicana' : 'Otra',
+        nacionalidadOtra: (estudiante.nacionalidad && estudiante.nacionalidad.trim().toLowerCase() !== 'dominicana') ? estudiante.nacionalidad.trim() : '',
+        tipoDocumento: (estudiante.nacionalidad || '').trim().toLowerCase() === 'dominicana' ? 'Cédula' : 'Pasaporte',
         documento: estudiante.documento_id_est,
         nombre: estudiante.nombre_est,
         segNombre: estudiante.seg_nombre_est || '',
@@ -660,9 +660,9 @@ const Students = () => {
       calle: direccionCompleta ? direccionCompleta.calle_dir : '',
       numero: direccionCompleta ? direccionCompleta.num_res_dir : '',
       direccionId: '',
-      nacionalidad: estudiante.nacionalidad === 'Dominicana' ? 'Dominicana' : 'Otra',
-      nacionalidadOtra: estudiante.nacionalidad && estudiante.nacionalidad !== 'Dominicana' ? estudiante.nacionalidad : '',
-      tipoDocumento: estudiante.tipo_documento_est,
+      nacionalidad: (estudiante.nacionalidad || '').trim().toLowerCase() === 'dominicana' ? 'Dominicana' : 'Otra',
+      nacionalidadOtra: (estudiante.nacionalidad && estudiante.nacionalidad.trim().toLowerCase() !== 'dominicana') ? estudiante.nacionalidad.trim() : '',
+      tipoDocumento: (estudiante.nacionalidad || '').trim().toLowerCase() === 'dominicana' ? 'Cédula' : 'Pasaporte',
       documento: estudiante.documento_id_est,
       nombre: estudiante.nombre_est,
       segNombre: estudiante.seg_nombre_est || '',
@@ -863,8 +863,8 @@ const Students = () => {
       setOpenPolizaDialog(false);
       setPolizaData({ compania: '', tipo_poliza: '', nombre_poliza: '', numero_poliza: '', fecha_inicio: '', fecha_fin: '', estudiante: 'all' });
       loadData();
-    } catch (error: any) {
-      if (error?.response?.status === 404) {
+    } catch (error: unknown) {
+      if ((error as unknown as { response?: { status?: number } })?.response?.status === 404) {
         setSnackbar({ open: true, message: 'Error: El endpoint /polizas o /estudiantes/:id/poliza no existe en el backend. Por favor, verifica la API.', severity: 'error' });
       } else {
         setSnackbar({ open: true, message: 'Error al asignar póliza', severity: 'error' });
@@ -910,7 +910,7 @@ const Students = () => {
       setOpenFechasDialog(false);
       setFechasData({ fecha_inicio_pasantia: '', fecha_fin_pasantia: '', horaspasrealizadas_est: '', estudiante: 'all' });
       loadData();
-    } catch (error) {
+    } catch {
       setSnackbar({ open: true, message: 'Error al actualizar fechas', severity: 'error' });
     }
   };
