@@ -46,6 +46,8 @@ function Companies() {
   const [loading, setLoading] = useState(true);
   const [centrosTrabajo, setCentrosTrabajo] = useState<CentroTrabajo[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingCentro, setEditingCentro] = useState<any>(null);
   const [formData, setFormData] = useState<FormData>({
     nombre_centro: '',
     telefono_contacto: '',
@@ -97,13 +99,10 @@ function Companies() {
   const [usuarioEmpresaDisponible, setUsuarioEmpresaDisponible] = useState(true);
 
   // 1. Estados para edición, visualización y eliminación
-  const [openForm, setOpenForm] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [editingCentro, setEditingCentro] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [centroToDelete, setCentroToDelete] = useState<any>(null);
+  const [centroToDelete, setCentroToDelete] = useState<unknown>(null);
   const [openViewDialog, setOpenViewDialog] = useState(false);
-  const [viewCentro, setViewCentro] = useState<any>(null);
+  const [viewCentro, setViewCentro] = useState<unknown>(null);
 
   // Límites de caracteres para dirección
   const MAX_CALLE = 50;
@@ -113,6 +112,36 @@ function Companies() {
   const direccionInvalida =
     formData.calle_dir.length > MAX_CALLE ||
     formData.num_res_dir.length > MAX_NUM_RES;
+
+  // 2. Función para chequear usuario de empresa
+  const checkUsuarioEmpresa = async (usuario: string) => {
+    if (!usuario) return;
+    try {
+      await userService.getUserByUsername(usuario);
+      setUsuarioEmpresaDisponible(false); // Si existe, no está disponible
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        setUsuarioEmpresaDisponible(true); // No existe, está disponible
+      } else {
+        setUsuarioEmpresaDisponible(true); // Si hay error de red, asume disponible
+      }
+    }
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setEditMode(false);
+    setEditingCentro(null);
+    loadCentrosTrabajo();
+  };
+
+  const [showHistorial, setShowHistorial] = useState(false);
+  const [restaurando, setRestaurando] = useState<number | null>(null);
+
+  // Filtrar empresas eliminadas
+  const empresasEliminadas = centrosTrabajo.filter(
+    centro => (centro as any).usuario?.estado_usuario === 'Eliminado'
+  );
 
   // Cargar datos iniciales
   const loadCentrosTrabajo = async () => {
@@ -221,7 +250,7 @@ function Companies() {
             num_res_dir: formData.num_res_dir,
             estado_dir: 'Activo'
           },
-          // id_usu: idUsuario // <-- Solo si el backend lo requiere explícitamente
+          id_usu: idUsuario // <-- Relacionar el usuario creado
         });
 
         // 3. Crear la persona de contacto empresa usando el id_centro
@@ -256,7 +285,7 @@ function Companies() {
   };
 
   // 2. Handler para editar
-  const handleEditClick = async (centro: any) => {
+  const handleEditClick = async (centro: unknown) => {
     setEditMode(true);
     setEditingCentro(centro);
     setOpenDialog(true);
@@ -264,15 +293,17 @@ function Companies() {
     // 1. Cargar datos de persona de contacto de empresa
     let personaContacto = null;
     try {
-      personaContacto = await personaContactoEmpresaService.getPersonaContactoByCentro(centro.id_centro);
+      // @ts-expect-error: centro puede ser any
+      personaContacto = await personaContactoEmpresaService.getPersonaContactoByCentro((centro as any).id_centro);
     } catch {
       personaContacto = null;
     }
 
     // 2. Cargar dirección completa (sector, ciudad, provincia) igual que en Students.tsx
-    let direccionCompleta: any = null;
+    let direccionCompleta: unknown = null;
     try {
-      direccionCompleta = await direccionService.getDireccionByCentro(centro.id_centro);
+      // @ts-expect-error: centro puede ser any
+      direccionCompleta = await direccionService.getDireccionByCentro((centro as any).id_centro);
     } catch {
       direccionCompleta = null;
     }
@@ -329,13 +360,13 @@ function Companies() {
   };
 
   // 3. Handler para ver
-  const handleViewClick = (centro: any) => {
+  const handleViewClick = (centro: unknown) => {
     setViewCentro(centro);
     setOpenViewDialog(true);
   };
 
   // 4. Handler para eliminar
-  const handleDeleteClick = (centro: any) => {
+  const handleDeleteClick = (centro: unknown) => {
     setCentroToDelete(centro);
     setDeleteDialogOpen(true);
   };
@@ -512,21 +543,6 @@ function Companies() {
     }));
   };
 
-  // 2. Función para chequear usuario de empresa
-  const checkUsuarioEmpresa = async (usuario: string) => {
-    if (!usuario) return;
-    try {
-      await userService.getUserByUsername(usuario);
-      setUsuarioEmpresaDisponible(false); // Si existe, no está disponible
-    } catch (error: any) {
-      if (error?.response?.status === 404) {
-        setUsuarioEmpresaDisponible(true); // No existe, está disponible
-      } else {
-        setUsuarioEmpresaDisponible(true); // Si hay error de red, asume disponible
-      }
-    }
-  };
-
   return (
     <MUI.Box sx={{ display: 'flex', width:'100vw',minHeight: '100vh', bgcolor: MUI.alpha(theme.palette.background.paper, 0.6), p:0}}>
       {/* Sidebar */}
@@ -608,11 +624,11 @@ function Companies() {
           <MUI.Grid item>
             <MUI.Button
               variant="outlined"
-              startIcon={<Icons.Group />}
+              startIcon={<Icons.History />}
               sx={{ color: '#1a237e', borderColor: '#1a237e' }}
-              onClick={() => setOpenTallerDialog(true)}
+              onClick={() => setShowHistorial(!showHistorial)}
             >
-              Ver por Taller
+              {showHistorial ? 'Volver' : 'Historial'}
             </MUI.Button>
           </MUI.Grid>
         </MUI.Grid>
@@ -672,70 +688,118 @@ function Companies() {
         </MUI.Grid>
 
         {/* Buscador y tabla de Centros de Trabajo */}
-        <MUI.Paper sx={{ p: 3, borderRadius: 4, mb: 4 }}>
-          <MUI.Box sx={{ mb: 3 }}>
-            <MUI.TextField
-              fullWidth
-              variant="outlined"
-              placeholder="Buscar centro..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <MUI.InputAdornment position="start">
-                    <Icons.Search />
-                  </MUI.InputAdornment>
-                ),
-              }}
-            />
-          </MUI.Box>
-
-          <MUI.TableContainer>
-            <MUI.Table>
-              <MUI.TableHead>
-                <MUI.TableRow>
-                  <MUI.TableCell>Centro</MUI.TableCell>
-                  <MUI.TableCell>Pasantes</MUI.TableCell>
-                  <MUI.TableCell>Estado</MUI.TableCell>
-                  <MUI.TableCell>Acciones</MUI.TableCell>
-                </MUI.TableRow>
-              </MUI.TableHead>
-              <MUI.TableBody>
-                {empresasFiltradas
-                  .filter(centro => centro.nombre_centro.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((centro) => (
+        {showHistorial ? (
+          <MUI.Paper sx={{ p: 3, borderRadius: 4, mb: 4 }}>
+            <MUI.Typography variant="h6" sx={{ mb: 2 }}>Centros de Trabajo Eliminados</MUI.Typography>
+            <MUI.TableContainer>
+              <MUI.Table>
+                <MUI.TableHead>
+                  <MUI.TableRow>
+                    <MUI.TableCell>Centro</MUI.TableCell>
+                    <MUI.TableCell>Estado</MUI.TableCell>
+                    <MUI.TableCell>Usuario</MUI.TableCell>
+                    <MUI.TableCell>Acciones</MUI.TableCell>
+                  </MUI.TableRow>
+                </MUI.TableHead>
+                <MUI.TableBody>
+                  {empresasEliminadas.map((centro) => (
                     <MUI.TableRow key={centro.id_centro}>
                       <MUI.TableCell>{centro.nombre_centro}</MUI.TableCell>
-                      <MUI.TableCell>-</MUI.TableCell>
                       <MUI.TableCell>
-                        <MUI.Chip
-                          label={centro.estado_centro}
-                          color={centro.estado_centro === 'Activo' ? 'success' : 'default'}
-                          size="small"
-                        />
+                        <MUI.Chip label="Eliminado" color="error" size="small" />
                       </MUI.TableCell>
+                      <MUI.TableCell>{centro.usuario?.dato_usuario || '-'}</MUI.TableCell>
                       <MUI.TableCell>
-                        <MUI.IconButton size="small" sx={{ mr: 1 }} onClick={() => handleViewClick(centro)}>
-                          <Icons.Visibility />
-                        </MUI.IconButton>
-                        <MUI.IconButton size="small" sx={{ mr: 1 }} onClick={() => handleEditClick(centro)}>
-                          <Icons.Edit />
-                        </MUI.IconButton>
-                        <MUI.IconButton size="small" onClick={() => handleDeleteClick(centro)}>
-                          <Icons.Delete />
+                        <MUI.IconButton
+                          color="success"
+                          disabled={restaurando === centro.id_centro}
+                          onClick={async () => {
+                            setRestaurando(centro.id_centro);
+                            try {
+                              await userService.updateUser(centro.usuario.id_usuario, { estado_usuario: 'Activo' });
+                              setSnackbar({ open: true, message: 'Centro restaurado correctamente', severity: 'success' });
+                              loadCentrosTrabajo();
+                            } catch {
+                              setSnackbar({ open: true, message: 'Error al restaurar centro', severity: 'error' });
+                            }
+                            setRestaurando(null);
+                          }}
+                        >
+                          <Icons.Restore />
                         </MUI.IconButton>
                       </MUI.TableCell>
                     </MUI.TableRow>
                   ))}
-              </MUI.TableBody>
-            </MUI.Table>
-          </MUI.TableContainer>
-        </MUI.Paper>
+                </MUI.TableBody>
+              </MUI.Table>
+            </MUI.TableContainer>
+          </MUI.Paper>
+        ) : (
+          <MUI.Paper sx={{ p: 3, borderRadius: 4, mb: 4 }}>
+            <MUI.Box sx={{ mb: 3 }}>
+              <MUI.TextField
+                fullWidth
+                variant="outlined"
+                placeholder="Buscar centro..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <MUI.InputAdornment position="start">
+                      <Icons.Search />
+                    </MUI.InputAdornment>
+                  ),
+                }}
+              />
+            </MUI.Box>
+
+            <MUI.TableContainer>
+              <MUI.Table>
+                <MUI.TableHead>
+                  <MUI.TableRow>
+                    <MUI.TableCell>Centro</MUI.TableCell>
+                    <MUI.TableCell>Pasantes</MUI.TableCell>
+                    <MUI.TableCell>Estado</MUI.TableCell>
+                    <MUI.TableCell>Acciones</MUI.TableCell>
+                  </MUI.TableRow>
+                </MUI.TableHead>
+                <MUI.TableBody>
+                  {empresasFiltradas
+                    .filter(centro => centro.nombre_centro.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map((centro) => (
+                      <MUI.TableRow key={centro.id_centro}>
+                        <MUI.TableCell>{centro.nombre_centro}</MUI.TableCell>
+                        <MUI.TableCell>-</MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.Chip
+                            label={centro.estado_centro}
+                            color={centro.estado_centro === 'Activo' ? 'success' : 'default'}
+                            size="small"
+                          />
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.IconButton size="small" sx={{ mr: 1 }} onClick={() => handleViewClick(centro)}>
+                            <Icons.Visibility />
+                          </MUI.IconButton>
+                          <MUI.IconButton size="small" sx={{ mr: 1 }} onClick={() => handleEditClick(centro)}>
+                            <Icons.Edit />
+                          </MUI.IconButton>
+                          <MUI.IconButton size="small" onClick={() => handleDeleteClick(centro)}>
+                            <Icons.Delete />
+                          </MUI.IconButton>
+                        </MUI.TableCell>
+                      </MUI.TableRow>
+                    ))}
+                </MUI.TableBody>
+              </MUI.Table>
+            </MUI.TableContainer>
+          </MUI.Paper>
+        )}
 
         {/* Diálogo para registrar nuevo centro de trabajo */}
         <MUI.Dialog 
           open={openDialog} 
-          onClose={() => setOpenDialog(false)} 
+          onClose={handleCloseDialog} 
           maxWidth="md" 
           fullWidth
         >
@@ -981,12 +1045,7 @@ function Companies() {
           </MUI.DialogContent>
           <MUI.DialogActions>
             <MUI.Button 
-              onClick={() => {
-                setOpenDialog(false);
-                setSelectedProvincia('');
-                setSelectedCiudad('');
-                setSelectedSector('');
-              }}
+              onClick={handleCloseDialog}
             >
               Cancelar
             </MUI.Button>
@@ -997,134 +1056,6 @@ function Companies() {
               disabled={!usuarioEmpresaDisponible || direccionInvalida}
             >
               {editMode ? 'Editar' : 'Registrar'}
-            </MUI.Button>
-          </MUI.DialogActions>
-        </MUI.Dialog>
-
-        {/* Diálogo para ver empresas por taller */}
-        <MUI.Dialog 
-          open={openTallerDialog} 
-          onClose={() => {
-            setOpenTallerDialog(false);
-            setSelectedTaller(null);
-          }} 
-          maxWidth="md" 
-          fullWidth
-        >
-          <MUI.DialogTitle>
-            {selectedTaller ? `Empresas - ${talleres.find(t => String(t.id_taller) === String(selectedTaller))?.nombre_taller}` : 'Seleccionar Taller'}
-          </MUI.DialogTitle>
-          <MUI.DialogContent>
-            {!selectedTaller ? (
-              <MUI.Grid container spacing={2} sx={{ mt: 1 }}>
-                {talleres.map((taller) => (
-                  <MUI.Grid item xs={12} sm={6} md={3} key={taller.id_taller}>
-                    <MUI.Button
-                      fullWidth
-                      variant="outlined"
-                      onClick={() => setSelectedTaller(String(taller.id_taller))}
-                      sx={{
-                        height: 100,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 1,
-                        borderColor: '#1a237e',
-                        color: '#1a237e',
-                        '&:hover': {
-                          borderColor: '#0d1b60',
-                          bgcolor: MUI.alpha('#1a237e', 0.05),
-                        }
-                      }}
-                    >
-                      <MUI.Typography variant="h4" sx={{ fontWeight: 'bold' }}>
-                        {taller.id_taller}
-                      </MUI.Typography>
-                      <MUI.Typography variant="body2" align="center" sx={{ fontSize: '0.75rem' }}>
-                        {taller.nombre_taller}
-                      </MUI.Typography>
-                    </MUI.Button>
-                  </MUI.Grid>
-                ))}
-              </MUI.Grid>
-            ) : (
-              <MUI.Box sx={{ mt: 2 }}>
-                <MUI.TextField
-                  fullWidth
-                  variant="outlined"
-                  placeholder="Buscar empresa..."
-                  sx={{ mb: 2 }}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <MUI.InputAdornment position="start">
-                        <Icons.Search />
-                      </MUI.InputAdornment>
-                    ),
-                  }}
-                />
-                {/*
-                <MUI.TableContainer>
-                  <MUI.Table>
-                    <MUI.TableHead>
-                      <MUI.TableRow>
-                        <MUI.TableCell>Empresa</MUI.TableCell>
-                        <MUI.TableCell>Pasantes</MUI.TableCell>
-                        <MUI.TableCell>Estado</MUI.TableCell>
-                        <MUI.TableCell>Acciones</MUI.TableCell>
-                      </MUI.TableRow>
-                    </MUI.TableHead>
-                    <MUI.TableBody>
-                      {empresasPorTaller[selectedTaller]
-                        ?.filter(empresa => 
-                          empresa.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-                        )
-                        .map((empresa) => (
-                          <MUI.TableRow key={empresa.id}>
-                            <MUI.TableCell>{empresa.nombre}</MUI.TableCell>
-                            <MUI.TableCell>{empresa.estudiantes}</MUI.TableCell>
-                            <MUI.TableCell>
-                              <MUI.Chip
-                                label={empresa.estado}
-                                color={empresa.estado === 'Activa' ? 'success' : 'default'}
-                                size="small"
-                              />
-                            </MUI.TableCell>
-                            <MUI.TableCell>
-                              <MUI.IconButton size="small" sx={{ mr: 1 }}>
-                                <Icons.Visibility />
-                              </MUI.IconButton>
-                              <MUI.IconButton size="small" sx={{ mr: 1 }}>
-                                <Icons.Edit />
-                              </MUI.IconButton>
-                              <MUI.IconButton size="small">
-                                <Icons.Delete />
-                              </MUI.IconButton>
-                            </MUI.TableCell>
-                          </MUI.TableRow>
-                        ))}
-                    </MUI.TableBody>
-                  </MUI.Table>
-                </MUI.TableContainer>
-                */}
-              </MUI.Box>
-            )}
-          </MUI.DialogContent>
-          <MUI.DialogActions>
-            {selectedTaller && (
-              <MUI.Button 
-                onClick={() => setSelectedTaller(null)}
-                sx={{ color: '#1a237e' }}
-              >
-                Volver
-              </MUI.Button>
-            )}
-            <MUI.Button 
-              onClick={() => {
-                setOpenTallerDialog(false);
-                setSelectedTaller(null);
-              }}
-            >
-              Cerrar
             </MUI.Button>
           </MUI.DialogActions>
         </MUI.Dialog>
@@ -1157,11 +1088,11 @@ function Companies() {
                   <MUI.Grid item xs={12}>
                     <MUI.Typography variant="subtitle2">Dirección:</MUI.Typography>
                     <MUI.Typography>
-                      {viewCentro.direccion_centro?.calle_dir || '-'}
-                      {viewCentro.direccion_centro?.num_res_dir ? `, ${viewCentro.direccion_centro.num_res_dir}` : ''}
-                      {viewCentro.direccion_centro?.sector_dir?.sector ? `, Sector: ${viewCentro.direccion_centro.sector_dir.sector}` : ''}
-                      {viewCentro.direccion_centro?.sector_dir?.ciudad_sec && viewCentro.direccion_centro?.sector_dir?.ciudad?.ciudad ? `, Ciudad: ${viewCentro.direccion_centro.sector_dir.ciudad.ciudad}` : ''}
-                      {viewCentro.direccion_centro?.sector_dir?.ciudad?.provincia_ciu && viewCentro.direccion_centro?.sector_dir?.ciudad?.provincia?.provincia ? `, Provincia: ${viewCentro.direccion_centro.sector_dir.ciudad.provincia.provincia}` : ''}
+                      <strong>Calle:</strong> {viewCentro.direccion_centro?.calle_dir || '-'}<br />
+                      <strong>Residencia:</strong> {viewCentro.direccion_centro?.num_res_dir || '-'}<br />
+                      <strong>Sector:</strong> {viewCentro.direccion_centro?.sector_dir?.sector || '-'}<br />
+                      <strong>Ciudad:</strong> {viewCentro.direccion_centro?.sector_dir?.ciudad?.ciudad || '-'}<br />
+                      <strong>Provincia:</strong> {viewCentro.direccion_centro?.sector_dir?.ciudad?.provincia?.provincia || '-'}
                     </MUI.Typography>
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>
@@ -1174,13 +1105,20 @@ function Companies() {
                   </MUI.Grid>
                   <MUI.Grid item xs={12}>
                     <MUI.Typography variant="subtitle2" sx={{ mt: 2 }}>Persona de Contacto de la Empresa:</MUI.Typography>
-                    <MUI.Typography>
-                      <strong>Nombre:</strong> {viewCentro.persona_contacto_empresa?.nombre_persona_contacto || '-'}<br />
-                      <strong>Apellido:</strong> {viewCentro.persona_contacto_empresa?.apellido_persona_contacto || '-'}<br />
-                      <strong>Teléfono:</strong> {viewCentro.persona_contacto_empresa?.telefono || '-'}<br />
-                      <strong>Extensión:</strong> {viewCentro.persona_contacto_empresa?.extension || '-'}<br />
-                      <strong>Departamento:</strong> {viewCentro.persona_contacto_empresa?.departamento || '-'}
-                    </MUI.Typography>
+                    {(() => {
+                      const pc = Array.isArray(viewCentro.persona_contacto_empresa)
+                        ? viewCentro.persona_contacto_empresa[0]
+                        : viewCentro.persona_contacto_empresa;
+                      return (
+                        <MUI.Typography>
+                          <strong>Nombre:</strong> {pc?.nombre_persona_contacto || '-'}<br />
+                          <strong>Apellido:</strong> {pc?.apellido_persona_contacto || '-'}<br />
+                          <strong>Teléfono:</strong> {pc?.telefono || '-'}<br />
+                          <strong>Extensión:</strong> {pc?.extension || '-'}<br />
+                          <strong>Departamento:</strong> {pc?.departamento || '-'}
+                        </MUI.Typography>
+                      );
+                    })()}
                   </MUI.Grid>
                 </MUI.Grid>
               </MUI.Box>
