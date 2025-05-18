@@ -100,6 +100,11 @@ function TutoresPage() {
     severity: 'success' as 'success' | 'error' | 'info' | 'warning'
   });
 
+  // Estado para verificar disponibilidad de usuario
+  const [usuarioDisponible, setUsuarioDisponible] = useState(true);
+  const [telefonoDisponible, setTelefonoDisponible] = useState(true);
+  const [emailDisponible, setEmailDisponible] = useState(true);
+  
   // Estados para manejo de errores específicos
   const [tutoresError, setTutoresError] = useState(false);
   const [talleresError, setTalleresError] = useState(false);
@@ -266,8 +271,98 @@ function TutoresPage() {
     return !Object.values(errors).some(error => error);
   };
 
+  // Verificar si el nombre de usuario ya existe
+  const checkUsuario = async (usuario: string) => {
+    if (!usuario || (selectedTutor && selectedTutor.usuario_tutor_data?.dato_usuario === usuario)) {
+      setUsuarioDisponible(true);
+      return;
+    }
+    
+    try {
+      await api.get(`/usuarios/buscar/${usuario}`);
+      // Si la petición es exitosa, el usuario ya existe
+      setUsuarioDisponible(false);
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number } };
+      if (err.response && err.response.status === 404) {
+        // Error 404 significa que el usuario no existe, por lo tanto está disponible
+        setUsuarioDisponible(true);
+      } else {
+        // Para cualquier otro error, asumimos que está disponible para no bloquear al usuario
+        console.error('Error al verificar usuario:', error);
+        setUsuarioDisponible(true);
+      }
+    }
+  };
+  
+  // Verificar si el teléfono ya existe
+  const checkTelefono = async (telefono: string) => {
+    if (!telefono || (selectedTutor && selectedTutor.contacto_tutor_data?.telefono_contacto === telefono)) {
+      setTelefonoDisponible(true);
+      return;
+    }
+    
+    try {
+      const response = await api.get(`/contactos/existe-telefono/${encodeURIComponent(telefono)}`);
+      // Si existe, no está disponible
+      setTelefonoDisponible(!response.data.exists);
+    } catch (error) {
+      // Para cualquier error, asumimos que está disponible para no bloquear al usuario
+      console.error('Error al verificar teléfono:', error);
+      setTelefonoDisponible(true);
+    }
+  };
+  
+  // Verificar si el email ya existe
+  const checkEmail = async (email: string) => {
+    if (!email || (selectedTutor && selectedTutor.contacto_tutor_data?.email_contacto === email)) {
+      setEmailDisponible(true);
+      return;
+    }
+    
+    try {
+      const response = await api.get(`/contactos/existe-email/${encodeURIComponent(email)}`);
+      // Si existe, no está disponible
+      setEmailDisponible(!response.data.exists);
+    } catch (error) {
+      // Para cualquier error, asumimos que está disponible para no bloquear al usuario
+      console.error('Error al verificar email:', error);
+      setEmailDisponible(true);
+    }
+  };
+
   const handleSaveTutor = async () => {
     if (!validateForm()) return;
+    
+    // Verificar si el usuario está disponible cuando es un tutor nuevo
+    if (!selectedTutor && !usuarioDisponible) {
+      setSnackbar({
+        open: true,
+        message: 'El nombre de usuario ya está en uso. Por favor, elige otro.',
+        severity: 'error'
+      });
+      return;
+    }
+    
+    // Verificar si el teléfono está disponible
+    if (!telefonoDisponible) {
+      setSnackbar({
+        open: true,
+        message: 'El número de teléfono ya está registrado en otro contacto.',
+        severity: 'error'
+      });
+      return;
+    }
+    
+    // Verificar si el email está disponible
+    if (!emailDisponible) {
+      setSnackbar({
+        open: true,
+        message: 'El correo electrónico ya está registrado en otro contacto.',
+        severity: 'error'
+      });
+      return;
+    }
     
     try {
       setLoading(true);
@@ -968,9 +1063,17 @@ function TutoresPage() {
                         variant="outlined"
                         fullWidth
                         value={formTelefono}
-                        onChange={(e) => setFormTelefono(e.target.value)}
-                        error={formErrors.telefono_contacto}
-                        helperText={formErrors.telefono_contacto ? 'Este campo es obligatorio' : ''}
+                        onChange={(e) => {
+                          setFormTelefono(e.target.value);
+                          checkTelefono(e.target.value);
+                        }}
+                        onBlur={(e) => checkTelefono(e.target.value)}
+                        error={formErrors.telefono_contacto || !telefonoDisponible}
+                        helperText={formErrors.telefono_contacto 
+                          ? 'Este campo es obligatorio' 
+                          : !telefonoDisponible 
+                            ? 'Este número de teléfono ya está registrado' 
+                            : ''}
                         InputProps={{
                           startAdornment: (
                             <MUI.InputAdornment position="start">
@@ -988,9 +1091,17 @@ function TutoresPage() {
                         fullWidth
                         type="email"
                         value={formEmail}
-                        onChange={(e) => setFormEmail(e.target.value)}
-                        error={formErrors.email_contacto}
-                        helperText={formErrors.email_contacto ? 'Email válido obligatorio' : ''}
+                        onChange={(e) => {
+                          setFormEmail(e.target.value);
+                          checkEmail(e.target.value);
+                        }}
+                        onBlur={(e) => checkEmail(e.target.value)}
+                        error={formErrors.email_contacto || !emailDisponible}
+                        helperText={formErrors.email_contacto 
+                          ? 'Email válido obligatorio' 
+                          : !emailDisponible 
+                            ? 'Este correo electrónico ya está registrado' 
+                            : ''}
                         InputProps={{
                           startAdornment: (
                             <MUI.InputAdornment position="start">
@@ -1023,9 +1134,17 @@ function TutoresPage() {
                         variant="outlined"
                         fullWidth
                         value={formUsuario}
-                        onChange={(e) => setFormUsuario(e.target.value)}
-                        error={formErrors.dato_usuario}
-                        helperText={formErrors.dato_usuario ? 'Este campo es obligatorio' : ''}
+                        onChange={(e) => {
+                          setFormUsuario(e.target.value);
+                          checkUsuario(e.target.value);
+                        }}
+                        onBlur={(e) => checkUsuario(e.target.value)}
+                        error={formErrors.dato_usuario || !usuarioDisponible}
+                        helperText={formErrors.dato_usuario 
+                          ? 'Este campo es obligatorio' 
+                          : !usuarioDisponible 
+                            ? 'Este nombre de usuario ya está en uso' 
+                            : ''}
                         disabled={!!selectedTutor} // Deshabilitar edición si es actualización
                         InputProps={{
                           startAdornment: (
