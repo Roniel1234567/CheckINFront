@@ -24,7 +24,16 @@ import PlazasCentro from './pages/dashboardAccess/PlazasCentro';
 import Evaluaciones from './pages/dashboardAccess/Evaluaciones';
 import TallerConFamilias from './pages/dashboardAccess/TallerConFamilias';
 import TutoresPage from './pages/dashboardAccess/Tutores';
+import RecuperarContrasena from './pages/RecuperarContrasena';
+import { authService } from './services/authService';
 
+// Componente para rutas protegidas
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  if (!authService.isAuthenticated()) {
+    return <Navigate to="/login" />;
+  }
+  return <>{children}</>;
+};
 
 function App() {
   return (
@@ -39,6 +48,8 @@ function App() {
           <Route path="/Funcionalidades" element={<Features />} />
           <Route path="/ManualdeUsuario" element={<UserManual />} />
           <Route path="/Login" element={<Login />} />
+          <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+          <Route path="/reset-password/:token" element={<RecuperarContrasena />} />
 
           {/* Rutas del dashboard directas, sin layout */}
           <Route path='/dashboard' element={<Dashboard />} />
@@ -57,6 +68,21 @@ function App() {
           <Route path="tutores" element={<TutoresPage />} />
           {/* Ruta alternativa para gestión de talleres que apunta al mismo componente */}
           <Route path="gestion-talleres" element={<TallerConFamilias />} />
+
+          {/* Rutas protegidas */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Principal />
+            </ProtectedRoute>
+          } />
+          <Route path="/evaluaciones" element={
+            <ProtectedRoute>
+              <Evaluaciones />
+            </ProtectedRoute>
+          } />
+
+          {/* Redirección por defecto */}
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </BrowserRouter>
       {/* Configuración del ToastContainer para mostrar notificaciones */}
