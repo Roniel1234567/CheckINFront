@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './assets/theme';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Principal from './pages/Principal';
@@ -57,6 +59,19 @@ function App() {
           <Route path="gestion-talleres" element={<TallerConFamilias />} />
         </Routes>
       </BrowserRouter>
+      {/* Configuración del ToastContainer para mostrar notificaciones */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </ThemeProvider>
   );
 }

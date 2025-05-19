@@ -201,7 +201,7 @@ function TallerPage() {
       setLoading(false);
     }
   };
-
+  
   // Función para mostrar el diálogo de confirmación de desactivación
   const handleDesactivarClick = (taller: Taller) => {
     setTallerADesactivar(taller);
@@ -304,7 +304,7 @@ function TallerPage() {
     taller.cod_titulo_taller.toLowerCase().includes(searchTerm.toLowerCase()) ||
     taller.familia_taller.nombre_fam.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
+  
   // Función para manejar nueva familia profesional
   const handleNuevaFamilia = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -403,17 +403,17 @@ function TallerPage() {
         <TabContext value={activeTab}>
           <MUI.Box sx={{ px: { xs: 2, md: 4 }, borderBottom: 1, borderColor: 'divider' }}>
             <TabList 
-              onChange={handleTabChange}
+            onChange={handleTabChange} 
               aria-label="Gestión de talleres"
-              variant="scrollable"
-              scrollButtons="auto"
+            variant="scrollable" 
+            scrollButtons="auto"
             >
               <MUI.Tab label="Talleres" value="1" icon={<Icons.ViewList />} />
               <MUI.Tab label="Nuevo Taller" value="2" icon={<Icons.Add />} />
               <MUI.Tab label="Familias Profesionales" value="3" icon={<Icons.Category />} />
               <MUI.Tab label="Historial" value="4" icon={<Icons.History />} />
             </TabList>
-          </MUI.Box>
+        </MUI.Box>
 
           {/* Tab 1: Listado de Talleres */}
           <TabPanel value="1">
@@ -471,105 +471,105 @@ function TallerPage() {
             </MUI.Box>
 
             {/* Tabla de Talleres */}
-            <MUI.TableContainer component={MUI.Paper} sx={{ 
-              borderRadius: 2,
-              overflow: 'hidden',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-            }}>
-              <MUI.Table>
-                <MUI.TableHead>
-                  <MUI.TableRow sx={{ bgcolor: theme.palette.primary.main }}>
-                    <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</MUI.TableCell>
-                    <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nombre</MUI.TableCell>
-                    <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Familia</MUI.TableCell>
-                    <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Código Título</MUI.TableCell>
-                    <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Estado</MUI.TableCell>
-                    <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</MUI.TableCell>
-                  </MUI.TableRow>
-                </MUI.TableHead>
-                <MUI.TableBody>
-                  {/* Filtrar talleres según estado */}
-                  {filteredTalleres
-                    .filter(taller => showInactivos || taller.estado_taller === 'Activo')
-                    .map((taller) => (
-                    <MUI.TableRow 
-                      key={taller.id_taller}
-                      sx={{ 
-                        '&:hover': { bgcolor: 'action.hover' },
-                        ...(taller.estado_taller === 'Inactivo' && { 
-                          bgcolor: MUI.alpha(theme.palette.error.light, 0.05),
-                          opacity: 0.8
-                        })
-                      }}
-                    >
-                      <MUI.TableCell>{taller.id_taller}</MUI.TableCell>
-                      <MUI.TableCell>{taller.nombre_taller}</MUI.TableCell>
-                      <MUI.TableCell>{taller.familia_taller?.nombre_fam || '-'}</MUI.TableCell>
-                      <MUI.TableCell>{taller.cod_titulo_taller}</MUI.TableCell>
-                      <MUI.TableCell>
-                        <MUI.Chip 
-                          label={taller.estado_taller}
-                          color={taller.estado_taller === 'Activo' ? 'success' : 'error'}
-                          size="small"
-                          sx={{ fontWeight: 'bold' }}
-                        />
-                      </MUI.TableCell>
-                      <MUI.TableCell>
-                        <MUI.Box sx={{ display: 'flex', gap: 1 }}>
-                          <MUI.Tooltip title="Editar">
-                            <MUI.IconButton
-                              color="primary"
-                              onClick={() => handleOpenDialog(taller)}
-                              size="small"
-                              sx={{
-                                transition: 'all 0.3s ease',
-                                '&:hover': {
-                                  transform: 'scale(1.1)',
-                                  bgcolor: MUI.alpha(theme.palette.primary.main, 0.1)
-                                }
-                              }}
-                            >
-                              <Icons.Edit />
-                            </MUI.IconButton>
-                          </MUI.Tooltip>
-                          
-                          <MUI.Tooltip title={taller.estado_taller === 'Activo' ? 'Desactivar' : 'Activar'}>
-                            <MUI.IconButton
-                              color={taller.estado_taller === 'Activo' ? 'warning' : 'success'}
-                              onClick={() => handleChangeStatus(taller)}
-                              size="small"
-                              sx={{
-                                transition: 'all 0.3s ease',
-                                '&:hover': {
-                                  transform: 'scale(1.1)',
-                                  bgcolor: taller.estado_taller === 'Activo' 
-                                    ? MUI.alpha(theme.palette.warning.main, 0.1) 
-                                    : MUI.alpha(theme.palette.success.main, 0.1)
-                                }
-                              }}
-                            >
-                              {taller.estado_taller === 'Activo' ? <Icons.DoNotDisturb /> : <Icons.CheckCircle />}
-                            </MUI.IconButton>
-                          </MUI.Tooltip>
-                        </MUI.Box>
-                      </MUI.TableCell>
+              <MUI.TableContainer component={MUI.Paper} sx={{ 
+                borderRadius: 2,
+                overflow: 'hidden',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+              }}>
+                <MUI.Table>
+                  <MUI.TableHead>
+                    <MUI.TableRow sx={{ bgcolor: theme.palette.primary.main }}>
+                      <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>ID</MUI.TableCell>
+                      <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Nombre</MUI.TableCell>
+                      <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Familia</MUI.TableCell>
+                      <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Código Título</MUI.TableCell>
+                      <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Estado</MUI.TableCell>
+                      <MUI.TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Acciones</MUI.TableCell>
                     </MUI.TableRow>
-                  ))}
+                  </MUI.TableHead>
+                  <MUI.TableBody>
+                    {/* Filtrar talleres según estado */}
+                    {filteredTalleres
+                      .filter(taller => showInactivos || taller.estado_taller === 'Activo')
+                      .map((taller) => (
+                      <MUI.TableRow 
+                        key={taller.id_taller}
+                        sx={{ 
+                          '&:hover': { bgcolor: 'action.hover' },
+                          ...(taller.estado_taller === 'Inactivo' && { 
+                            bgcolor: MUI.alpha(theme.palette.error.light, 0.05),
+                            opacity: 0.8
+                          })
+                        }}
+                      >
+                        <MUI.TableCell>{taller.id_taller}</MUI.TableCell>
+                        <MUI.TableCell>{taller.nombre_taller}</MUI.TableCell>
+                        <MUI.TableCell>{taller.familia_taller?.nombre_fam || '-'}</MUI.TableCell>
+                        <MUI.TableCell>{taller.cod_titulo_taller}</MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.Chip 
+                            label={taller.estado_taller}
+                            color={taller.estado_taller === 'Activo' ? 'success' : 'error'}
+                            size="small"
+                            sx={{ fontWeight: 'bold' }}
+                          />
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.Box sx={{ display: 'flex', gap: 1 }}>
+                            <MUI.Tooltip title="Editar">
+                              <MUI.IconButton
+                                color="primary"
+                                onClick={() => handleOpenDialog(taller)}
+                                size="small"
+                                sx={{
+                                  transition: 'all 0.3s ease',
+                                  '&:hover': {
+                                    transform: 'scale(1.1)',
+                                    bgcolor: MUI.alpha(theme.palette.primary.main, 0.1)
+                                  }
+                                }}
+                              >
+                                <Icons.Edit />
+                              </MUI.IconButton>
+                            </MUI.Tooltip>
+                            
+                            <MUI.Tooltip title={taller.estado_taller === 'Activo' ? 'Desactivar' : 'Activar'}>
+                              <MUI.IconButton
+                                color={taller.estado_taller === 'Activo' ? 'warning' : 'success'}
+                                onClick={() => handleChangeStatus(taller)}
+                                size="small"
+                                sx={{
+                                  transition: 'all 0.3s ease',
+                                  '&:hover': {
+                                    transform: 'scale(1.1)',
+                                    bgcolor: taller.estado_taller === 'Activo' 
+                                      ? MUI.alpha(theme.palette.warning.main, 0.1) 
+                                      : MUI.alpha(theme.palette.success.main, 0.1)
+                                  }
+                                }}
+                              >
+                                {taller.estado_taller === 'Activo' ? <Icons.DoNotDisturb /> : <Icons.CheckCircle />}
+                              </MUI.IconButton>
+                            </MUI.Tooltip>
+                          </MUI.Box>
+                        </MUI.TableCell>
+                      </MUI.TableRow>
+                    ))}
 
-                  {/* Mensaje si no hay talleres */}
-                  {filteredTalleres.filter(taller => showInactivos || taller.estado_taller === 'Activo').length === 0 && (
-                    <MUI.TableRow>
-                      <MUI.TableCell colSpan={6} align="center" sx={{ py: 3 }}>
-                        <Icons.SearchOff sx={{ fontSize: '3rem', color: 'text.secondary', opacity: 0.5, mb: 1 }} />
-                        <MUI.Typography variant="body1" color="text.secondary">
-                          No se encontraron talleres
-                        </MUI.Typography>
-                      </MUI.TableCell>
-                    </MUI.TableRow>
-                  )}
-                </MUI.TableBody>
-              </MUI.Table>
-            </MUI.TableContainer>
+                    {/* Mensaje si no hay talleres */}
+                    {filteredTalleres.filter(taller => showInactivos || taller.estado_taller === 'Activo').length === 0 && (
+                      <MUI.TableRow>
+                        <MUI.TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                          <Icons.SearchOff sx={{ fontSize: '3rem', color: 'text.secondary', opacity: 0.5, mb: 1 }} />
+                          <MUI.Typography variant="body1" color="text.secondary">
+                            No se encontraron talleres
+                          </MUI.Typography>
+                        </MUI.TableCell>
+                      </MUI.TableRow>
+                    )}
+                  </MUI.TableBody>
+                </MUI.Table>
+              </MUI.TableContainer>
           </TabPanel>
 
           {/* Tab 2: Nuevo Taller */}

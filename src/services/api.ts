@@ -43,4 +43,21 @@ api.interceptors.response.use(
   }
 );
 
+// Interceptor para depurar las peticiones salientes
+api.interceptors.request.use(
+  request => {
+    console.log('Enviando petición:', {
+      url: request.url,
+      method: request.method,
+      data: request.data,
+      headers: request.headers
+    });
+    return request;
+  },
+  error => {
+    console.error('Error al preparar la petición:', error);
+    return Promise.reject(error);
+  }
+);
+
 export default api; 

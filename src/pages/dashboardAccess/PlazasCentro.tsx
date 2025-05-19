@@ -85,8 +85,8 @@ function PlazasCentro() {
         if (!centrosData || centrosData.length === 0) {
           console.log('Intentando cargar centros con fetch directo...');
           try {
-            const res = await fetch('/api/centros-trabajo');
-            centrosData = await res.json();
+          const res = await fetch('/api/centros-trabajo');
+          centrosData = await res.json();
             console.log('Centros cargados con fetch directo:', centrosData);
           } catch (error) {
             console.error('Error al cargar centros con fetch directo:', error);
@@ -97,8 +97,8 @@ function PlazasCentro() {
         if (!talleresData || talleresData.length === 0) {
           console.log('Intentando cargar talleres con fetch directo...');
           try {
-            const res = await fetch('/api/talleres');
-            talleresData = await res.json();
+          const res = await fetch('/api/talleres');
+          talleresData = await res.json();
             console.log('Talleres cargados con fetch directo:', talleresData);
           } catch (error) {
             console.error('Error al cargar talleres con fetch directo:', error);
@@ -116,17 +116,17 @@ function PlazasCentro() {
         try {
           const { data: plazasData } = await api.get('/plazas');
           console.log('Plazas cargadas:', plazasData);
-          const plazasAdaptadas: Plaza[] = (plazasData as PlazaApi[]).map((plaza) => {
-            return {
-              ...plaza,
+        const plazasAdaptadas: Plaza[] = (plazasData as PlazaApi[]).map((plaza) => {
+          return {
+            ...plaza,
               id: plaza.id_plaza, // Asegurar que id también está disponible
-              centro: plaza.centro_plaza,
-              taller: plaza.taller_plaza,
+            centro: plaza.centro_plaza,
+            taller: plaza.taller_plaza,
               plazas: plaza.plazas_centro, // Mapear el campo correcto
               fechaCreacion: plaza.creacion_plaza // Mapear el campo correcto
-            };
-          });
-          setPlazas(plazasAdaptadas);
+          };
+        });
+        setPlazas(plazasAdaptadas);
         } catch (error) {
           console.error('Error al cargar plazas:', error);
           setPlazas([]);
@@ -378,21 +378,21 @@ function PlazasCentro() {
             {showInactive ? "Volver a Activas" : "Ver Historial"}
           </MUI.Button>
           {!showInactive && (
-            <MUI.Button
-              variant="contained"
-              color="primary"
-              startIcon={<Icons.Add />}
-              onClick={() => handleOpenDialog()}
-              sx={{
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  transform: 'scale(1.05)',
-                  boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
-                }
-              }}
-            >
-              Nueva Plaza
-            </MUI.Button>
+          <MUI.Button
+            variant="contained"
+            color="primary"
+            startIcon={<Icons.Add />}
+            onClick={() => handleOpenDialog()}
+            sx={{
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                transform: 'scale(1.05)',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+              }
+            }}
+          >
+            Nueva Plaza
+          </MUI.Button>
           )}
         </MUI.Box>
 
@@ -475,32 +475,32 @@ function PlazasCentro() {
                       ) : (
                         // Botones de editar y eliminar para plazas activas
                         <>
-                          <MUI.IconButton
-                            color="primary"
-                            onClick={() => handleOpenDialog(plaza)}
-                            sx={{
-                              transition: 'all 0.3s ease',
-                              '&:hover': {
-                                transform: 'scale(1.1)',
-                                backgroundColor: MUI.alpha(theme.palette.primary.main, 0.1)
-                              }
-                            }}
-                          >
-                            <Icons.Edit />
-                          </MUI.IconButton>
-                          <MUI.IconButton
-                            color="error"
+                      <MUI.IconButton
+                        color="primary"
+                        onClick={() => handleOpenDialog(plaza)}
+                        sx={{
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            transform: 'scale(1.1)',
+                            backgroundColor: MUI.alpha(theme.palette.primary.main, 0.1)
+                          }
+                        }}
+                      >
+                        <Icons.Edit />
+                      </MUI.IconButton>
+                      <MUI.IconButton
+                        color="error"
                             onClick={() => handleDeleteConfirmation(plaza)}
-                            sx={{
-                              transition: 'all 0.3s ease',
-                              '&:hover': {
-                                transform: 'scale(1.1)',
-                                backgroundColor: MUI.alpha(theme.palette.error.main, 0.1)
-                              }
-                            }}
-                          >
-                            <Icons.Delete />
-                          </MUI.IconButton>
+                        sx={{
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            transform: 'scale(1.1)',
+                            backgroundColor: MUI.alpha(theme.palette.error.main, 0.1)
+                          }
+                        }}
+                      >
+                        <Icons.Delete />
+                      </MUI.IconButton>
                         </>
                       )}
                     </MUI.Box>
@@ -575,7 +575,7 @@ function PlazasCentro() {
                 renderInput={(params) => (
                   <MUI.TextField
                     {...params}
-                    label="Centro de Trabajo"
+                  label="Centro de Trabajo"
                     variant="outlined"
                     placeholder="Buscar centro de trabajo..."
                   />
