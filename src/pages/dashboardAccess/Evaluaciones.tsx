@@ -1120,13 +1120,25 @@ function Evaluaciones() {
                         >
                           <MUI.Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                             <MUI.Typography variant="h6">
-                              Evaluación #{item.id_eval_centro}
+                              {typeof item.pasantia_eval_centro === 'object' && item.pasantia_eval_centro?.centro_pas?.nombre_centro 
+                                ? item.pasantia_eval_centro.centro_pas.nombre_centro 
+                                : `Evaluación de Centro #${item.id_eval_centro}`}
                             </MUI.Typography>
                             <MUI.Chip
                               label={item.fecha_eval_centro ? new Date(item.fecha_eval_centro).toLocaleDateString() : 'Fecha no disponible'}
                               icon={<Icons.CalendarToday />}
                             />
                           </MUI.Box>
+
+                          {/* Información del estudiante */}
+                          {typeof item.pasantia_eval_centro === 'object' && item.pasantia_eval_centro?.estudiante_pas?.nombre_est && (
+                            <MUI.Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Icons.Person sx={{ color: theme.palette.primary.main }} />
+                              <MUI.Typography variant="body1">
+                                Estudiante: {item.pasantia_eval_centro.estudiante_pas.nombre_est}
+                              </MUI.Typography>
+                            </MUI.Box>
+                          )}
 
                           <MUI.Grid container spacing={2}>
                             <MUI.Grid item xs={12} md={4}>
@@ -1188,13 +1200,26 @@ function Evaluaciones() {
                         >
                           <MUI.Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
                             <MUI.Typography variant="h6">
-                              RA: {item.ra_eval || 'No disponible'}
+                              {typeof item.pasantia_eval === 'object' && item.pasantia_eval?.estudiante_pas?.nombre_est 
+                                ? item.pasantia_eval.estudiante_pas.nombre_est
+                                : `Evaluación de Estudiante #${item.id_eval_est}`}
+                              {item.ra_eval && <MUI.Chip size="small" label={item.ra_eval} sx={{ ml: 1 }} />}
                             </MUI.Typography>
                             <MUI.Chip
                               label={item.fecha_eval ? new Date(item.fecha_eval).toLocaleDateString() : 'Fecha no disponible'}
                               icon={<Icons.CalendarToday />}
                             />
                           </MUI.Box>
+
+                          {/* Información del centro */}
+                          {typeof item.pasantia_eval === 'object' && item.pasantia_eval?.centro_pas?.nombre_centro && (
+                            <MUI.Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Icons.Business sx={{ color: theme.palette.primary.main }} />
+                              <MUI.Typography variant="body1">
+                                Centro: {item.pasantia_eval.centro_pas.nombre_centro}
+                              </MUI.Typography>
+                            </MUI.Box>
+                          )}
 
                           <MUI.Grid container spacing={2}>
                             {[
