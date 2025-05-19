@@ -174,7 +174,7 @@ function Evaluaciones() {
         console.error('Error al cargar datos:', error);
         toast.error('Error al cargar los datos. Por favor, intente nuevamente.');
       } finally {
-        setLoading(false);
+      setLoading(false);
       }
     };
     
@@ -983,7 +983,7 @@ function Evaluaciones() {
                         value={selectedRA}
                         onChange={handleChangeRA}
                         label="Resultado de Aprendizaje (RA)"
-                        required
+                      required
                       >
                         {['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].map((ra) => (
                           <MUI.MenuItem key={ra} value={ra}>
