@@ -1,4 +1,5 @@
 import api from './api';
+import axios from 'axios';
 
 export interface Direccion {
   id_dir: number;
@@ -18,7 +19,8 @@ export interface NuevaDireccion {
 
 export interface Sector {
   id_sec: number;
-  nombre_sec: string;
+  sector: string;
+  ciudad_sec: number;
 }
 
 const direccionService = {
@@ -33,6 +35,18 @@ const direccionService = {
   createDireccion: async (data: NuevaDireccion): Promise<Direccion> => {
     const res = await api.post('/direcciones', data);
     return res.data as Direccion;
+  },
+  getDireccionById: async (id: number): Promise<Direccion> => {
+    const res = await api.get(`/direcciones/${id}`);
+    return res.data as Direccion;
+  },
+  getDireccionByEstudianteDocumento: async (documento: string) => {
+    const res = await axios.get(`${import.meta.env.VITE_API_URL}/direcciones/estudiante/${documento}`);
+    return res.data;
+  },
+  getDireccionByCentro: async (idCentro: number) => {
+    const response = await api.get(`/direcciones/centro/${idCentro}`);
+    return response.data;
   },
 };
 

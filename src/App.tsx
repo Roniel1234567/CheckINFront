@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './assets/theme';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Principal from './pages/Principal';
@@ -20,8 +22,18 @@ import Supervisors from './pages/dashboardAccess/subPages/Supervisors';
 import Tutors from './pages/dashboardAccess/subPages/Tutors';
 import PlazasCentro from './pages/dashboardAccess/PlazasCentro';
 import Evaluaciones from './pages/dashboardAccess/Evaluaciones';
-import Talleres from './pages/dashboardAccess/subPages/Talleres';
+import TallerConFamilias from './pages/dashboardAccess/TallerConFamilias';
+import TutoresPage from './pages/dashboardAccess/Tutores';
+import RecuperarContrasena from './pages/RecuperarContrasena';
+import { authService } from './services/authService';
 
+// Componente para rutas protegidas
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  if (!authService.isAuthenticated()) {
+    return <Navigate to="/login" />;
+  }
+  return <>{children}</>;
+};
 
 function App() {
   return (
@@ -36,6 +48,8 @@ function App() {
           <Route path="/Funcionalidades" element={<Features />} />
           <Route path="/ManualdeUsuario" element={<UserManual />} />
           <Route path="/Login" element={<Login />} />
+          <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+          <Route path="/reset-password/:token" element={<RecuperarContrasena />} />
 
           {/* Rutas del dashboard directas, sin layout */}
           <Route path='/dashboard' element={<Dashboard />} />
@@ -50,9 +64,40 @@ function App() {
           <Route path="centros-trabajo" element={<Companies />} />
           <Route path="plazas" element={<PlazasCentro />} />
           <Route path="evaluaciones" element={<Evaluaciones />} />
-          <Route path="talleres" element={<Talleres />} />
+          <Route path="talleres" element={<TallerConFamilias />} />
+          <Route path="tutores" element={<TutoresPage />} />
+          {/* Ruta alternativa para gestión de talleres que apunta al mismo componente */}
+          <Route path="gestion-talleres" element={<TallerConFamilias />} />
+
+          {/* Rutas protegidas */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Principal />
+            </ProtectedRoute>
+          } />
+          <Route path="/evaluaciones" element={
+            <ProtectedRoute>
+              <Evaluaciones />
+            </ProtectedRoute>
+          } />
+
+          {/* Redirección por defecto */}
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </BrowserRouter>
+      {/* Configuración del ToastContainer para mostrar notificaciones */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </ThemeProvider>
   );
 }

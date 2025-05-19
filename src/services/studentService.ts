@@ -50,6 +50,7 @@ export interface Estudiante {
   numero_poliza?: string;
   fecha_inicio_pasantia?: string;
   fecha_fin_pasantia?: string;
+  nacionalidad?: string | null;
 }
 
 export interface NuevoEstudiante {
@@ -70,6 +71,7 @@ export interface NuevoEstudiante {
   numero_poliza?: string | null;
   fecha_inicio_pasantia?: string | null;
   fecha_fin_pasantia?: string | null;
+  nacionalidad?: string | null;
 }
 
 export interface PolizaData {
@@ -155,6 +157,20 @@ const studentService = {
       console.error('Error al asignar fechas:', error);
       throw error;
     }
+  },
+
+  async updateFechasPasantia(id: string, data: { fecha_inicio_pasantia: string; fecha_fin_pasantia: string; horaspasrealizadas_est: number }): Promise<Estudiante> {
+    try {
+      const response = await api.put<Estudiante>(`/estudiantes/${id}/fechas`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error al actualizar fechas de pasantía:', error);
+      throw error;
+    }
+  },
+
+  updatePolizaEstudiante: async (documento_id_est: string, id_poliza: number) => {
+    return api.put(`/estudiantes/${documento_id_est}/poliza`, { id_poliza });
   }
 };
 

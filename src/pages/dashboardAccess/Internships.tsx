@@ -57,6 +57,8 @@ function Internships() {
   const [tallerAsignar, setTallerAsignar] = useState('');
   const [asignarMensaje, setAsignarMensaje] = useState<string | null>(null);
   const [asignarLoading, setAsignarLoading] = useState(false);
+  const [openValidarEmpresas, setOpenValidarEmpresas] = useState(false);
+  const [empresasPendientes, setEmpresasPendientes] = useState([]);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -296,6 +298,29 @@ function Internships() {
     }
   };
 
+  const cargarEmpresasPendientes = async () => {
+    try {
+      const res = await fetch('/api/centros-trabajo/pendientes');
+      const data = await res.json();
+      setEmpresasPendientes(data);
+    } catch (error) {
+      setEmpresasPendientes([]);
+    }
+  };
+
+  useEffect(() => {
+    if (openValidarEmpresas) cargarEmpresasPendientes();
+  }, [openValidarEmpresas]);
+
+  const handleValidarCentro = async (id, estado) => {
+    await fetch(`/api/centros-trabajo/${id}/validar`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ validacion: estado }),
+    });
+    cargarEmpresasPendientes();
+  };
+
   return (
     <MUI.Box sx={{ display: 'flex', width:'100vw',minHeight: '100vh', bgcolor: MUI.alpha(theme.palette.background.paper, 0.6), p:0}}>
       <SideBar drawerOpen={drawerOpen} toggleDrawer={toggleDrawer} />
@@ -465,19 +490,22 @@ function Internships() {
                       {pasantiasFiltradas.map((pasantia) => (
                         <MUI.TableRow key={pasantia.id_pasantia}>
                           <MUI.TableCell>{pasantia.id_pasantia}</MUI.TableCell>
-                        <MUI.TableCell>{pasantia.estudiante}</MUI.TableCell>
-                          <MUI.TableCell>{pasantia.centro.nombre_centro}</MUI.TableCell>
+                        <MUI.TableCell>{pasantia.estudiante || 'N/A'}</MUI.TableCell>
+                          <MUI.TableCell>{pasantia.centro?.nombre_centro || 'N/A'}</MUI.TableCell>
                           <MUI.TableCell>
-                            {sectores.find(s => s.id_sec === pasantia.centro.direccion.sector_dir)?.nombre_sec || 'N/A'} -
-                            {ciudades.find(c => c.id_ciu === (sectores.find(s => s.id_sec === pasantia.centro.direccion.sector_dir)?.ciudad_sec))?.ciudad || 'N/A'} -
-                            {provincias.find(p => p.id_prov === (
-                              ciudades.find(c => c.id_ciu === (sectores.find(s => s.id_sec === pasantia.centro.direccion.sector_dir)?.ciudad_sec))?.provincia_ciu
-                            ))?.provincia || 'N/A'}
+                            {pasantia.centro?.direccion?.sector_dir ?
+                              `${sectores.find(s => s.id_sec === pasantia.centro.direccion.sector_dir)?.nombre_sec || 'N/A'} - ` : ''}
+                            {pasantia.centro?.direccion?.sector_dir ?
+                              `${ciudades.find(c => c.id_ciu === (sectores.find(s => s.id_sec === pasantia.centro.direccion.sector_dir)?.ciudad_sec))?.ciudad || 'N/A'} - ` : ''}
+                            {pasantia.centro?.direccion?.sector_dir ?
+                              `${provincias.find(p => p.id_prov === (
+                                ciudades.find(c => c.id_ciu === (sectores.find(s => s.id_sec === pasantia.centro.direccion.sector_dir)?.ciudad_sec))?.provincia_ciu
+                              ))?.provincia || 'N/A'}` : 'N/A'}
                           </MUI.TableCell>
-                        <MUI.TableCell>{pasantia.supervisor}</MUI.TableCell>
+                        <MUI.TableCell>{pasantia.supervisor || 'N/A'}</MUI.TableCell>
                           <MUI.TableCell>
                             <MUI.Chip
-                              label={pasantia.estado_pasantia}
+                              label={pasantia.estado_pasantia || 'N/A'}
                               color={
                                 pasantia.estado_pasantia === 'Activo' ? 'success' :
                                 pasantia.estado_pasantia === 'Completada' ? 'primary' : 'error'
@@ -624,7 +652,7 @@ function Internships() {
                 </MUI.MenuItem>
                 {centrosTrabajo.map((centro) => (
                   <MUI.MenuItem key={centro.id_centro} value={centro.id_centro}>
-                    {centro.nombre_centro} - {centro.direccion.calle_dir}
+                    {centro.nombre_centro} - {centro.direccion?.calle_dir || 'N/A'}
                   </MUI.MenuItem>
                 ))}
               </MUI.TextField>
@@ -642,8 +670,8 @@ function Internships() {
                   <em>Seleccione un supervisor</em>
                 </MUI.MenuItem>
                 {centrosTrabajo.map((centro) => (
-                  <MUI.MenuItem key={centro.id_centro} value={centro.contacto.email_contacto}>
-                    {centro.contacto.email_contacto}
+                  <MUI.MenuItem key={centro.id_centro} value={centro.contacto?.email_contacto || ''}>
+                    {centro.contacto?.email_contacto || 'N/A'}
                   </MUI.MenuItem>
                 ))}
               </MUI.TextField>

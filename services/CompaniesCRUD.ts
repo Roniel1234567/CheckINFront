@@ -63,13 +63,25 @@ export interface EmpresaPorTaller {
 export const CompaniesCRUD = {
     // Centros de trabajo
     getAllCompanies: async (): Promise<CentroTrabajo[]> => {
-        const { data } = await api.get<CentroTrabajo[]>('/centros-trabajo');
-        return data;
+        try {
+            console.log('CompaniesCRUD: Solicitando getAllCompanies a:', `${api.defaults.baseURL}/centros-trabajo`);
+            const { data } = await api.get<CentroTrabajo[]>('/centros-trabajo');
+            console.log('CompaniesCRUD: getAllCompanies respuesta:', data);
+            return data;
+        } catch (error) {
+            console.error('CompaniesCRUD: Error en getAllCompanies:', error);
+            throw error;
+        }
     },
 
     getCompanyById: async (id: number): Promise<CentroTrabajo> => {
-        const { data } = await api.get<CentroTrabajo>(`/centros-trabajo/${id}`);
-        return data;
+        try {
+            const { data } = await api.get<CentroTrabajo>(`/centros-trabajo/${id}`);
+            return data;
+        } catch (error) {
+            console.error(`CompaniesCRUD: Error en getCompanyById(${id}):`, error);
+            throw error;
+        }
     },
 
     createCompany: async (company: Omit<CentroTrabajo, 'id_centro' | 'creacion_centro'>): Promise<CentroTrabajo> => {
@@ -104,8 +116,15 @@ export const CompaniesCRUD = {
 
     // Talleres
     getAllTalleres: async (): Promise<Taller[]> => {
-        const { data } = await api.get<Taller[]>('/talleres');
-        return data;
+        try {
+            console.log('CompaniesCRUD: Solicitando getAllTalleres a:', `${api.defaults.baseURL}/talleres`);
+            const { data } = await api.get<Taller[]>('/talleres');
+            console.log('CompaniesCRUD: getAllTalleres respuesta:', data);
+            return data;
+        } catch (error) {
+            console.error('CompaniesCRUD: Error en getAllTalleres:', error);
+            throw error;
+        }
     },
 
     getCentrosByTaller: async (tallerId: number): Promise<EmpresaPorTaller[]> => {

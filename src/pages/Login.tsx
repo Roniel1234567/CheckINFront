@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginUser } from '../../services/authService';
 import * as MUI from "@mui/material";
 import * as Icons from "@mui/icons-material";
 import '../styles/login.scss';
 import Footer from '../components/Footer';
+import { toast } from 'react-toastify';
+import { authService } from '../services/authService';
 
 const features = [
   {
@@ -26,6 +27,7 @@ const features = [
 
 function Login() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     dato_usuario: '',
@@ -51,27 +53,55 @@ function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setLoading(true);
+
     if (!formData.dato_usuario || !formData.contrasena_usuario) {
       setError('Por favor, complete todos los campos');
+      setLoading(false);
       return;
     }
 
     try {
-      const response = await loginUser(formData);
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        navigate('/Principal');
-      } else {
-        setError('Credenciales inválidas');
+      const response = await authService.login(formData);
+      authService.setToken(response.token);
+      
+      toast.success('¡Inicio de sesión exitoso!', {
+        position: "top-center",
+        autoClose: 2000
+      });
+
+      // Redirigir según el rol del usuario
+      switch(response.user.rol) {
+        case 1: // Admin
+          navigate('/dashboard');
+          break;
+        case 2: // Estudiante
+          navigate('/dashboard-estudiante');
+          break;
+        case 3: // Centro
+          navigate('/dashboard-centro');
+          break;
+        case 4: // Supervisor
+          navigate('/dashboard-supervisor');
+          break;
+        default:
+          navigate('/Principal');
       }
-    } catch (error) {
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError('Error al iniciar sesión');
-      }
+    } catch (error: unknown) {
+      console.error('Error en login:', error);
+      // Verificar si es un error de axios
+      const axiosError = error as { response?: { data?: { message?: string } } };
+      toast.error(axiosError.response?.data?.message || 'Error al iniciar sesión', {
+        position: "top-center",
+        autoClose: false
+      });
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    navigate('/recuperar-contrasena');
   };
 
   return (
@@ -203,17 +233,42 @@ function Login() {
               />
 
               <MUI.Button
-                type="submit"
-                variant="contained"
-                size="large"
+                type="button"
                 fullWidth
+                variant="text"
+                onClick={handleForgotPassword}
+                sx={{ mt: 1, mb: 2 }}
+                disabled={loading}
+              >
+                ¿Olvidaste tu contraseña?
+              </MUI.Button>
+
+              <MUI.Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={loading}
                 sx={{
-                  bgcolor: '#1a237e',
-                  '&:hover': { bgcolor: '#0d1b60' },
-                  py: 1.5
+                  mt: 2,
+                  mb: 2,
+                  py: 1.5,
+                  position: 'relative'
                 }}
               >
-                Ingresar
+                {loading ? (
+                  <MUI.CircularProgress
+                    size={24}
+                    sx={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      marginTop: '-12px',
+                      marginLeft: '-12px'
+                    }}
+                  />
+                ) : (
+                  'Iniciar Sesión'
+                )}
               </MUI.Button>
             </MUI.Stack>
           </MUI.Box>
