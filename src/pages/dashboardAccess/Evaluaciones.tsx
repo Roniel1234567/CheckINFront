@@ -49,6 +49,9 @@ interface EvaluacionCentro {
   EvaluacionCentroTrabajo_fecha_eval_centro?: string; // Formato del backend
 }
 
+// Valores válidos para el enum dato_ra
+type TipoRA = 'RA1' | 'RA2' | 'RA3' | 'RA4' | 'RA5' | 'RA6' | 'RA7';
+
 interface EvaluacionEstudiante {
   id_eval_est?: number;
   pasantia_eval?: number;
@@ -87,6 +90,7 @@ function Evaluaciones() {
   const [evaluacionesEstudiante, setEvaluacionesEstudiante] = useState<EvaluacionEstudiante[]>([]);
   const [pasantias, setPasantias] = useState<Pasantia[]>([]);
   const [selectedPasantia, setSelectedPasantia] = useState<number | null>(null);
+  const [selectedRA, setSelectedRA] = useState<TipoRA>('RA1');
   const [evaluacionCentro, setEvaluacionCentro] = useState<EvaluacionCentro>({
     espacio_trabajo_eval: 0,
     asignacion_tareas_eval: 0,
@@ -105,6 +109,8 @@ function Evaluaciones() {
   });
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingEvaluacionId, setEditingEvaluacionId] = useState<number | null>(null);
+  const [isEditModeEstudiante, setIsEditModeEstudiante] = useState(false);
+  const [editingEvaluacionEstudianteId, setEditingEvaluacionEstudianteId] = useState<number | null>(null);
   const notifications = 4;
 
   // Cargar datos iniciales
@@ -186,71 +192,76 @@ function Evaluaciones() {
     console.log('Pasantía seleccionada - valor original:', value, 'convertido a:', numericValue);
     setSelectedPasantia(numericValue);
     
-    // Depurar el contenido de evaluacionesCentro
-    console.log('Estado actual de evaluacionesCentro:', evaluacionesCentro);
-    
-    // Verificación con más log para diagnosticar problemas
-    const evaluacionExistente = evaluacionesCentro.find(evaluacion => {
-      // Comprobar si pasantia_eval_centro es un objeto con id_pas
-      if (typeof evaluacion.pasantia_eval_centro === 'object' && evaluacion.pasantia_eval_centro) {
-        const idPasantia = evaluacion.pasantia_eval_centro.id_pas;
-        console.log(`Evaluación ID: ${evaluacion.id_eval_centro}, Pasantía ID: ${idPasantia}`);
-        return idPasantia === numericValue;
-      }
+    // Solo verificar evaluaciones existentes para la pestaña de evaluación de centro
+    if (activeTab === 0) {
+      // Depurar el contenido de evaluacionesCentro
+      console.log('Estado actual de evaluacionesCentro:', evaluacionesCentro);
       
-      // Si es un número directo
-      if (typeof evaluacion.pasantia_eval_centro === 'number') {
-        console.log(`Evaluación ID: ${evaluacion.id_eval_centro}, Pasantía ID (directo): ${evaluacion.pasantia_eval_centro}`);
-        return evaluacion.pasantia_eval_centro === numericValue;
-      }
-      
-      return false;
-    });
-    
-    console.log('¿Se encontró evaluación existente?', evaluacionExistente ? 'SÍ' : 'NO');
-    
-    if (evaluacionExistente) {
-      // Si existe, cargar los datos para edición
-      console.log('Datos de evaluación encontrada:', evaluacionExistente);
-      
-      // Mostrar notificación más destacada
-      toast.info('Esta pasantía ya tiene una evaluación. Los datos se han cargado para edición.', {
-        position: "top-center",
-        autoClose: 7000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        style: {
-          backgroundColor: '#e3f2fd',
-          color: '#0d47a1',
-          fontWeight: 'bold',
-          borderLeft: '5px solid #1565c0'
+      // Verificación con más log para diagnosticar problemas
+      const evaluacionExistente = evaluacionesCentro.find(evaluacion => {
+        // Comprobar si pasantia_eval_centro es un objeto con id_pas
+        if (typeof evaluacion.pasantia_eval_centro === 'object' && evaluacion.pasantia_eval_centro) {
+          const idPasantia = evaluacion.pasantia_eval_centro.id_pas;
+          console.log(`Evaluación ID: ${evaluacion.id_eval_centro}, Pasantía ID: ${idPasantia}`);
+          return idPasantia === numericValue;
         }
+        
+        // Si es un número directo
+        if (typeof evaluacion.pasantia_eval_centro === 'number') {
+          console.log(`Evaluación ID: ${evaluacion.id_eval_centro}, Pasantía ID (directo): ${evaluacion.pasantia_eval_centro}`);
+          return evaluacion.pasantia_eval_centro === numericValue;
+        }
+        
+        return false;
       });
       
-      // Asegurar que tenemos valores válidos
-      setEvaluacionCentro({
-        id_eval_centro: evaluacionExistente.id_eval_centro || 0,
-        espacio_trabajo_eval: Number(evaluacionExistente.espacio_trabajo_eval) || 0,
-        asignacion_tareas_eval: Number(evaluacionExistente.asignacion_tareas_eval) || 0,
-        disponibilidad_dudas_eval: Number(evaluacionExistente.disponibilidad_dudas_eval) || 0,
-        observaciones_eval_centro: evaluacionExistente.observaciones_eval_centro || '',
-        pasantia_eval_centro: numericValue // Usar el valor que sabemos es correcto
-      });
+      console.log('¿Se encontró evaluación existente?', evaluacionExistente ? 'SÍ' : 'NO');
       
-      setIsEditMode(true);
-      setEditingEvaluacionId(evaluacionExistente.id_eval_centro || 0);
-    } else {
-      // Reiniciar formulario para nueva evaluación
-      setEvaluacionCentro({
-        espacio_trabajo_eval: 0,
-        asignacion_tareas_eval: 0,
-        disponibilidad_dudas_eval: 0,
-        observaciones_eval_centro: ''
-      });
-      setIsEditMode(false);
-      setEditingEvaluacionId(null);
+      if (evaluacionExistente) {
+        // Si existe, cargar los datos para edición
+        console.log('Datos de evaluación encontrada:', evaluacionExistente);
+        
+        // Mostrar notificación más destacada
+        toast.info('Esta pasantía ya tiene una evaluación. Los datos se han cargado para edición.', {
+          position: "top-center",
+          autoClose: 7000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          style: {
+            backgroundColor: '#e3f2fd',
+            color: '#0d47a1',
+            fontWeight: 'bold',
+            borderLeft: '5px solid #1565c0'
+          }
+        });
+        
+        // Asegurar que tenemos valores válidos
+        setEvaluacionCentro({
+          id_eval_centro: evaluacionExistente.id_eval_centro || 0,
+          espacio_trabajo_eval: Number(evaluacionExistente.espacio_trabajo_eval) || 0,
+          asignacion_tareas_eval: Number(evaluacionExistente.asignacion_tareas_eval) || 0,
+          disponibilidad_dudas_eval: Number(evaluacionExistente.disponibilidad_dudas_eval) || 0,
+          observaciones_eval_centro: evaluacionExistente.observaciones_eval_centro || '',
+          pasantia_eval_centro: numericValue // Usar el valor que sabemos es correcto
+        });
+        
+        setIsEditMode(true);
+        setEditingEvaluacionId(evaluacionExistente.id_eval_centro || 0);
+      } else {
+        // Reiniciar formulario para nueva evaluación
+        setEvaluacionCentro({
+          espacio_trabajo_eval: 0,
+          asignacion_tareas_eval: 0,
+          disponibilidad_dudas_eval: 0,
+          observaciones_eval_centro: ''
+        });
+        setIsEditMode(false);
+        setEditingEvaluacionId(null);
+      }
+    } else if (activeTab === 1) {
+      verificarEvaluacionEstudianteExistente(numericValue, selectedRA);
     }
   };
 
@@ -511,6 +522,81 @@ function Evaluaciones() {
     }
   };
 
+  const verificarEvaluacionEstudianteExistente = (idPasantia: number, raSeleccionado: TipoRA) => {
+    console.log(`Verificando si existe evaluación para pasantía ${idPasantia} y RA ${raSeleccionado}`);
+    
+    // Buscar en las evaluaciones cargadas
+    const evaluacionExistente = evaluacionesEstudiante.find(evaluacion => {
+      if (typeof evaluacion.pasantia_eval === 'object' && evaluacion.pasantia_eval) {
+        return evaluacion.pasantia_eval.id_pas === idPasantia && evaluacion.ra_eval === raSeleccionado;
+      }
+      return evaluacion.pasantia_eval === idPasantia && evaluacion.ra_eval === raSeleccionado;
+    });
+    
+    console.log('¿Se encontró evaluación estudiante existente?', evaluacionExistente ? 'SÍ' : 'NO');
+    
+    if (evaluacionExistente) {
+      // Cargar los datos para edición
+      console.log('Datos de evaluación estudiante encontrada:', evaluacionExistente);
+      
+      toast.info(`Se encontró una evaluación existente para el RA ${raSeleccionado}. Los datos se han cargado para edición.`, {
+        position: "top-center",
+        autoClose: 7000,
+        style: {
+          backgroundColor: '#e3f2fd',
+          color: '#0d47a1',
+          fontWeight: 'bold',
+          borderLeft: '5px solid #1565c0'
+        }
+      });
+      
+      // Asegurar valores válidos y cargar los datos
+      setEvaluacionEstudiante({
+        id_eval_est: evaluacionExistente.id_eval_est || 0,
+        asistencia_eval: Number(evaluacionExistente.asistencia_eval) || 0,
+        desempeño_eval: Number(evaluacionExistente.desempeño_eval) || 0,
+        disponibilidad_eval: Number(evaluacionExistente.disponibilidad_eval) || 0,
+        responsabilidad_eval: Number(evaluacionExistente.responsabilidad_eval) || 0,
+        limpieza_eval: Number(evaluacionExistente.limpieza_eval) || 0,
+        trabajo_equipo_eval: Number(evaluacionExistente.trabajo_equipo_eval) || 0,
+        resolucion_problemas_eval: Number(evaluacionExistente.resolucion_problemas_eval) || 0,
+        observaciones_eval: evaluacionExistente.observaciones_eval || '',
+        ra_eval: evaluacionExistente.ra_eval || raSeleccionado,
+        pasantia_eval: idPasantia
+      });
+      
+      setIsEditModeEstudiante(true);
+      setEditingEvaluacionEstudianteId(evaluacionExistente.id_eval_est || 0);
+    } else {
+      // Reiniciar formulario para nueva evaluación
+      setEvaluacionEstudiante({
+        asistencia_eval: 0,
+        desempeño_eval: 0,
+        disponibilidad_eval: 0,
+        responsabilidad_eval: 0,
+        limpieza_eval: 0,
+        trabajo_equipo_eval: 0,
+        resolucion_problemas_eval: 0,
+        observaciones_eval: ''
+      });
+      setIsEditModeEstudiante(false);
+      setEditingEvaluacionEstudianteId(null);
+    }
+  };
+
+  // Manejar cambio de RA seleccionado
+  const handleChangeRA = (event: MUI.SelectChangeEvent<string>) => {
+    const newRA = event.target.value as TipoRA;
+    setSelectedRA(newRA);
+    
+    // Si hay una pasantía seleccionada, verificar si existe evaluación para esta combinación
+    if (selectedPasantia) {
+      // Si estamos en modo edición y cambiamos el RA, debemos verificar si existe una evaluación
+      // para este nuevo RA. Si no existe, cambiaremos a modo de creación para ese RA.
+      verificarEvaluacionEstudianteExistente(selectedPasantia, newRA);
+    }
+  };
+
   const handleSubmitEstudiante = async (event: React.FormEvent) => {
     event.preventDefault();
     
@@ -522,12 +608,8 @@ function Evaluaciones() {
     try {
       setLoading(true);
       
-      // Obtener el RA del estudiante de la pasantía seleccionada
-      const pasantiaSeleccionada = pasantias.find(p => p.id_pas === selectedPasantia);
-      const ra = pasantiaSeleccionada?.estudiante_pas.documento_id_est || "AUTO";
-      
-      // Forzar el tipo numérico para la pasantía
-      const pasantiaId = Number(selectedPasantia);
+      // Formato correcto para el backend: enviamos un objeto con id_pas
+      const pasantiaObj = { id_pas: selectedPasantia };
       
       // Crear un objeto simple y directo
       const requestData = {
@@ -539,57 +621,92 @@ function Evaluaciones() {
         trabajo_equipo_eval: evaluacionEstudiante.trabajo_equipo_eval,
         resolucion_problemas_eval: evaluacionEstudiante.resolucion_problemas_eval,
         observaciones_eval: evaluacionEstudiante.observaciones_eval,
-        pasantia_eval: pasantiaId,
-        ra_eval: ra
+        // Usar el RA seleccionado en el menú desplegable
+        ra_eval: selectedRA,
+        pasantia_eval: pasantiaObj
       };
       
       console.log('Enviando evaluación estudiante:', requestData);
       
-      // Similar al enfoque de evaluación de centro
-      try {
-        const response = await axios({
-          method: 'post',
-          url: 'http://localhost:5000/api/evaluaciones-estudiante',
-          data: requestData,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+      let response;
+      
+      // Similar al enfoque de evaluación de centro, determinar si es edición o creación
+      if (isEditModeEstudiante && editingEvaluacionEstudianteId) {
+        console.log(`Actualizando evaluación estudiante ID: ${editingEvaluacionEstudianteId}`);
         
-        // Mostrar mensaje de éxito
-        toast.success('¡Evaluación de estudiante registrada correctamente!', {
-          position: "top-center",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        
-        setEvaluacionesEstudiante([...evaluacionesEstudiante, response.data as EvaluacionEstudiante]);
-        
-        // Resetear formulario
-        setEvaluacionEstudiante({
-          asistencia_eval: 0,
-          desempeño_eval: 0,
-          disponibilidad_eval: 0,
-          responsabilidad_eval: 0,
-          limpieza_eval: 0,
-          trabajo_equipo_eval: 0,
-          resolucion_problemas_eval: 0,
-          observaciones_eval: ''
-        });
-        setSelectedPasantia(null);
-      } catch (axiosError: any) {
-        console.error('Error con Axios para estudiante:', axiosError);
-        if (axiosError.response) {
-          console.error('Datos de respuesta del servidor:', axiosError.response.data);
+        try {
+          response = await axios({
+            method: 'put',
+            url: `http://localhost:5000/api/evaluaciones-estudiante/${editingEvaluacionEstudianteId}`,
+            data: requestData,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          toast.success('¡Evaluación de estudiante actualizada correctamente!', {
+            position: "top-center",
+            autoClose: 5000
+          });
+          
+          // Actualizar el estado con los datos modificados
+          setEvaluacionesEstudiante(evaluacionesEstudiante.map(evaluacion => 
+            evaluacion.id_eval_est === editingEvaluacionEstudianteId ? response.data : evaluacion
+          ));
+        } catch (error) {
+          console.error('Error al actualizar evaluación estudiante:', error);
+          throw error;
         }
-        throw axiosError;
+      } else {
+        try {
+          response = await axios({
+            method: 'post',
+            url: 'http://localhost:5000/api/evaluaciones-estudiante',
+            data: requestData,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          // Mostrar mensaje de éxito
+          toast.success('¡Evaluación de estudiante registrada correctamente!', {
+            position: "top-center",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          
+          setEvaluacionesEstudiante([...evaluacionesEstudiante, response.data]);
+        } catch (axiosError) {
+          console.error('Error con Axios para estudiante:', axiosError);
+          if (axios.isAxiosError(axiosError) && axiosError.response) {
+            console.error('Datos de respuesta del servidor:', axiosError.response.data);
+          }
+          throw axiosError;
+        }
       }
-    } catch (error: any) {
+      
+      // Resetear formulario
+      setEvaluacionEstudiante({
+        asistencia_eval: 0,
+        desempeño_eval: 0,
+        disponibilidad_eval: 0,
+        responsabilidad_eval: 0,
+        limpieza_eval: 0,
+        trabajo_equipo_eval: 0,
+        resolucion_problemas_eval: 0,
+        observaciones_eval: ''
+      });
+      setSelectedPasantia(null);
+      setSelectedRA('RA1');  // Resetear el RA seleccionado
+      setIsEditModeEstudiante(false);
+      setEditingEvaluacionEstudianteId(null);
+      
+    } catch (error) {
       console.error('Error al enviar evaluación de estudiante:', error);
-      toast.error('Error al registrar la evaluación del estudiante. ' + (error.message || ''), {
+      toast.error('Error al registrar la evaluación del estudiante. ' + (axios.isAxiosError(error) ? error.message : 'Error desconocido'), {
         position: "top-center",
         autoClose: false,
         closeOnClick: true
@@ -831,7 +948,7 @@ function Evaluaciones() {
                   <MUI.Grid item xs={12}>
                     <MUI.Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Icons.School sx={{ color: theme.palette.primary.main }} />
-                      Evaluación del Estudiante
+                      {isEditModeEstudiante ? 'Modificar Evaluación del Estudiante' : 'Nueva Evaluación del Estudiante'}
                     </MUI.Typography>
                   </MUI.Grid>
 
@@ -843,6 +960,7 @@ function Evaluaciones() {
                         onChange={handleChangePasantia}
                         label="Seleccione Pasantía"
                         required
+                        disabled={isEditModeEstudiante} // Deshabilitar cambio de pasantía en modo edición
                       >
                         {pasantias.map((pasantia) => (
                           <MUI.MenuItem key={pasantia.id_pas} value={String(pasantia.id_pas)}>
@@ -850,7 +968,34 @@ function Evaluaciones() {
                           </MUI.MenuItem>
                         ))}
                       </MUI.Select>
-                      <MUI.FormHelperText>Seleccione la pasantía a evaluar</MUI.FormHelperText>
+                      <MUI.FormHelperText>
+                        {isEditModeEstudiante 
+                          ? 'Editando evaluación existente para esta pasantía' 
+                          : 'Seleccione la pasantía a evaluar'}
+                      </MUI.FormHelperText>
+                    </MUI.FormControl>
+                  </MUI.Grid>
+
+                  <MUI.Grid item xs={12} md={6}>
+                    <MUI.FormControl fullWidth>
+                      <MUI.InputLabel>Resultado de Aprendizaje (RA)</MUI.InputLabel>
+                      <MUI.Select
+                        value={selectedRA}
+                        onChange={handleChangeRA}
+                        label="Resultado de Aprendizaje (RA)"
+                        required
+                      >
+                        {['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].map((ra) => (
+                          <MUI.MenuItem key={ra} value={ra}>
+                            {ra}
+                          </MUI.MenuItem>
+                        ))}
+                      </MUI.Select>
+                      <MUI.FormHelperText>
+                        {isEditModeEstudiante 
+                          ? 'Puede cambiar a otro RA para crear una nueva evaluación' 
+                          : 'Seleccione el resultado de aprendizaje a evaluar'}
+                      </MUI.FormHelperText>
                     </MUI.FormControl>
                   </MUI.Grid>
 
@@ -899,8 +1044,8 @@ function Evaluaciones() {
                     <MUI.Button
                       type="submit"
                       variant="contained"
-                      color="primary"
-                      startIcon={<Icons.Send />}
+                      color={isEditModeEstudiante ? "secondary" : "primary"}
+                      startIcon={isEditModeEstudiante ? <Icons.Edit /> : <Icons.Send />}
                       sx={{
                         transition: 'all 0.3s ease',
                         '&:hover': {
@@ -909,8 +1054,33 @@ function Evaluaciones() {
                         }
                       }}
                     >
-                      Enviar Evaluación
+                      {isEditModeEstudiante ? 'Actualizar Evaluación' : 'Enviar Evaluación'}
                     </MUI.Button>
+                    {isEditModeEstudiante && (
+                      <MUI.Button
+                        variant="outlined"
+                        color="primary"
+                        sx={{ ml: 2 }}
+                        onClick={() => {
+                          setIsEditModeEstudiante(false);
+                          setEditingEvaluacionEstudianteId(null);
+                          setSelectedPasantia(null);
+                          setSelectedRA('RA1');
+                          setEvaluacionEstudiante({
+                            asistencia_eval: 0,
+                            desempeño_eval: 0,
+                            disponibilidad_eval: 0,
+                            responsabilidad_eval: 0,
+                            limpieza_eval: 0,
+                            trabajo_equipo_eval: 0,
+                            resolucion_problemas_eval: 0,
+                            observaciones_eval: ''
+                          });
+                        }}
+                      >
+                        Cancelar Edición
+                      </MUI.Button>
+                    )}
                   </MUI.Grid>
                 </MUI.Grid>
               </MUI.Box>
