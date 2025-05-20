@@ -23,6 +23,9 @@ function RecuperarContrasena() {
   // Estado para el carrusel de imágenes
   const [activeStep, setActiveStep] = useState(0);
   
+  // Estado para el scroll vertical
+  const [scrollPosition, setScrollPosition] = useState(0);
+  
   // Imágenes para el carrusel - usando las mismas que en Login.tsx
   const carouselImages = [
     {
@@ -42,6 +45,35 @@ function RecuperarContrasena() {
     }
   ];
   
+  // Datos para el scroll vertical
+  const scrollItems = [
+    {
+      icon: <Icons.School fontSize="large" />,
+      title: "Educación Técnica Superior",
+      description: "Programas educativos de vanguardia con certificaciones internacionales"
+    },
+    {
+      icon: <Icons.Engineering fontSize="large" />,
+      title: "Talleres Equipados",
+      description: "Infraestructura moderna con tecnología de última generación"
+    },
+    {
+      icon: <Icons.Groups fontSize="large" />,
+      title: "Comunidad Colaborativa",
+      description: "Ambiente de aprendizaje inclusivo y participativo"
+    },
+    {
+      icon: <Icons.WorkOutline fontSize="large" />,
+      title: "Oportunidades Laborales",
+      description: "Conexiones directas con empresas para pasantías y empleos"
+    },
+    {
+      icon: <Icons.Diversity3 fontSize="large" />,
+      title: "Red de Egresados",
+      description: "Comunidad activa de profesionales graduados de IPISA"
+    }
+  ];
+  
   // Configurar el cambio automático de imágenes cada 5 segundos
   useEffect(() => {
     const autoPlayInterval = setInterval(() => {
@@ -53,6 +85,17 @@ function RecuperarContrasena() {
     };
   }, [carouselImages.length]);
   
+  // Cambiar automáticamente la posición del scroll vertical cada 4 segundos
+  useEffect(() => {
+    const scrollInterval = setInterval(() => {
+      setScrollPosition((prevPosition) => (prevPosition + 1) % scrollItems.length);
+    }, 4000);
+    
+    return () => {
+      clearInterval(scrollInterval);
+    };
+  }, [scrollItems.length]);
+
   const handleNext = () => {
     setActiveStep((prevActiveStep) => (prevActiveStep + 1) % carouselImages.length);
   };
@@ -65,6 +108,20 @@ function RecuperarContrasena() {
   
   const handleStepChange = (step: number) => {
     setActiveStep(step);
+  };
+
+  const handleScrollNext = () => {
+    setScrollPosition((prevPosition) => (prevPosition + 1) % scrollItems.length);
+  };
+  
+  const handleScrollPrev = () => {
+    setScrollPosition((prevPosition) => 
+      prevPosition === 0 ? scrollItems.length - 1 : prevPosition - 1
+    );
+  };
+  
+  const handleScrollChange = (position: number) => {
+    setScrollPosition(position);
   };
   
   const [requestData, setRequestData] = useState({
@@ -903,6 +960,127 @@ function RecuperarContrasena() {
             ))}
           </MUI.Box>
 
+          {/* Scroll vertical con características */}
+          <MUI.Paper
+            elevation={4}
+            sx={{
+              mt: 4,
+              p: 0,
+              borderRadius: 2,
+              overflow: 'hidden',
+              boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+              position: 'relative',
+              height: 200
+            }}
+          >
+            {/* Header del scroll */}
+            <MUI.Box 
+              sx={{ 
+                bgcolor: '#1a237e', 
+                color: 'white', 
+                p: 1.5,
+                textAlign: 'center',
+                borderBottom: '1px solid rgba(255,255,255,0.1)'
+              }}
+            >
+              <MUI.Typography variant="subtitle1" fontWeight="bold">
+                ¿Por qué elegir IPISA?
+              </MUI.Typography>
+            </MUI.Box>
+            
+            {/* Contenedor del scroll */}
+            <MUI.Box sx={{ position: 'relative', height: 'calc(100% - 50px)', overflow: 'hidden' }}>
+              {/* Items del scroll */}
+              {scrollItems.map((item, index) => (
+                <MUI.Box
+                  key={index}
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 2,
+                    opacity: scrollPosition === index ? 1 : 0,
+                    transform: `translateY(${(index - scrollPosition) * 20}px)`,
+                    transition: 'opacity 0.6s ease, transform 0.6s ease',
+                    visibility: Math.abs(index - scrollPosition) > 1 ? 'hidden' : 'visible',
+                    zIndex: scrollPosition === index ? 2 : 1
+                  }}
+                >
+                  <MUI.Box sx={{ color: '#1a237e', mb: 1 }}>
+                    {item.icon}
+                  </MUI.Box>
+                  <MUI.Typography variant="subtitle1" fontWeight="bold" align="center" gutterBottom>
+                    {item.title}
+                  </MUI.Typography>
+                  <MUI.Typography variant="body2" align="center">
+                    {item.description}
+                  </MUI.Typography>
+                </MUI.Box>
+              ))}
+              
+              {/* Flechas de navegación */}
+              <MUI.IconButton
+                onClick={handleScrollPrev}
+                size="small"
+                sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: 0,
+                  transform: 'translateY(-50%)',
+                  color: '#1a237e',
+                  zIndex: 10
+                }}
+              >
+                <Icons.KeyboardArrowUp />
+              </MUI.IconButton>
+              <MUI.IconButton
+                onClick={handleScrollNext}
+                size="small"
+                sx={{
+                  position: 'absolute',
+                  bottom: '50%',
+                  right: 0,
+                  transform: 'translateY(50%)',
+                  color: '#1a237e',
+                  zIndex: 10
+                }}
+              >
+                <Icons.KeyboardArrowDown />
+              </MUI.IconButton>
+            </MUI.Box>
+            
+            {/* Indicadores de posición */}
+            <MUI.Box sx={{
+              position: 'absolute',
+              bottom: 8,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              gap: 0.5
+            }}>
+              {scrollItems.map((_, index) => (
+                <MUI.Box
+                  key={index}
+                  onClick={() => handleScrollChange(index)}
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    bgcolor: scrollPosition === index ? '#1a237e' : '#bdbdbd',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                />
+              ))}
+            </MUI.Box>
+          </MUI.Paper>
+
           {/* Información adicional */}
           <MUI.Paper
             elevation={3}
@@ -922,28 +1100,28 @@ function RecuperarContrasena() {
                 fontWeight: 600
               }}
             >
-              ¿Por qué elegir IPISA?
+              Contacto
             </MUI.Typography>
             
             <MUI.Stack spacing={2} mt={2}>
               <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Icons.School sx={{ fontSize: 30, color: '#1a237e' }} />
+                <Icons.LocationOn sx={{ fontSize: 24, color: '#1a237e' }} />
                 <MUI.Typography variant="body2">
-                  <strong>Excelencia Académica</strong> - Programas educativos de calidad
+                  Av. Hispanoamericana, Santiago de los Caballeros
                 </MUI.Typography>
               </MUI.Box>
               
               <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Icons.Engineering sx={{ fontSize: 30, color: '#1a237e' }} />
+                <Icons.Phone sx={{ fontSize: 24, color: '#1a237e' }} />
                 <MUI.Typography variant="body2">
-                  <strong>Formación Práctica</strong> - Talleres equipados con tecnología actual
+                  (809) 724-5700
                 </MUI.Typography>
               </MUI.Box>
               
               <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Icons.Groups sx={{ fontSize: 30, color: '#1a237e' }} />
+                <Icons.Email sx={{ fontSize: 24, color: '#1a237e' }} />
                 <MUI.Typography variant="body2">
-                  <strong>Comunidad Activa</strong> - Ambiente colaborativo y de apoyo
+                  info@ipisa.edu.do
                 </MUI.Typography>
               </MUI.Box>
             </MUI.Stack>

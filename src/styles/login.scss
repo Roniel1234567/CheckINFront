@@ -1,491 +1,338 @@
 @use "sass:color";
 
 // Variables
-$primary-color: #1a237e;
-$accent-color: #1a237e;
-$text-color: #333;
-$light-bg: #f8f9fa;
+$blue-primary: #1a237e; 
+$blue-secondary: #3949ab;
+$gray-light: #f5f7fa;
+$gray-border: #e1e5ea;
+$gray-text: #667085;
+$black: #101828;
 $white: #ffffff;
+$shadow-sm: 0 1px 2px 0 rgba(16, 24, 40, 0.05);
+$shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.1);
+$shadow-lg: 0 12px 16px -4px rgba(16, 24, 40, 0.08);
 
-// Mixins
-@mixin flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+// Reset general
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@mixin hover-transform {
-  transition: transform 0.3s ease;
-  &:hover {
-    transform: translateY(-5px);
-  }
-}
-
-// Estilos principales
+// Contenedor principal
 .login-container {
+  width: 100%;
   min-height: 100vh;
-  background: $white;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  position: relative;
+  background-color: $white;
 }
 
-.login-header {
+// Fondo
+.login-background {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  padding: 1rem;
+  height: 100%;
+  background-color: $gray-light;
+  background-image: 
+    linear-gradient(90deg, $white 0%, $white 50%, $gray-light 50%, $gray-light 100%);
+  z-index: 0;
+  
+  @media (max-width: 768px) {
+    background-image: none;
+    background-color: $white;
+  }
+}
+
+// Wrapper para centrar
+.login-wrapper {
+  width: 100%;
+  max-width: 1200px;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-
-  .login-logo-container {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .login-logo {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-  }
+  padding: 2rem;
+  position: relative;
+  z-index: 1;
 }
 
-.login-main-content {
+// Caja principal
+.login-box {
   width: 100%;
-  max-width: fit-content;
-  display: flex;
-  padding: 0 2rem;
-  gap: 4rem;
-  align-items: flex-start;
-  margin-bottom: 4rem;
-}
-
-.login-info-section {
-  flex: 1;
+  max-width: 440px;
+  background: $white;
+  border-radius: 16px;
+  box-shadow: $shadow-lg;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 3rem;
 }
 
-.login-welcome-section {
-  text-align: left;
-
-  .login-welcome-title {
-    color: $primary-color;
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin-bottom: 1.5rem;
-    position: relative;
-    display: inline-block;
-
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -10px;
-      left: 0;
-      width: 100px;
-      height: 4px;
-      background: $primary-color;
-      border-radius: 2px;
-    }
-  }
-
-  .login-welcome-text {
-    color: $text-color;
-    font-size: 1.1rem;
-    line-height: 1.8;
+// Cabecera
+.login-header {
+  padding: 2.5rem 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  
+  &:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 10%;
+    width: 80%;
+    height: 1px;
+    background-color: $gray-border;
   }
 }
 
-.login-stats-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 2rem;
-}
-
-.login-stat-box {
+// Contenedor del logo
+.login-logo-container {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: $shadow-md;
+  border: 3px solid $white;
   background: $white;
-  padding: 2rem;
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
 
-  .login-stat-number {
-    color: $primary-color;
-    font-size: 3rem;
-    font-weight: 800;
+// Logo
+.login-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+// Título
+.login-title {
+  text-align: center;
+  color: $black;
+  
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: $blue-primary;
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.5px;
+  }
+  
+  p {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: $gray-text;
+  }
+}
+
+// Contenido principal
+.login-content {
+  padding: 2rem;
+}
+
+// Contenedor del formulario
+.login-form-container {
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: $black;
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+}
+
+// Mensaje de error
+.login-error {
+  background-color: #fff1f0;
+  color: #e63757;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+  text-align: center;
+  border: 1px solid rgba(230, 55, 87, 0.2);
+}
+
+// Campo de formulario
+.login-field {
+  margin-bottom: 1.25rem;
+  
+  label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $black;
     margin-bottom: 0.5rem;
   }
-
-  .login-stat-label {
-    color: $text-color;
-    font-size: 1.1rem;
-  }
 }
 
-.login-form-section {
-  width: 400px;
-  padding: 2rem;
-
-  .login-form-title {
-    color: $primary-color;
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 2rem;
-    text-align: left;
-    position: relative;
-
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -10px;
-      left: 0;
-      width: 80px;
-      height: 4px;
-      background: $primary-color;
-      border-radius: 2px;
-    }
-  }
-}
-
-.login-form-input {
-  margin-bottom: 1.5rem;
-
-  .MuiOutlinedInput-root {
-    border-radius: 10px;
-    background: $white;
-    border: 1px solid rgba(0,0,0,0.1);
-
-    &:hover, &.Mui-focused {
-      border-color: $primary-color;
-    }
-  }
-}
-
-.login-form-button {
-  width: 100%;
-  padding: 1rem;
-  border-radius: 10px;
-  background: $primary-color;
-  color: $white;
-  font-weight: 600;
-  font-size: 1rem;
-  margin-top: 1rem;
-
-  &:hover {
-    background: color.adjust($primary-color, $lightness: -5%);
-  }
-}
-
-.login-form-link {
-  color: $accent-color;
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  display: block;
-  text-align: center;
-  margin-top: 2rem;
-
-  &:hover {
-    color: $primary-color;
-    text-decoration: underline;
-  }
-}
-
-.login-social-divider {
-  margin: 2rem 0;
+// Contenedor de input
+.login-input-wrapper {
   display: flex;
   align-items: center;
-  text-align: center;
-  color: $text-color;
-  font-weight: 500;
-
-  &::before,
-  &::after {
-    content: '';
-    flex: 1;
-    border-bottom: 2px solid rgba($text-color, 0.1);
-  }
-
-  span {
-    padding: 0 1.5rem;
-  }
-}
-
-.login-social-icons {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-
-  .login-social-icon {
-    color: $accent-color;
-    transition: all 0.3s ease;
-    font-size: 1.8rem;
-
-    &:hover {
-      color: $primary-color;
-      transform: translateY(-3px);
-    }
-  }
-}
-
-.login-carousel-container {
   width: 100%;
-  max-width: 800px;
-  position: relative;
-  border-radius: 30px;
+  height: 44px;
+  border: 1px solid $gray-border;
+  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.1);
-  height: 350px;
-  margin: 3rem auto;
-
-  .login-carousel-image {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
-    transform: scale(1.1);
-    object-fit: cover;
-    object-position: center;
-
-    &.active {
-      opacity: 1;
-      transform: scale(1);
-    }
+  transition: all 0.2s ease;
+  background-color: $white;
+  
+  &:focus-within {
+    border-color: $blue-secondary;
+    box-shadow: 0 0 0 4px rgba(57, 73, 171, 0.1);
   }
+}
 
-  .login-carousel-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0.3));
-    z-index: 1;
+// Icono en el input
+.login-icon {
+  color: $blue-secondary;
+  margin: 0 0.75rem;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+// Input
+input {
+  flex: 1;
+  height: 44px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 1rem;
+  color: $black;
+  
+  &:focus {
+    outline: none;
   }
+  
+  &::placeholder {
+    color: $gray-text;
+  }
+}
 
-  .login-carousel-content {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    color: $primary-color;
-    padding: 2rem;
-    z-index: 2;
-    transform: translateY(30px);
-    opacity: 0;
-    transition: all 0.8s ease-in-out;
-    background: rgba(255,255,255,0.9);
-    border-top: 3px solid $primary-color;
+// Botón para mostrar/ocultar contraseña
+.login-toggle-password {
+  background: none;
+  border: none;
+  color: $gray-text;
+  padding: 0 0.75rem;
+  cursor: pointer;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    color: $blue-secondary;
+  }
+}
 
-    &.active {
-      transform: translateY(0);
-      opacity: 1;
-    }
+// Botón principal
+.login-button {
+  width: 100%;
+  height: 44px;
+  background-color: $blue-primary;
+  color: $white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover:not(:disabled) {
+    background-color: $blue-secondary;
+  }
+  
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
 
-    .login-carousel-title {
-      font-size: 2rem;
-      font-weight: 800;
-      margin-bottom: 1rem;
-      color: $primary-color;
-    }
-
-    .login-carousel-description {
-      font-size: 1.1rem;
-      color: $text-color;
-      max-width: 600px;
-    }
+// Enlace para recuperar contraseña
+.login-forgot {
+  width: 100%;
+  background: none;
+  border: none;
+  color: $blue-secondary;
+  font-size: 0.875rem;
+  padding: 0.75rem 0;
+  margin-top: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: $blue-primary;
+    text-decoration: underline;
   }
 }
 
 // Footer
 .login-footer {
-  width: 100%;
-  background: $primary-color;
-  color: $white;
-  padding: 2rem 3rem;
-  position: relative;
-  margin-top: auto;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, $accent-color, $primary-color);
-  }
-}
-
-.login-footer-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.login-footer-info {
-  display: flex;
-  gap: 3rem;
-
-  .login-footer-section {
-    h3 {
-      font-size: 1.2rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      color: rgba($white, 0.9);
-    }
-
-    p {
-      color: rgba($white, 0.7);
-      font-size: 0.9rem;
-      margin-bottom: 0.5rem;
-    }
-  }
-}
-
-.login-footer-social {
-  display: flex;
-  gap: 1rem;
-
-  .login-footer-social-icon {
-    color: $white;
-    transition: all 0.3s ease;
-    font-size: 1.5rem;
-
-    &:hover {
-      color: rgba($white, 0.8);
-      transform: translateY(-3px);
-    }
-  }
-}
-
-.login-footer-bottom {
+  padding: 1.25rem 2rem;
+  background-color: $gray-light;
   text-align: center;
-  padding-top: 2rem;
-  margin-top: 2rem;
-  border-top: 1px solid rgba($white, 0.1);
-  color: rgba($white, 0.7);
-  font-size: 0.9rem;
+  border-top: 1px solid $gray-border;
+  
+  p {
+    font-size: 0.75rem;
+    color: $gray-text;
+  }
 }
 
 // Responsive
-@media (max-width: 1200px) {
-  .login-main-content {
-    padding-bottom: 3rem;
+@media (max-width: 768px) {
+  .login-wrapper {
+    padding: 1rem;
   }
-
-  .login-carousel-container {
-    height: 300px;
+  
+  .login-box {
+    max-width: 380px;
   }
-}
-
-@media (max-width: 960px) {
-  .login-main-content {
-    flex-direction: column;
-    align-items: center;
-    gap: 3rem;
-    margin-bottom: 3rem;
-  }
-
-  .login-form-section {
-    width: 100%;
-    max-width: 400px;
-  }
-
-  .login-info-section {
-    width: 100%;
-    text-align: center;
-
-    .login-welcome-title::after {
-      left: 50%;
-      transform: translateX(-50%);
-    }
-  }
-
-  .login-carousel-container {
-    max-width: 100%;
-    margin: 2rem auto;
-  }
-
-  .login-footer {
-    padding: 1.5rem;
-  }
-
-  .login-footer-content {
-    flex-direction: column;
-    gap: 2rem;
-    text-align: center;
-  }
-
-  .login-footer-info {
-    flex-direction: column;
-    gap: 2rem;
-  }
-
-  .login-footer-social {
-    justify-content: center;
-  }
-}
-
-@media (max-width: 600px) {
+  
   .login-header {
-    padding: 0.8rem;
+    padding: 2rem 1.5rem 1rem;
   }
-
-  .login-welcome-title {
-    font-size: 2rem;
-  }
-
-  .login-stat-box {
-    min-width: 140px;
-    padding: 1rem;
-
-    .login-stat-number {
-      font-size: 2.2rem;
-    }
-  }
-
-  .login-form-container {
+  
+  .login-content {
     padding: 1.5rem;
   }
+}
 
-  .login-carousel-container {
-    margin: 1.5rem auto;
+@media (max-width: 480px) {
+  .login-box {
+    max-width: 100%;
+    border-radius: 12px;
   }
-
-  .login-carousel-content {
-    padding: 1.5rem;
-
-    .login-carousel-title {
-      font-size: 1.8rem;
-    }
-
-    .login-carousel-description {
-      font-size: 1rem;
-    }
+  
+  .login-logo-container {
+    width: 60px;
+    height: 60px;
   }
-
-  .login-footer {
+  
+  .login-header {
+    padding: 1.5rem 1rem 1rem;
+  }
+  
+  .login-content {
     padding: 1rem;
   }
-
-  .login-footer-info {
-    .login-footer-section {
-      h3 {
-        font-size: 1.1rem;
-      }
-    }
-  }
-
-  .login-main-content {
-    margin-bottom: 2rem;
+  
+  .login-title h1 {
+    font-size: 1.5rem;
   }
 } 
