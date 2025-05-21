@@ -114,7 +114,7 @@ function DashboardAppBar({ notifications = 0, toggleDrawer }: DashboardAppBarPro
           <Icons.Menu />
         </MUI.IconButton>
         <MUI.Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', color: 'primary.main' }}>
-          Sistema de Gestión de Pasantías Work in School
+          Sistema de Gestión de Pasantías CHECKINT IN
         </MUI.Typography>
         <MUI.Tooltip title="Notificaciones">
           <MUI.IconButton color="inherit" onClick={handleNotificationsOpen}>
