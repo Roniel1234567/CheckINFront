@@ -2,7 +2,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import * as MUI from "@mui/material";
 import * as Icons from "@mui/icons-material";
-import Logotipo from '../assets/svg/Logotipo';
 
 interface SideBarProps {
   drawerOpen: boolean;
@@ -73,16 +72,37 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
           borderRadius: 2,
           mb: 2
         }}>
-          <Logotipo height={45} />
+          <MUI.Typography 
+            variant="h5" 
+            sx={{ 
+              fontFamily: 'Arial, sans-serif',
+              fontWeight: 'bold', 
+              color: '#0E2A47',
+              position: 'relative',
+              '&:after': {
+                content: '""',
+                position: 'absolute',
+                bottom: '5px',
+                right: '-8px',
+                width: '80px',
+                height: '3px',
+                backgroundColor: '#DDB152',
+                transform: 'rotate(-10deg)',
+                transformOrigin: 'left center'
+              }
+            }}
+          >
+            Work in School
+          </MUI.Typography>
         </MUI.Box>
         <MUI.Box sx={{ 
           mt: 1, 
           mb: 3, 
           px: 2, 
           py: 2,
-          background: 'linear-gradient(135deg, #1a237e, #3949ab)',
+          background: 'linear-gradient(135deg, #0E2A47, #1e4976)',
           borderRadius: 2,
-          boxShadow: '0 4px 10px rgba(26,35,126,0.15)'
+          boxShadow: '0 4px 10px rgba(14, 42, 71, 0.2)'
         }}>
           <MUI.Box sx={{
             display: 'flex',
@@ -91,7 +111,7 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
           }}>
             <MUI.Avatar sx={{ 
               bgcolor: '#ffffff',
-              color: '#1a237e', 
+              color: '#0E2A47', 
               fontWeight: 'bold',
               width: 50,
               height: 50,
@@ -139,19 +159,19 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
                 sx={{
                   py: 1.2,
                   justifyContent: 'flex-start',
-                  color: activeMenu === item.id ? '#1a237e' : '#555',
-                  backgroundColor: activeMenu === item.id ? 'rgba(26,35,126,0.05)' : 'transparent',
+                  color: activeMenu === item.id ? '#0E2A47' : '#555',
+                  backgroundColor: activeMenu === item.id ? 'rgba(14,42,71,0.05)' : 'transparent',
                   fontWeight: activeMenu === item.id ? 600 : 400,
                   borderRadius: 1,
                   transition: 'all 0.2s',
                   '&:hover': {
-                    backgroundColor: 'rgba(26,35,126,0.08)',
+                    backgroundColor: 'rgba(14,42,71,0.08)',
                   },
                 }}
               >
                 <MUI.ListItemIcon
                   sx={{ 
-                    color: activeMenu === item.id ? '#1a237e' : '#777',
+                    color: activeMenu === item.id ? '#0E2A47' : '#777',
                     minWidth: '40px',
                     transition: 'all 0.2s'
                   }}
@@ -192,9 +212,9 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
               justifyContent: 'flex-start',
               borderRadius: 1,
               color: '#555',
-              '&:hover': { backgroundColor: 'rgba(57,73,171,0.08)' } 
+              '&:hover': { backgroundColor: 'rgba(14,42,71,0.08)' } 
             }}>
-              <MUI.ListItemIcon sx={{ color: '#3949ab', minWidth: '40px' }}>
+              <MUI.ListItemIcon sx={{ color: '#0E2A47', minWidth: '40px' }}>
                 <Icons.Assignment />
               </MUI.ListItemIcon>
               <MUI.ListItemText primary="Manual de Usuario" primaryTypographyProps={{ fontSize: '0.95rem' }} />
@@ -229,7 +249,7 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
         <MUI.Typography variant="caption" sx={{ color: '#777', fontSize: '0.75rem' }}>
           IPISA © {new Date().getFullYear()}
         </MUI.Typography>
-        <MUI.Typography variant="caption" sx={{ color: '#1a237e', fontWeight: 'bold', fontSize: '0.75rem' }}>
+        <MUI.Typography variant="caption" sx={{ color: '#0E2A47', fontWeight: 'bold', fontSize: '0.75rem' }}>
           v1.0
         </MUI.Typography>
       </MUI.Box>
