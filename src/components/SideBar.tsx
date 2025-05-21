@@ -68,31 +68,27 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
           p: 2, 
           display: 'flex', 
           alignItems: 'center', 
-          justifyContent: 'flex-start',
+          justifyContent: 'center',
           borderRadius: 2,
-          mb: 2,
-          pl: 3
+          mb: 2
         }}>
           <MUI.Typography 
             variant="h5" 
             sx={{ 
               fontFamily: 'Arial, sans-serif',
-              fontWeight: '700', 
+              fontWeight: 'bold', 
               color: '#0E2A47',
-              fontSize: '26px',
               position: 'relative',
-              whiteSpace: 'nowrap',
               '&:after': {
                 content: '""',
                 position: 'absolute',
-                top: '8px',
-                right: '79px',
-                width: '40px',
-                height: '3.5px',
+                bottom: '5px',
+                right: '-8px',
+                width: '80px',
+                height: '3px',
                 backgroundColor: '#DDB152',
-                transform: 'rotate(20deg)',
-                transformOrigin: 'right center',
-                zIndex: 1
+                transform: 'rotate(-10deg)',
+                transformOrigin: 'left center'
               }
             }}
           >
