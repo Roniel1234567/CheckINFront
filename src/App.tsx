@@ -26,6 +26,8 @@ import TallerConFamilias from './pages/dashboardAccess/TallerConFamilias';
 import TutoresPage from './pages/dashboardAccess/Tutores';
 import RecuperarContrasena from './pages/RecuperarContrasena';
 import { authService } from './services/authService';
+import Taller from './pages/dashboardAccess/Taller';
+import Calificacion from './pages/dashboardAccess/Calificacion';
 
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -68,6 +70,9 @@ function App() {
           <Route path="tutores" element={<TutoresPage />} />
           {/* Ruta alternativa para gestión de talleres que apunta al mismo componente */}
           <Route path="gestion-talleres" element={<TallerConFamilias />} />
+          <Route path="/dashboard/evaluaciones" element={<Evaluaciones />} />
+          <Route path="/dashboard/taller" element={<Taller />} />
+          <Route path="/dashboard/calificacion" element={<Calificacion />} />
 
           {/* Rutas protegidas */}
           <Route path="/" element={
