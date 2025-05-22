@@ -25,6 +25,7 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
 
   const menuItems = [
     { id: 'Dashboard', text: 'Dashboard', icon: <Icons.Dashboard />, path: '/Dashboard' },
+    { id: 'pasantias', text: 'Gestión de Pasantías', icon: <Icons.AssignmentTurnedIn />, path: '/pasantias' },
     { id: 'estudiante', text: 'Estudiantes', icon: <Icons.School />, path: '/estudiantes' },
     { id: 'users', text: 'Usuarios', icon: <Icons.Person />, path: '/Usuarios' },
     { id: 'talleres', text: 'Gestión de Talleres', icon: <Icons.Build />, path: '/talleres' },
@@ -32,7 +33,6 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
     { id: 'supervisores', text: 'Gestión de Supervisores', icon: <Icons.SupervisorAccount />, path: '/supervisores' },
     { id: 'companies', text: 'Centros de Trabajo', icon: <Icons.Business />, path: '/Centros-Trabajo' },
     { id: 'plazas', text: 'Plazas', icon: <Icons.BusinessCenter />, path: '/plazas' },
-    { id: 'internships', text: 'Pasantías', icon: <Icons.Work />, path: '/pasantias' },
     { id: 'evaluaciones', text: 'Evaluaciones', icon: <Icons.Assessment />, path: '/evaluaciones' },
     { id: 'calificacion', text: 'Calificaciones', icon: <Icons.Grade />, path: '/dashboard/calificacion' },
     { id: 'visits', text: 'Visitas', icon: <Icons.Explore />, path: '/Visitas' },

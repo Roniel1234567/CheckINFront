@@ -12,7 +12,6 @@ import Companies from './pages/dashboardAccess/Companies';
 import AboutUs from './pages/About_us';
 import UserManual from './pages/User_manual';
 import Users from './pages/dashboardAccess/Users';
-import Internships from './pages/dashboardAccess/Internships';
 import Features from './pages/Features';
 import Visits from './pages/dashboardAccess/Visits';
 import Students from './pages/dashboardAccess/subPages/Students';
@@ -29,6 +28,7 @@ import { authService } from './services/authService';
 import Taller from './pages/dashboardAccess/Taller';
 import Calificacion from './pages/dashboardAccess/Calificacion';
 import SupervisoresPage from './pages/dashboardAccess/Supervisores';
+import PasantiaPage from './pages/Pasantia';
 
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -63,7 +63,7 @@ function App() {
           <Route path="usuarios/administradores" element={<Administrators />} />
           <Route path="usuarios/observadores" element={<Observers />} />
           <Route path="visitas" element={<Visits />} />
-          <Route path="pasantias" element={<Internships />} />
+          <Route path="pasantias" element={<PasantiaPage />} />
           <Route path="centros-trabajo" element={<Companies />} />
           <Route path="plazas" element={<PlazasCentro />} />
           <Route path="evaluaciones" element={<Evaluaciones />} />

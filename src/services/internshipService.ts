@@ -42,6 +42,7 @@ export interface CentroTrabajo {
   creacion_centro?: Date;
   direccion: Direccion;
   contacto: Contacto;
+  validacion?: 'Aceptada' | 'Rechazada' | 'Pendiente';
 }
 
 export interface FamiliaProfesional {
@@ -58,14 +59,58 @@ export interface Taller {
   familia_taller: FamiliaProfesional;
 }
 
+export enum EstadoPasantia {
+  PENDIENTE = 'Pendiente',
+  EN_PROCESO = 'En Proceso',
+  TERMINADA = 'Terminada',
+  CANCELADA = 'Cancelada'
+}
+
+export interface Estudiante {
+  documento_id_est: string;
+  nombre_est: string;
+  apellido_est: string;
+  seg_nombre_est?: string;
+  seg_apellido_est?: string;
+  fecha_nac_est: Date;
+  taller_est?: Taller;
+  horaspasrealizadas_est?: number;
+  fecha_inicio_pasantia?: Date;
+  fecha_fin_pasantia?: Date;
+  nacionalidad?: string;
+}
+
+export interface Supervisor {
+  id_sup: number;
+  nombre_sup: string;
+  apellido_sup: string;
+  contacto_sup: string;
+}
+
 export interface Pasantia {
-  id_pasantia: number;
-  estudiante: string;
-  centro: CentroTrabajo;
-  supervisor: string;
-  fecha_inicio: Date;
-  dias_pasantia: string[];
-  estado_pasantia: 'Activo' | 'Completada' | 'Cancelada';
+  id_pas?: number;
+  estudiante_pas: Estudiante;
+  centro_pas: CentroTrabajo;
+  supervisor_pas: Supervisor;
+  inicio_pas: Date;
+  fin_pas?: Date;
+  estado_pas: EstadoPasantia;
+  creacion_pas?: Date;
+}
+
+export type GeneroPermitido = 'Masculino' | 'Femenino' | 'Ambos';
+export type EstadoPlaza = 'Activa' | 'Inactiva';
+
+export interface PlazasCentro {
+  id_plaza: number;
+  centro_plaza: CentroTrabajo;
+  taller_plaza: Taller;
+  plazas_centro: number;
+  estado: EstadoPlaza;
+  edad_minima?: number;
+  genero: GeneroPermitido;
+  observacion?: string;
+  creacion_plaza: Date;
 }
 
 export const internshipService = {
@@ -166,6 +211,26 @@ export const internshipService = {
     }
   },
 
+  getPasantiasPendientesEvaluacion: async (): Promise<Pasantia[]> => {
+    try {
+      const response = await api.get<Pasantia[]>('/pasantias/pendientesEvaluacion');
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener pasantías pendientes de evaluación:', error);
+      throw error;
+    }
+  },
+
+  getPasantiaById: async (id: number): Promise<Pasantia> => {
+    try {
+      const response = await api.get<Pasantia>(`/pasantias/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener pasantía por ID:', error);
+      throw error;
+    }
+  },
+
   updatePasantia: async (id: number, pasantiaData: Partial<Pasantia>): Promise<Pasantia> => {
     try {
       const response = await api.put<Pasantia>(`/pasantias/${id}`, pasantiaData);
@@ -181,6 +246,77 @@ export const internshipService = {
       await api.delete(`/pasantias/${id}`);
     } catch (error) {
       console.error('Error al eliminar pasantía:', error);
+      throw error;
+    }
+  },
+
+  // Plazas de Centros
+  getAllPlazas: async (): Promise<PlazasCentro[]> => {
+    try {
+      const response = await api.get<PlazasCentro[]>('/plazas');
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener plazas:', error);
+      throw error;
+    }
+  },
+
+  getPlazaById: async (id: number): Promise<PlazasCentro> => {
+    try {
+      const response = await api.get<PlazasCentro>(`/plazas/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener plaza por ID:', error);
+      throw error;
+    }
+  },
+
+  createPlaza: async (plazaData: Partial<PlazasCentro>): Promise<PlazasCentro> => {
+    try {
+      const response = await api.post<PlazasCentro>('/plazas', plazaData);
+      return response.data;
+    } catch (error) {
+      console.error('Error al crear plaza:', error);
+      throw error;
+    }
+  },
+
+  updatePlaza: async (id: number, plazaData: Partial<PlazasCentro>): Promise<PlazasCentro> => {
+    try {
+      const response = await api.put<PlazasCentro>(`/plazas/${id}`, plazaData);
+      return response.data;
+    } catch (error) {
+      console.error('Error al actualizar plaza:', error);
+      throw error;
+    }
+  },
+
+  deletePlaza: async (id: number): Promise<void> => {
+    try {
+      await api.delete(`/plazas/${id}`);
+    } catch (error) {
+      console.error('Error al eliminar plaza:', error);
+      throw error;
+    }
+  },
+
+  // Estudiantes
+  getAllEstudiantes: async (): Promise<Estudiante[]> => {
+    try {
+      const response = await api.get<Estudiante[]>('/estudiantes');
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener estudiantes:', error);
+      throw error;
+    }
+  },
+
+  getEstudianteById: async (id: string): Promise<Estudiante> => {
+    try {
+      const response = await api.get<Estudiante>(`/estudiantes/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener estudiante por ID:', error);
       throw error;
     }
   },
