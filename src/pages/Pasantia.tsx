@@ -29,6 +29,7 @@ const PasantiaPage = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [mostrarPlazas, setMostrarPlazas] = useState(false);
 
   // Responsive drawer
   useEffect(() => {
@@ -178,16 +179,21 @@ const PasantiaPage = () => {
               Gestión de Pasantías
             </MUI.Typography>
           </MUI.Box>
-          <MUI.Paper elevation={3} sx={{ p: 3, borderRadius: 4, mb: 4, background: `linear-gradient(90deg, ${theme.palette.primary.light} 60%, ${theme.palette.secondary.light} 100%)` }}>
+          <MUI.Paper elevation={3} sx={{ p: 3, borderRadius: 4, mb: 4, background: theme.palette.primary.main }}>
             <MUI.Grid container spacing={2} alignItems="center">
               <MUI.Grid item xs={12} md={4}>
                 <MUI.FormControl fullWidth>
-                  <MUI.InputLabel>Taller</MUI.InputLabel>
+                  <MUI.InputLabel sx={{ color: '#fff' }}>Taller</MUI.InputLabel>
                   <MUI.Select
                     value={tallerFiltro}
                     onChange={e => setTallerFiltro(e.target.value)}
                     label="Taller"
-                    startAdornment={<Icons.Construction sx={{ mr: 1 }} />}
+                    startAdornment={<Icons.Construction sx={{ mr: 1, color: '#fff' }} />}
+                    sx={{ color: '#fff',
+                      '& .MuiSelect-icon': { color: '#fff' },
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
+                    }}
+                    inputProps={{ sx: { color: '#fff' } }}
                   >
                     <MUI.MenuItem value=""><em>Todos</em></MUI.MenuItem>
                     {talleres.map(t => (
@@ -198,13 +204,18 @@ const PasantiaPage = () => {
               </MUI.Grid>
               <MUI.Grid item xs={12} md={4}>
                 <MUI.FormControl fullWidth>
-                  <MUI.InputLabel>Centro de Trabajo</MUI.InputLabel>
+                  <MUI.InputLabel sx={{ color: '#fff' }}>Centro de Trabajo</MUI.InputLabel>
                   <MUI.Select
                     value={centroFiltro}
                     onChange={e => setCentroFiltro(e.target.value)}
                     label="Centro de Trabajo"
                     disabled={!tallerFiltro}
-                    startAdornment={<Icons.Business sx={{ mr: 1 }} />}
+                    startAdornment={<Icons.Business sx={{ mr: 1, color: '#fff' }} />}
+                    sx={{ color: '#fff',
+                      '& .MuiSelect-icon': { color: '#fff' },
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
+                    }}
+                    inputProps={{ sx: { color: '#fff' } }}
                   >
                     <MUI.MenuItem value=""><em>Todos</em></MUI.MenuItem>
                     {centrosFiltrados.map(c => (
@@ -216,11 +227,19 @@ const PasantiaPage = () => {
               <MUI.Grid item xs={12} md={4}>
                 <MUI.Button
                   variant="contained"
-                  color="secondary"
-                  startIcon={<Icons.AddCircleOutline />}
+                  color="warning"
+                  startIcon={<Icons.AddCircleOutline sx={{ color: theme.palette.primary.main }} />}
                   fullWidth
                   size="large"
-                  sx={{ fontWeight: 'bold', borderRadius: 3, boxShadow: 2, py: 1.5 }}
+                  sx={{
+                    fontWeight: 'bold',
+                    borderRadius: 3,
+                    boxShadow: 2,
+                    py: 1.5,
+                    color: theme.palette.primary.main,
+                    bgcolor: theme.palette.warning.light,
+                    '&:hover': { bgcolor: theme.palette.warning.main, color: theme.palette.primary.main }
+                  }}
                   onClick={() => setOpenDialog(true)}
                   disabled={!plazaSeleccionada || plazasOcupadas(plazaSeleccionada) >= (plazaSeleccionada?.plazas_centro || 0)}
                 >
@@ -230,56 +249,95 @@ const PasantiaPage = () => {
             </MUI.Grid>
           </MUI.Paper>
 
-          {/* Tarjetas de plazas */}
-          <MUI.Grid container spacing={3} sx={{ mb: 4 }}>
-            {plazasFiltradas.map(plaza => {
-              const ocupadas = plazasOcupadas(plaza);
-              const disponibles = plaza.plazas_centro - ocupadas;
-              return (
-                <MUI.Grid item xs={12} sm={6} md={4} key={plaza.id_plaza}>
-                  <MUI.Card
-                    sx={{
-                      borderRadius: 4,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-                      background: disponibles > 0 ? `linear-gradient(120deg, ${theme.palette.success.light} 60%, ${theme.palette.primary.light} 100%)` : `linear-gradient(120deg, ${theme.palette.grey[300]} 60%, ${theme.palette.grey[100]} 100%)`,
-                      color: disponibles > 0 ? theme.palette.success.dark : theme.palette.text.secondary,
-                      position: 'relative',
-                      overflow: 'hidden',
-                      border: plazaSeleccionada?.id_plaza === plaza.id_plaza ? `2px solid ${theme.palette.primary.main}` : 'none',
-                      cursor: 'pointer',
-                      transition: 'transform 0.2s',
-                      '&:hover': {
-                        transform: 'translateY(-4px) scale(1.03)',
-                        boxShadow: '0 12px 32px rgba(0,0,0,0.13)',
-                      },
-                    }}
-                    onClick={() => {
-                      setCentroFiltro(String(plaza.centro_plaza.id_centro));
-                      setPlazaSeleccionada(plaza);
-                    }}
-                  >
-                    <MUI.CardContent>
-                      <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Icons.Engineering sx={{ fontSize: 32 }} />
-                        <MUI.Typography variant="h6" sx={{ fontWeight: 'bold' }}>{plaza.taller_plaza.nombre_taller}</MUI.Typography>
-                      </MUI.Box>
-                      <MUI.Typography variant="subtitle1" sx={{ fontWeight: 'medium', mb: 1 }}>
-                        <Icons.Business sx={{ fontSize: 20, mr: 1 }} /> {plaza.centro_plaza.nombre_centro}
-                      </MUI.Typography>
-                      <MUI.Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 1 }}>
-                        <MUI.Chip label={`Totales: ${plaza.plazas_centro}`} color="info" />
-                        <MUI.Chip label={`Ocupadas: ${ocupadas}`} color="warning" />
-                        <MUI.Chip label={`Disponibles: ${disponibles}`} color={disponibles > 0 ? 'success' : 'default'} />
-                      </MUI.Box>
-                      {disponibles === 0 && (
-                        <MUI.Typography variant="caption" color="error">No hay plazas disponibles</MUI.Typography>
-                      )}
-                    </MUI.CardContent>
-                  </MUI.Card>
-                </MUI.Grid>
-              );
-            })}
-          </MUI.Grid>
+          {/* Botón para mostrar plazas */}
+          <MUI.Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <MUI.Button
+              variant={mostrarPlazas ? 'contained' : 'outlined'}
+              color="primary"
+              onClick={() => setMostrarPlazas((prev) => !prev)}
+              disabled={!tallerFiltro}
+              sx={{
+                fontWeight: 'bold',
+                borderRadius: 4,
+                px: 4,
+                py: 1.5,
+                boxShadow: mostrarPlazas ? '0 4px 16px rgba(26,35,126,0.12)' : 'none',
+                bgcolor: mostrarPlazas ? theme.palette.primary.main : '#fff',
+                color: mostrarPlazas ? '#fff' : theme.palette.primary.main,
+                border: `2px solid ${theme.palette.primary.main}`,
+                '&:hover': {
+                  bgcolor: theme.palette.primary.main,
+                  color: '#fff',
+                },
+              }}
+            >
+              {mostrarPlazas ? 'Ocultar Plazas' : 'Mostrar Plazas'}
+            </MUI.Button>
+          </MUI.Box>
+
+          {/* Tarjetas de plazas solo si mostrarPlazas y hay taller seleccionado */}
+          {mostrarPlazas && tallerFiltro && (
+            <MUI.Grid container spacing={6} sx={{ mb: 4, display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+              {plazasFiltradas.map((plaza) => {
+                const ocupadas = plazasOcupadas(plaza);
+                const disponibles = plaza.plazas_centro - ocupadas;
+                return (
+                  <MUI.Grid item xs={12} sm={'auto'} md={'auto'} key={plaza.id_plaza} sx={{ display: 'flex', alignItems: 'stretch' }}>
+                    <MUI.Card
+                      sx={{
+                        borderRadius: 5,
+                        boxShadow: '0 8px 32px rgba(26,35,126,0.10)',
+                        background: '#fff',
+                        color: theme.palette.primary.main,
+                        border: `2.5px solid ${theme.palette.primary.main}`,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        minHeight: 220,
+                        minWidth: 380,
+                        maxWidth: 380,
+                        width: 380,
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'stretch',
+                        transition: 'transform 0.2s',
+                        p: 2,
+                        '&:hover': {
+                          transform: 'translateY(-4px) scale(1.03)',
+                          boxShadow: '0 16px 40px rgba(26,35,126,0.18)',
+                        },
+                      }}
+                      onClick={() => {
+                        setCentroFiltro(String(plaza.centro_plaza.id_centro));
+                        setPlazaSeleccionada(plaza);
+                      }}
+                    >
+                      <MUI.CardContent sx={{ p: 3, height: '100%' }}>
+                        <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          <Icons.Engineering sx={{ fontSize: 32, color: theme.palette.primary.main }} />
+                          <MUI.Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, fontSize: 22 }}>
+                            {plaza.taller_plaza.nombre_taller}
+                          </MUI.Typography>
+                        </MUI.Box>
+                        <MUI.Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 2, color: theme.palette.primary.main, opacity: 0.85 }}>
+                          <Icons.Business sx={{ fontSize: 20, mr: 1, color: theme.palette.primary.main }} /> {plaza.centro_plaza.nombre_centro}
+                        </MUI.Typography>
+                        <MUI.Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 1, flexWrap: 'wrap' }}>
+                          <MUI.Chip label={`Totales: ${plaza.plazas_centro}`} sx={{ bgcolor: theme.palette.primary.main, color: '#fff', fontWeight: 'bold', fontSize: 16, px: 2 }} />
+                          <MUI.Chip label={`Ocupadas: ${ocupadas}`} sx={{ bgcolor: theme.palette.warning.light, color: theme.palette.primary.main, fontWeight: 'bold', fontSize: 16, px: 2 }} />
+                          <MUI.Chip label={`Disponibles: ${disponibles}`} sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main, fontWeight: 'bold', fontSize: 16, px: 2, border: `2px solid ${theme.palette.primary.main}` }} />
+                        </MUI.Box>
+                        {disponibles === 0 && (
+                          <MUI.Typography variant="caption" color="error">No hay plazas disponibles</MUI.Typography>
+                        )}
+                      </MUI.CardContent>
+                    </MUI.Card>
+                  </MUI.Grid>
+                );
+              })}
+            </MUI.Grid>
+          )}
 
           {/* Tabla de pasantías */}
           <MUI.Paper elevation={2} sx={{ p: 3, borderRadius: 4, mb: 4 }}>
