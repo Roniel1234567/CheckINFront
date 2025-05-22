@@ -28,6 +28,7 @@ import RecuperarContrasena from './pages/RecuperarContrasena';
 import { authService } from './services/authService';
 import Taller from './pages/dashboardAccess/Taller';
 import Calificacion from './pages/dashboardAccess/Calificacion';
+import SupervisoresPage from './pages/dashboardAccess/Supervisores';
 
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -73,6 +74,7 @@ function App() {
           <Route path="/dashboard/evaluaciones" element={<Evaluaciones />} />
           <Route path="/dashboard/taller" element={<Taller />} />
           <Route path="/dashboard/calificacion" element={<Calificacion />} />
+          <Route path="supervisores" element={<SupervisoresPage />} />
 
           {/* Rutas protegidas */}
           <Route path="/" element={
