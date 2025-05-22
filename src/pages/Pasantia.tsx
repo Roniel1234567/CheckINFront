@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import * as MUI from '@mui/material';
 import * as Icons from '@mui/icons-material';
-import { internshipService, Taller, CentroTrabajo, PlazasCentro, Estudiante, Pasantia, Supervisor, EstadoPasantia } from '../services/internshipService';
+import { internshipService, Taller, CentroTrabajo, PlazasCentro, Estudiante, Pasantia, EstadoPasantia } from '../services/internshipService';
+import supervisorService, { Supervisor } from '../services/supervisorService';
 import SideBar from '../components/SideBar';
 import DashboardAppBar from '../components/DashboardAppBar';
 
@@ -39,20 +40,20 @@ const PasantiaPage = () => {
     const cargarDatos = async () => {
       setLoading(true);
       try {
-        const [talleresData, centrosData, plazasData, estudiantesData, pasantiasData] = await Promise.all([
+        const [talleresData, centrosData, plazasData, estudiantesData, pasantiasData, supervisoresData] = await Promise.all([
           internshipService.getAllTalleres(),
           internshipService.getAllCentrosTrabajo(),
           internshipService.getAllPlazas(),
           internshipService.getAllEstudiantes(),
           internshipService.getAllPasantias(),
+          supervisorService.getAllSupervisores(),
         ]);
         setTalleres(talleresData);
         setCentros(centrosData);
         setPlazas(plazasData);
         setEstudiantes(estudiantesData);
         setPasantias(pasantiasData);
-        // Simulación: cargar supervisores de todos los centros
-        setSupervisores([{ id_sup: 1, nombre_sup: 'Supervisor', apellido_sup: 'General', contacto_sup: 'supervisor@email.com' }]);
+        setSupervisores(supervisoresData);
       } catch {
         setError('Error al cargar los datos');
       } finally {
@@ -69,7 +70,7 @@ const PasantiaPage = () => {
   // Filtrar estudiantes por taller
   const estudiantesFiltrados = estudiantes.filter(e => !tallerFiltro || (e.taller_est && e.taller_est.id_taller === tallerFiltro));
 
-  // Cuando cambia el centro, actualizar la plaza seleccionada
+  // Cuando cambia el centro, actualizar la plaza seleccionada y los supervisores de ese centro
   useEffect(() => {
     if (centroFiltro && tallerFiltro) {
       const plaza = plazasFiltradas.find(p => p.centro_plaza.id_centro === Number(centroFiltro));
@@ -111,10 +112,18 @@ const PasantiaPage = () => {
       await Promise.all(estudiantesSeleccionados.map(async (docId) => {
         const estudiante = estudiantes.find(e => e.documento_id_est === docId);
         if (!estudiante) return;
+        // Buscar el supervisor seleccionado y adaptarlo a la interfaz esperada
+        const supervisorObj = supervisores.find(s => s.id_sup === Number(supervisorSeleccionado));
+        if (!supervisorObj) return;
         await internshipService.createPasantia({
           estudiante_pas: estudiante,
           centro_pas: plazaSeleccionada.centro_plaza,
-          supervisor_pas: supervisores[0], // Simulación
+          supervisor_pas: {
+            id_sup: supervisorObj.id_sup,
+            nombre_sup: supervisorObj.nombre_sup,
+            apellido_sup: supervisorObj.apellido_sup,
+            contacto_sup: supervisorObj.contacto_sup.email_contacto, // Adaptar a string
+          },
           inicio_pas: new Date(fechaInicio),
           fin_pas: fechaFin ? new Date(fechaFin) : undefined,
           estado_pas: EstadoPasantia.EN_PROCESO,
@@ -352,9 +361,11 @@ const PasantiaPage = () => {
                     label="Supervisor"
                   >
                     <MUI.MenuItem value=""><em>Seleccione un supervisor</em></MUI.MenuItem>
-                    {supervisores.map(s => (
-                      <MUI.MenuItem key={s.id_sup} value={s.id_sup}>{s.nombre_sup} {s.apellido_sup}</MUI.MenuItem>
-                    ))}
+                    {supervisores
+                      .filter(s => s.centro_trabajo && String(s.centro_trabajo.id_centro) === String(centroFiltro))
+                      .map(s => (
+                        <MUI.MenuItem key={s.id_sup} value={s.id_sup}>{s.nombre_sup} {s.apellido_sup}</MUI.MenuItem>
+                      ))}
                   </MUI.Select>
                 </MUI.FormControl>
                 <MUI.TextField
