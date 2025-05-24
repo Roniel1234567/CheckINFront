@@ -52,6 +52,9 @@ const PasantiaPage = () => {
   const [searchTallerFiltroCanceladas, setSearchTallerFiltroCanceladas] = useState<string>('');
   const [searchCentroFiltroCanceladas, setSearchCentroFiltroCanceladas] = useState<string>('');
 
+  // Nuevo estado para el término de búsqueda
+  const [searchTerm, setSearchTerm] = useState('');
+
   // Restaurar la función plazasOcupadas que se perdió
   const plazasOcupadas = (plaza: PlazasCentro, pasantiaActual?: Pasantia | null) =>
     pasantias.filter(p => {
@@ -65,7 +68,7 @@ const PasantiaPage = () => {
         (p.estado_pas === EstadoPasantia.EN_PROCESO || p.estado_pas === EstadoPasantia.PENDIENTE);
     }).length;
 
-  // Corregir las comparaciones de string vs number
+  // Filtrar pasantías según los criterios de búsqueda y estado
   const filtrarPasantias = (pasantiasList: Pasantia[], tallerFiltro: string, centroFiltro: string) => {
     return pasantiasList.filter(p => {
       const plazaId = typeof p.plaza_pas === 'object' && p.plaza_pas !== null
@@ -76,8 +79,19 @@ const PasantiaPage = () => {
       const tallerId = plaza?.taller_plaza?.id_taller;
       const centroId = p.centro_pas?.id_centro;
       
-      return (!tallerFiltro || (tallerId && String(tallerId) === tallerFiltro)) &&
-        (!centroFiltro || (centroId && String(centroId) === centroFiltro));
+      // Filtrar por taller y centro
+      const cumpleFiltroTaller = !tallerFiltro || (tallerId && String(tallerId) === tallerFiltro);
+      const cumpleFiltroCentro = !centroFiltro || (centroId && String(centroId) === centroFiltro);
+
+      // Filtrar por término de búsqueda (nombre o documento del estudiante)
+      const nombreCompleto = `${p.estudiante_pas.nombre_est} ${p.estudiante_pas.apellido_est}`.toLowerCase();
+      const documento = p.estudiante_pas.documento_id_est.toLowerCase();
+      const termino = searchTerm.toLowerCase();
+      const cumpleBusqueda = !searchTerm || 
+        nombreCompleto.includes(termino) || 
+        documento.includes(termino);
+      
+      return cumpleFiltroTaller && cumpleFiltroCentro && cumpleBusqueda;
     });
   };
 
@@ -118,7 +132,7 @@ const PasantiaPage = () => {
     const estudiantesConPasantia = pasantias
       .filter(p => 
         estudiantesIds.includes(p.estudiante_pas.documento_id_est) && 
-        p.estado_pas !== EstadoPasantia.CANCELADA
+        (p.estado_pas === EstadoPasantia.EN_PROCESO || p.estado_pas === EstadoPasantia.PENDIENTE)
       )
       .map(p => ({
         nombre: `${p.estudiante_pas.nombre_est} ${p.estudiante_pas.apellido_est}`,
@@ -266,6 +280,37 @@ const PasantiaPage = () => {
   // Handler para restaurar pasantía
   const handleRestaurarPasantia = async () => {
     if (!pasantiaToRestore || !pasantiaToRestore.id_pas) return;
+
+    // Verificar si el estudiante ya tiene una pasantía activa
+    const estudianteId = pasantiaToRestore.estudiante_pas.documento_id_est;
+    const estudiantesConPasantia = pasantias
+      .filter(p => 
+        p.estudiante_pas.documento_id_est === estudianteId && 
+        (p.estado_pas === EstadoPasantia.EN_PROCESO || p.estado_pas === EstadoPasantia.PENDIENTE)
+      );
+    
+    if (estudiantesConPasantia.length > 0) {
+      setError('No se puede restaurar la pasantía porque el estudiante ya tiene una pasantía activa. Debes cancelar la pasantía activa primero.');
+      return;
+    }
+
+    // Verificar si hay plazas disponibles
+    const plazaId = typeof pasantiaToRestore.plaza_pas === 'object' && pasantiaToRestore.plaza_pas !== null
+      ? pasantiaToRestore.plaza_pas.id_plaza
+      : pasantiaToRestore.plaza_pas;
+    
+    const plaza = plazas.find(p => p.id_plaza === plazaId);
+    if (!plaza) {
+      setError('No se encontró la plaza asociada a esta pasantía');
+      return;
+    }
+
+    const ocupadas = plazasOcupadas(plaza);
+    if (ocupadas >= plaza.plazas_centro) {
+      setError('No se puede restaurar la pasantía porque la plaza ya no tiene cupos disponibles');
+      return;
+    }
+
     setLoading(true);
     try {
       await internshipService.updatePasantia(pasantiaToRestore.id_pas, {
@@ -531,9 +576,17 @@ const PasantiaPage = () => {
                         },
                       }}
                       onClick={() => {
-                        setTallerFiltro(plaza.taller_plaza.id_taller);
+                        setTallerFiltro(String(plaza.taller_plaza.id_taller));
                         setCentroFiltro(String(plaza.centro_plaza.id_centro));
                         setPlazaFormSeleccionada(plaza);
+                        setOpenDialog(true);
+                        // Solo limpiar los campos si no hay valores previos
+                        if (!estudiantesSeleccionados.length && !supervisorSeleccionado && !fechaInicio && !fechaFin) {
+                          setEstudiantesSeleccionados([]);
+                          setSupervisorSeleccionado('');
+                          setFechaInicio('');
+                          setFechaFin('');
+                        }
                       }}
                     >
                       <MUI.CardContent sx={{ p: 3, height: '100%' }}>
@@ -585,7 +638,23 @@ const PasantiaPage = () => {
               
               {/* Filtros */}
               <MUI.Grid container spacing={2} sx={{ mb: 2 }}>
-                <MUI.Grid item xs={12} md={5}>
+                <MUI.Grid item xs={12} md={3}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Buscar estudiante"
+                    placeholder="Nombre o documento..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <MUI.InputAdornment position="start">
+                          <Icons.Search />
+                        </MUI.InputAdornment>
+                      ),
+                    }}
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={3}>
                   <MUI.Autocomplete
                     options={talleres}
                     getOptionLabel={t => `${t.nombre_taller} - ${t.familia_taller.nombre_fam}`}
@@ -603,14 +672,14 @@ const PasantiaPage = () => {
                     )}
                   />
                 </MUI.Grid>
-                <MUI.Grid item xs={12} md={5}>
+                <MUI.Grid item xs={12} md={3}>
                   <MUI.Autocomplete
                     options={centros}
                     getOptionLabel={c => c.nombre_centro}
                     value={centros.find(c => String(c.id_centro) === (showHistorial ? searchCentroFiltroCanceladas : centroFiltro)) || null}
                     onChange={(_, value) => showHistorial ?
                       setSearchCentroFiltroCanceladas(value ? String(value.id_centro) : '') :
-                      setSearchCentroFiltro(value ? String(value.id_centro) : '')}
+                      setCentroFiltro(value ? String(value.id_centro) : '')}
                     renderInput={(params) => (
                       <MUI.TextField
                         {...params}
@@ -621,12 +690,15 @@ const PasantiaPage = () => {
                     )}
                   />
                 </MUI.Grid>
-                <MUI.Grid item xs={12} md={2} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MUI.Grid item xs={12} md={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <MUI.FormControlLabel
                     control={
                       <MUI.Switch
                         checked={showHistorial}
-                        onChange={(e) => setShowHistorial(e.target.checked)}
+                        onChange={(e) => {
+                          setShowHistorial(e.target.checked);
+                          setSearchTerm(''); // Limpiar búsqueda al cambiar de vista
+                        }}
                         color="primary"
                       />
                     }
@@ -773,9 +845,26 @@ const PasantiaPage = () => {
                       variant="outlined"
                       error={!!error && error.includes('estudiantes')}
                       helperText={error && error.includes('estudiantes') ? error : ''}
+                      InputLabelProps={{
+                        shrink: true,
+                        sx: {
+                          backgroundColor: 'white',
+                          px: 0.5,
+                        }
+                      }}
                     />
                   )}
                   isOptionEqualToValue={(option, value) => option.documento_id_est === value.documento_id_est}
+                  PopperProps={{
+                    style: { width: 'fit-content', minWidth: '100%' }
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '& .MuiAutocomplete-input': {
+                        padding: '0px !important'
+                      }
+                    }
+                  }}
                 />
                 <MUI.FormHelperText>
                   Máximo {plazaFormSeleccionada ? plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) : 0} estudiantes
