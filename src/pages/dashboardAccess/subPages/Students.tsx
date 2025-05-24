@@ -155,6 +155,11 @@ const Students = () => {
   const [tallerFiltro, setTallerFiltro] = useState<string>('');
   const [centroFiltro, setCentroFiltro] = useState<string>('');
 
+  // Agregar estados para los filtros de fechas
+  const [fechasTallerFiltro, setFechasTallerFiltro] = useState<string>('');
+  const [fechasCentroFiltro, setFechasCentroFiltro] = useState<string>('');
+  const [fechasSearchTerm, setFechasSearchTerm] = useState<string>('');
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -793,18 +798,38 @@ const Students = () => {
   const cargarDatosFechas = async () => {
     try {
       setLoading(true);
-      // Obtener estudiantes que tienen taller asignado
-      const estudiantesConTaller = estudiantes.filter(e => e.taller_est);
-      
-      // Crear las filas de datos
-      const rows = estudiantesConTaller.map(e => ({
-        documento_id_est: e.documento_id_est,
-        nombre_completo: `${e.nombre_est} ${e.apellido_est}`,
-        centro: e.taller_est?.nombre_taller || '-',
-        fecha_inicio: e.fecha_inicio_pasantia || '',
-        fecha_fin: e.fecha_fin_pasantia || '',
-        horas_realizadas: e.horaspasrealizadas_est || 0
-      }));
+      // Obtener estudiantes y pasantías
+      const [estudiantesData, pasantiasData] = await Promise.all([
+        studentService.getAllStudents(),
+        internshipService.getAllPasantias()
+      ]);
+
+      // Filtrar estudiantes eliminados
+      const estudiantesActivos = estudiantesData.filter(e => {
+        // Verificar si el estudiante tiene un usuario asociado y si su estado no es 'Eliminado'
+        return e.usuario_est?.estado_usu !== 'Eliminado';
+      });
+
+      // Crear un mapa de pasantías activas por estudiante
+      const pasantiasActivas = pasantiasData.reduce((acc, pasantia) => {
+        if (pasantia.estado_pas !== 'Cancelada') {
+          acc[pasantia.estudiante_pas.documento_id_est] = pasantia;
+        }
+        return acc;
+      }, {} as { [key: string]: { centro_pas: { nombre_centro: string } } });
+
+      // Crear las filas de datos solo con estudiantes activos
+      const rows: FechasPasantiaRow[] = estudiantesActivos.map(e => {
+        const pasantiaActiva = pasantiasActivas[e.documento_id_est];
+        return {
+          documento_id_est: e.documento_id_est,
+          nombre_completo: `${e.nombre_est} ${e.apellido_est}`,
+          centro: pasantiaActiva ? pasantiaActiva.centro_pas.nombre_centro : '-',
+          fecha_inicio: e.fecha_inicio_pasantia || null,
+          fecha_fin: e.fecha_fin_pasantia || null,
+          horas_realizadas: Number(e.horaspasrealizadas_est || 0)
+        };
+      });
 
       setFechasRows(rows);
     } catch (error) {
@@ -911,6 +936,191 @@ const Students = () => {
     await cargarDatosFechas();
     setOpenFechasDialog(true);
   };
+
+  // Función para filtrar los datos de fechas
+  const filtrarDatosFechas = (data: FechasPasantiaRow[]) => {
+    return data.filter(row => {
+      const cumpleBusqueda = !fechasSearchTerm || 
+        row.nombre_completo.toLowerCase().includes(fechasSearchTerm.toLowerCase()) ||
+        row.documento_id_est.toLowerCase().includes(fechasSearchTerm.toLowerCase());
+
+      const cumpleCentro = !fechasCentroFiltro || row.centro === fechasCentroFiltro;
+
+      // Para el filtro de taller, necesitamos obtener el taller del estudiante
+      const estudiante = estudiantes.find(e => e.documento_id_est === row.documento_id_est);
+      const cumpleTaller = !fechasTallerFiltro || 
+        (estudiante?.taller_est?.id_taller === Number(fechasTallerFiltro));
+
+      return cumpleBusqueda && cumpleCentro && cumpleTaller;
+    });
+  };
+
+  // Modificar el diálogo de fechas para incluir los filtros
+  const FechasDialog = () => (
+    <MUI.Dialog
+      open={openFechasDialog}
+      onClose={() => setOpenFechasDialog(false)}
+      maxWidth="lg"
+      fullWidth
+    >
+      <MUI.DialogTitle>
+        <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Icons.CalendarToday />
+          Actualizar Fechas y Horas de Pasantía
+        </MUI.Box>
+      </MUI.DialogTitle>
+      <MUI.DialogContent>
+        {/* Filtros */}
+        <MUI.Grid container spacing={2} sx={{ mb: 3, mt: 1 }}>
+          <MUI.Grid item xs={12} md={4}>
+            <MUI.TextField
+              fullWidth
+              label="Buscar estudiante"
+              placeholder="Nombre o documento..."
+              value={fechasSearchTerm}
+              onChange={(e) => setFechasSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <MUI.InputAdornment position="start">
+                    <Icons.Search />
+                  </MUI.InputAdornment>
+                ),
+              }}
+            />
+          </MUI.Grid>
+          <MUI.Grid item xs={12} md={4}>
+            <MUI.FormControl fullWidth>
+              <MUI.InputLabel>Taller</MUI.InputLabel>
+              <MUI.Select
+                value={fechasTallerFiltro}
+                onChange={(e) => setFechasTallerFiltro(e.target.value)}
+                label="Taller"
+              >
+                <MUI.MenuItem value="">Todos</MUI.MenuItem>
+                {talleres.map((taller) => (
+                  <MUI.MenuItem key={taller.id_taller} value={taller.id_taller}>
+                    {taller.nombre_taller}
+                  </MUI.MenuItem>
+                ))}
+              </MUI.Select>
+            </MUI.FormControl>
+          </MUI.Grid>
+          <MUI.Grid item xs={12} md={4}>
+            <MUI.FormControl fullWidth>
+              <MUI.InputLabel>Centro</MUI.InputLabel>
+              <MUI.Select
+                value={fechasCentroFiltro}
+                onChange={(e) => setFechasCentroFiltro(e.target.value)}
+                label="Centro"
+              >
+                <MUI.MenuItem value="">Todos</MUI.MenuItem>
+                {Array.from(new Set(fechasRows.map(row => row.centro)))
+                  .filter(centro => centro !== '-')
+                  .sort()
+                  .map((centro) => (
+                    <MUI.MenuItem key={centro} value={centro}>
+                      {centro}
+                    </MUI.MenuItem>
+                ))}
+              </MUI.Select>
+            </MUI.FormControl>
+          </MUI.Grid>
+        </MUI.Grid>
+
+        {/* Tabla */}
+        <MUI.TableContainer>
+          <MUI.Table>
+            <MUI.TableHead>
+              <MUI.TableRow>
+                <MUI.TableCell>Estudiante</MUI.TableCell>
+                <MUI.TableCell>Centro</MUI.TableCell>
+                <MUI.TableCell>Fecha Inicio</MUI.TableCell>
+                <MUI.TableCell>Fecha Fin</MUI.TableCell>
+                <MUI.TableCell>Horas Realizadas</MUI.TableCell>
+              </MUI.TableRow>
+            </MUI.TableHead>
+            <MUI.TableBody>
+              {filtrarDatosFechas(fechasRows).map((row) => (
+                <MUI.TableRow key={row.documento_id_est}>
+                  <MUI.TableCell>{row.nombre_completo}</MUI.TableCell>
+                  <MUI.TableCell>{row.centro}</MUI.TableCell>
+                  <MUI.TableCell>
+                    <MUI.TextField
+                      type="date"
+                      value={row.fecha_inicio || ''}
+                      onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_inicio', e.target.value)}
+                      fullWidth
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </MUI.TableCell>
+                  <MUI.TableCell>
+                    <MUI.TextField
+                      type="date"
+                      value={row.fecha_fin || ''}
+                      onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_fin', e.target.value)}
+                      fullWidth
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </MUI.TableCell>
+                  <MUI.TableCell>
+                    <MUI.TextField
+                      type="number"
+                      value={row.horas_realizadas}
+                      onChange={(e) => handleFechaCellChange(row.documento_id_est, 'horas_realizadas', e.target.value)}
+                      fullWidth
+                      size="small"
+                      inputProps={{
+                        min: 0,
+                        style: { 
+                          textAlign: 'right',
+                          paddingRight: '40px'
+                        }
+                      }}
+                      InputProps={{
+                        endAdornment: (
+                          <MUI.InputAdornment position="end" sx={{ position: 'absolute', right: 8 }}>
+                            hrs
+                          </MUI.InputAdornment>
+                        ),
+                        sx: { 
+                          minWidth: '120px',
+                          '& input': {
+                            width: '100%'
+                          }
+                        }
+                      }}
+                    />
+                  </MUI.TableCell>
+                </MUI.TableRow>
+              ))}
+            </MUI.TableBody>
+          </MUI.Table>
+        </MUI.TableContainer>
+      </MUI.DialogContent>
+      <MUI.DialogActions sx={{ p: 2, gap: 1 }}>
+        <MUI.Button
+          variant="outlined"
+          startIcon={<Icons.FileDownload />}
+          onClick={exportarFechasExcel}
+        >
+          Exportar Excel
+        </MUI.Button>
+        <MUI.Button onClick={() => setOpenFechasDialog(false)}>
+          Cancelar
+        </MUI.Button>
+        <MUI.Button
+          variant="contained"
+          onClick={handleGuardarFechas}
+          disabled={loading}
+          startIcon={loading ? <MUI.CircularProgress size={20} /> : <Icons.Save />}
+        >
+          Guardar Cambios
+        </MUI.Button>
+      </MUI.DialogActions>
+    </MUI.Dialog>
+  );
 
   if (error) {
     return (
@@ -1231,91 +1441,162 @@ const Students = () => {
             maxWidth="lg"
             fullWidth
           >
-            <MUI.DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <MUI.DialogTitle>
               <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Icons.CalendarToday />
                 Actualizar Fechas y Horas de Pasantía
               </MUI.Box>
-              <MUI.Box sx={{ display: 'flex', gap: 1 }}>
-                <MUI.Button
-                  variant="outlined"
-                  startIcon={<Icons.FileDownload />}
-                  onClick={exportarFechasExcel}
-                >
-                  Exportar Excel
-                </MUI.Button>
-                <MUI.Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<Icons.Save />}
-                  onClick={handleGuardarFechas}
-                  disabled={loading}
-                >
-                  Guardar Cambios
-                </MUI.Button>
-              </MUI.Box>
             </MUI.DialogTitle>
             <MUI.DialogContent>
-              {loading ? (
-                <MUI.Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                  <MUI.CircularProgress />
-                </MUI.Box>
-              ) : (
-                <MUI.TableContainer component={MUI.Paper} sx={{ mt: 2 }}>
-                  <MUI.Table stickyHeader>
-                    <MUI.TableHead>
-                      <MUI.TableRow>
-                        <MUI.TableCell sx={{ width: '30%', fontWeight: 'bold' }}>Estudiante</MUI.TableCell>
-                        <MUI.TableCell sx={{ width: '25%', fontWeight: 'bold' }}>Centro</MUI.TableCell>
-                        <MUI.TableCell sx={{ width: '15%', fontWeight: 'bold' }}>Fecha Inicio</MUI.TableCell>
-                        <MUI.TableCell sx={{ width: '15%', fontWeight: 'bold' }}>Fecha Fin</MUI.TableCell>
-                        <MUI.TableCell sx={{ width: '15%', fontWeight: 'bold' }}>Horas Realizadas</MUI.TableCell>
-                      </MUI.TableRow>
-                    </MUI.TableHead>
-                    <MUI.TableBody>
-                      {fechasRows.map((row) => (
-                        <MUI.TableRow key={row.documento_id_est}>
-                          <MUI.TableCell>{row.nombre_completo}</MUI.TableCell>
-                          <MUI.TableCell>{row.centro}</MUI.TableCell>
-                          <MUI.TableCell>
-                            <MUI.TextField
-                              type="date"
-                              value={row.fecha_inicio}
-                              onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_inicio', e.target.value)}
-                              fullWidth
-                              size="small"
-                              InputLabelProps={{ shrink: true }}
-                            />
-                          </MUI.TableCell>
-                          <MUI.TableCell>
-                            <MUI.TextField
-                              type="date"
-                              value={row.fecha_fin}
-                              onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_fin', e.target.value)}
-                              fullWidth
-                              size="small"
-                              InputLabelProps={{ shrink: true }}
-                            />
-                          </MUI.TableCell>
-                          <MUI.TableCell>
-                            <MUI.TextField
-                              type="number"
-                              value={row.horas_realizadas}
-                              onChange={(e) => handleFechaCellChange(row.documento_id_est, 'horas_realizadas', e.target.value)}
-                              fullWidth
-                              size="small"
-                              InputProps={{
-                                endAdornment: <MUI.InputAdornment position="end">hrs</MUI.InputAdornment>
-                              }}
-                            />
-                          </MUI.TableCell>
-                        </MUI.TableRow>
+              {/* Filtros */}
+              <MUI.Grid container spacing={2} sx={{ mb: 3, mt: 1 }}>
+                <MUI.Grid item xs={12} md={4}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Buscar estudiante"
+                    placeholder="Nombre o documento..."
+                    value={fechasSearchTerm}
+                    onChange={(e) => setFechasSearchTerm(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <MUI.InputAdornment position="start">
+                          <Icons.Search />
+                        </MUI.InputAdornment>
+                      ),
+                    }}
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={4}>
+                  <MUI.FormControl fullWidth>
+                    <MUI.InputLabel>Taller</MUI.InputLabel>
+                    <MUI.Select
+                      value={fechasTallerFiltro}
+                      onChange={(e) => setFechasTallerFiltro(e.target.value)}
+                      label="Taller"
+                    >
+                      <MUI.MenuItem value="">Todos</MUI.MenuItem>
+                      {talleres.map((taller) => (
+                        <MUI.MenuItem key={taller.id_taller} value={taller.id_taller}>
+                          {taller.nombre_taller}
+                        </MUI.MenuItem>
                       ))}
-                    </MUI.TableBody>
-                  </MUI.Table>
-                </MUI.TableContainer>
-              )}
+                    </MUI.Select>
+                  </MUI.FormControl>
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={4}>
+                  <MUI.FormControl fullWidth>
+                    <MUI.InputLabel>Centro</MUI.InputLabel>
+                    <MUI.Select
+                      value={fechasCentroFiltro}
+                      onChange={(e) => setFechasCentroFiltro(e.target.value)}
+                      label="Centro"
+                    >
+                      <MUI.MenuItem value="">Todos</MUI.MenuItem>
+                      {Array.from(new Set(fechasRows.map(row => row.centro)))
+                        .filter(centro => centro !== '-')
+                        .sort()
+                        .map((centro) => (
+                          <MUI.MenuItem key={centro} value={centro}>
+                            {centro}
+                          </MUI.MenuItem>
+                      ))}
+                    </MUI.Select>
+                  </MUI.FormControl>
+                </MUI.Grid>
+              </MUI.Grid>
+
+              {/* Tabla */}
+              <MUI.TableContainer>
+                <MUI.Table>
+                  <MUI.TableHead>
+                    <MUI.TableRow>
+                      <MUI.TableCell>Estudiante</MUI.TableCell>
+                      <MUI.TableCell>Centro</MUI.TableCell>
+                      <MUI.TableCell>Fecha Inicio</MUI.TableCell>
+                      <MUI.TableCell>Fecha Fin</MUI.TableCell>
+                      <MUI.TableCell>Horas Realizadas</MUI.TableCell>
+                    </MUI.TableRow>
+                  </MUI.TableHead>
+                  <MUI.TableBody>
+                    {filtrarDatosFechas(fechasRows).map((row) => (
+                      <MUI.TableRow key={row.documento_id_est}>
+                        <MUI.TableCell>{row.nombre_completo}</MUI.TableCell>
+                        <MUI.TableCell>{row.centro}</MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.TextField
+                            type="date"
+                            value={row.fecha_inicio || ''}
+                            onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_inicio', e.target.value)}
+                            fullWidth
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.TextField
+                            type="date"
+                            value={row.fecha_fin || ''}
+                            onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_fin', e.target.value)}
+                            fullWidth
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.TextField
+                            type="number"
+                            value={row.horas_realizadas}
+                            onChange={(e) => handleFechaCellChange(row.documento_id_est, 'horas_realizadas', e.target.value)}
+                            fullWidth
+                            size="small"
+                            inputProps={{
+                              min: 0,
+                              style: { 
+                                textAlign: 'right',
+                                paddingRight: '40px'
+                              }
+                            }}
+                            InputProps={{
+                              endAdornment: (
+                                <MUI.InputAdornment position="end" sx={{ position: 'absolute', right: 8 }}>
+                                  hrs
+                                </MUI.InputAdornment>
+                              ),
+                              sx: { 
+                                minWidth: '120px',
+                                '& input': {
+                                  width: '100%'
+                                }
+                              }
+                            }}
+                          />
+                        </MUI.TableCell>
+                      </MUI.TableRow>
+                    ))}
+                  </MUI.TableBody>
+                </MUI.Table>
+              </MUI.TableContainer>
             </MUI.DialogContent>
+            <MUI.DialogActions sx={{ p: 2, gap: 1 }}>
+              <MUI.Button
+                variant="outlined"
+                startIcon={<Icons.FileDownload />}
+                onClick={exportarFechasExcel}
+              >
+                Exportar Excel
+              </MUI.Button>
+              <MUI.Button onClick={() => setOpenFechasDialog(false)}>
+                Cancelar
+              </MUI.Button>
+              <MUI.Button
+                variant="contained"
+                onClick={handleGuardarFechas}
+                disabled={loading}
+                startIcon={loading ? <MUI.CircularProgress size={20} /> : <Icons.Save />}
+              >
+                Guardar Cambios
+              </MUI.Button>
+            </MUI.DialogActions>
           </MUI.Dialog>
           <MUI.Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
             <MUI.DialogTitle>{editMode ? 'Editar Estudiante' : 'Nuevo Estudiante'}</MUI.DialogTitle>
