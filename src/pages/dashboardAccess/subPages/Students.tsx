@@ -149,7 +149,7 @@ const Students = () => {
     nombrePoliza: '',
     numeroPoliza: '',
     fechaInicioPasantia: '',
-    fechaFinPasantia: '',
+    fechaFinPasantia: ''
   });
 
   // Agregar estados para filtros
@@ -196,8 +196,47 @@ const Students = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
+
     try {
-      const nuevoEstudiante: NuevoEstudiante = {
+      // Validar campos requeridos
+      if (!formData.documento || !formData.nombre || !formData.apellido || !formData.telefono || !formData.email || !formData.provincia || !formData.ciudad || !formData.sector || !formData.calle || !formData.numero || !formData.usuario || !formData.contrasena) {
+        setError('Todos los campos obligatorios deben estar completos');
+        setLoading(false);
+        return;
+      }
+
+      // 1. Crear ciclo escolar
+      const nuevoCiclo = await cicloEscolarService.createCicloEscolar({
+        inicio_ciclo: Number(formData.inicioCiclo),
+        fin_ciclo: Number(formData.finCiclo),
+        estado_ciclo: formData.estadoCiclo
+      });
+      const cicloEscolarId = nuevoCiclo.id_ciclo;
+
+      // 2. Crear dirección
+      const nuevaDireccion = await direccionService.createDireccion({
+        sector_dir: Number(formData.sector),
+        calle_dir: formData.calle,
+        num_res_dir: formData.numero
+      });
+
+      // 3. Crear contacto
+      const nuevoContacto = await contactService.createContacto({
+        email_contacto: formData.email,
+        telefono_contacto: formData.telefono
+      });
+
+      // 4. Crear usuario
+      const nuevoUsuario = await userService.createUser({
+        dato_usuario: formData.usuario,
+        contrasena_usuario: formData.contrasena,
+        rol_usuario: 1,
+        estado_usuario: 'Activo'
+      });
+
+      // 5. Crear estudiante
+      const nuevoEstudiante = {
         tipo_documento_est: formData.tipoDocumento,
         documento_id_est: formData.documento,
         nombre_est: formData.nombre,
@@ -205,32 +244,78 @@ const Students = () => {
         apellido_est: formData.apellido,
         seg_apellido_est: formData.segApellido || null,
         fecha_nac_est: formData.fechaNacimiento,
-        usuario_est: null,
-        contacto_est: null,
-        taller_est: formData.taller ? Number(formData.taller) : null,
-        direccion_id: null,
-        ciclo_escolar_est: null,
+        nacionalidad: formData.nacionalidad === 'otra' ? formData.nacionalidadOtra : formData.nacionalidad,
         horaspasrealizadas_est: formData.horaspasrealizadas ? Number(formData.horaspasrealizadas) : null,
-        nombre_poliza: formData.nombrePoliza || null,
-        numero_poliza: formData.numeroPoliza || null,
+        taller_est: formData.taller ? Number(formData.taller) : null,
+        contacto_est: nuevoContacto.id_contacto,
+        usuario_est: nuevoUsuario.id_usuario || nuevoUsuario.id || nuevoUsuario.usuario_id,
+        direccion_id: nuevaDireccion.id_dir,
+        ciclo_escolar_est: cicloEscolarId,
         fecha_inicio_pasantia: formData.fechaInicioPasantia || null,
-        fecha_fin_pasantia: formData.fechaFinPasantia || null,
-        nacionalidad: formData.nacionalidad === 'otra' ? formData.nacionalidadOtra : formData.nacionalidad
+        fecha_fin_pasantia: formData.fechaFinPasantia || null
       };
 
-      if (editMode && editingEstudiante) {
-        await studentService.updateStudent(editingEstudiante.documento_id_est, nuevoEstudiante);
-        setSnackbar({ open: true, message: 'Estudiante actualizado correctamente', severity: 'success' });
-      } else {
-        await studentService.createStudent(nuevoEstudiante);
-        setSnackbar({ open: true, message: 'Estudiante creado correctamente', severity: 'success' });
-      }
-      
+      await studentService.createStudent(nuevoEstudiante);
+
+      // 6. Crear persona de contacto del estudiante
+      await personaContactoEstudianteService.createPersonaContactoEst({
+        nombre: formData.nombrePersonaContacto,
+        apellido: formData.apellidoPersonaContacto,
+        relacion: formData.relacionPersonaContacto,
+        telefono: formData.telefonoPersonaContacto,
+        correo: formData.correoPersonaContacto,
+        estudiante: formData.documento
+      });
+
+      setSnackbar({ open: true, message: 'Estudiante creado correctamente', severity: 'success' });
       setOpenForm(false);
+      // Limpiar todos los campos del formulario
+      setFormData({
+        nacionalidad: 'Dominicana',
+        tipoDocumento: 'Cédula',
+        documento: '',
+        nombre: '',
+        segNombre: '',
+        apellido: '',
+        segApellido: '',
+        fechaNacimiento: '',
+        telefono: '',
+        email: '',
+        taller: '',
+        provincia: '',
+        ciudad: '',
+        sector: '',
+        calle: '',
+        numero: '',
+        direccionId: '',
+        inicioCiclo: '',
+        finCiclo: '',
+        estadoCiclo: 'Actual',
+        usuario: '',
+        contrasena: '',
+        id_doc_file: null,
+        cv_doc_file: null,
+        anexo_iv_doc_file: null,
+        anexo_v_doc_file: null,
+        acta_nac_doc_file: null,
+        ced_padres_doc_file: null,
+        vac_covid_doc_file: null,
+        horaspasrealizadas: '',
+        nombrePersonaContacto: '',
+        apellidoPersonaContacto: '',
+        relacionPersonaContacto: '',
+        telefonoPersonaContacto: '',
+        correoPersonaContacto: '',
+        nacionalidadOtra: '',
+        nombrePoliza: '',
+        numeroPoliza: '',
+        fechaInicioPasantia: '',
+        fechaFinPasantia: ''
+      });
       loadData();
-    } catch (error) {
-      console.error('Error:', error);
-      setError('Error al procesar el estudiante');
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Error al procesar la solicitud');
+      setSnackbar({ open: true, message: error.response?.data?.message || 'Error al procesar la solicitud', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -653,7 +738,7 @@ const Students = () => {
       nombrePoliza: '',
       numeroPoliza: '',
       fechaInicioPasantia: '',
-      fechaFinPasantia: '',
+      fechaFinPasantia: ''
     });
     setOpenForm(true);
   };
@@ -704,7 +789,7 @@ const Students = () => {
       nombrePoliza: '',
       numeroPoliza: '',
       fechaInicioPasantia: '',
-      fechaFinPasantia: '',
+      fechaFinPasantia: ''
     });
   };
 
