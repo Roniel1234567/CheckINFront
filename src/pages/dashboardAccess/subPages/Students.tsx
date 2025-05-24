@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import '../../../styles/index.scss';
 import * as MUI from '@mui/material';
-import { Add as AddIcon, Search as SearchIcon, Edit as EditIcon, Delete as DeleteIcon, DateRange as DateRangeIcon, FilterList as FilterListIcon, Shield as ShieldIcon, Event as EventIcon, History as HistoryIcon, Restore as RestoreIcon } from '@mui/icons-material';
+import { Add as AddIcon, Search as SearchIcon, Edit as EditIcon, Delete as DeleteIcon, DateRange as DateRangeIcon, FilterList as FilterListIcon, Shield as ShieldIcon, History as HistoryIcon, Restore as RestoreIcon } from '@mui/icons-material';
 import { SelectChangeEvent } from '@mui/material';
 import studentService, { Estudiante, NuevoEstudiante } from '../../../services/studentService';
 import tallerService, { Taller } from '../../../services/tallerService';
@@ -19,6 +19,8 @@ import AttachFileIcon from '@mui/icons-material/AttachFile';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DownloadIcon from '@mui/icons-material/Download';
 import polizaService from '../../../services/polizaService';
+import * as Icons from '@mui/icons-material';
+import ExcelJS from 'exceljs';
 
 // Define el tipo para la dirección completa
 interface DireccionCompleta {
@@ -54,6 +56,16 @@ interface DocsEstudiante {
   cv_doc?: string;
 }
 
+// Agregar nueva interfaz para la tabla de fechas
+interface FechasPasantiaRow {
+  documento_id_est: string;
+  nombre_completo: string;
+  centro: string;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  horas_realizadas: number;
+}
+
 const Students = () => {
   const theme = MUI.useTheme();
   const isMobile = MUI.useMediaQuery(theme.breakpoints.down('md'));
@@ -81,6 +93,7 @@ const Students = () => {
   const [pendingLocation, setPendingLocation] = useState<{provincia?: string, ciudad?: string, sector?: string} | null>(null);
   const [openPolizaDialog, setOpenPolizaDialog] = useState(false);
   const [openFechasDialog, setOpenFechasDialog] = useState(false);
+  const [fechasRows, setFechasRows] = useState<FechasPasantiaRow[]>([]);
   const [polizaData, setPolizaData] = useState({
     compania: '',
     tipo_poliza: '',
@@ -90,11 +103,9 @@ const Students = () => {
     fecha_fin: '',
     estudiante: 'all'
   });
-  const [fechasData, setFechasData] = useState({ fecha_inicio_pasantia: '', fecha_fin_pasantia: '', horaspasrealizadas_est: '', estudiante: 'all' });
-  const [searchEstudiante, setSearchEstudiante] = useState('');
-  const [filterTaller, setFilterTaller] = useState('');
   const [showHistorial, setShowHistorial] = useState(false);
   const [restaurando, setRestaurando] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -134,7 +145,15 @@ const Students = () => {
     telefonoPersonaContacto: '',
     correoPersonaContacto: '',
     nacionalidadOtra: '',
+    nombrePoliza: '',
+    numeroPoliza: '',
+    fechaInicioPasantia: '',
+    fechaFinPasantia: '',
   });
+
+  // Agregar estados para filtros
+  const [tallerFiltro, setTallerFiltro] = useState<string>('');
+  const [centroFiltro, setCentroFiltro] = useState<string>('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -170,175 +189,44 @@ const Students = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      if (editMode && editingEstudiante) {
-        // Modo edición
-        // Obtener el id del ciclo escolar si existe
-        let cicloEscolarId: number | null = null;
-        if (editingEstudiante.ciclo_escolar_est && editingEstudiante.ciclo_escolar_est.id_ciclo) {
-          cicloEscolarId = Number(editingEstudiante.ciclo_escolar_est.id_ciclo);
-        }
-        await studentService.updateStudent(editingEstudiante.documento_id_est, {
-          tipo_documento_est: formData.tipoDocumento,
-          documento_id_est: formData.documento,
-          nombre_est: formData.nombre,
-          seg_nombre_est: formData.segNombre !== '' ? formData.segNombre : undefined,
-          apellido_est: formData.apellido,
-          seg_apellido_est: formData.segApellido !== '' ? formData.segApellido : undefined,
-          fecha_nac_est: formData.fechaNacimiento,
-          taller_est: formData.taller !== '' ? { id_taller: Number(formData.taller), nombre_taller: '', cod_titulo_taller: '', estado_taller: '' } : undefined,
-          horaspasrealizadas_est: formData.horaspasrealizadas !== '' ? String(formData.horaspasrealizadas) : undefined,
-          nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : 'Dominicana',
-          direccion_id: formData.direccionId ? Number(formData.direccionId) : undefined,
-          ciclo_escolar_est: cicloEscolarId && cicloEscolarId !== 0 ? cicloEscolarId : undefined,
-        });
-        setSnackbar({ open: true, message: 'Estudiante actualizado correctamente', severity: 'success' });
-        setOpenForm(false);
-        setEditMode(false);
-        setEditingEstudiante(null);
-        loadData();
-        return;
-      }
-      // 1. Crear usuario
-      let nuevoUsuario;
-      let usuarioCreado;
-      try {
-        nuevoUsuario = await userService.createUser({
-          dato_usuario: formData.usuario,
-          contrasena_usuario: formData.contrasena,
-          rol_usuario: 1, // Siempre estudiante
-        });
-        usuarioCreado = Array.isArray(nuevoUsuario) ? nuevoUsuario[0] : nuevoUsuario;
-        console.log('usuarioCreado:', usuarioCreado);
-      } catch (error: unknown) {
-        const err = error as { message?: string; response?: { data?: { message?: string } } };
-        // Captura el mensaje del backend
-        let msg = err?.message || err?.response?.data?.message || 'Error al crear el usuario';
-        if (msg.includes('llave duplicada') || msg.includes('ya existe') || msg.includes('usuario ya existe')) {
-          msg = 'El nombre de usuario ya está en uso. Por favor, elige otro.';
-        }
-        setError(msg);
-        return;
-      }
-      // 2. Crear contacto
-      const nuevoContacto = await contactService.createContacto({
-        telefono_contacto: formData.telefono,
-        email_contacto: formData.email,
-      });
-      console.log('nuevoContacto:', nuevoContacto);
-      // 3. Crear dirección
-      const nuevaDireccion = await direccionService.createDireccion({
-        sector_dir: Number(formData.sector),
-        calle_dir: formData.calle,
-        num_res_dir: formData.numero,
-      });
-      // 4. Crear ciclo escolar
-      const nuevoCiclo = await cicloEscolarService.createCicloEscolar({
-        inicio_ciclo: Number(formData.inicioCiclo),
-        fin_ciclo: Number(formData.finCiclo),
-        estado_ciclo: formData.estadoCiclo,
-      });
-      // 5. Crear estudiante
-      const parseId = (id: unknown) => {
-        if (id === undefined || id === null || id === "" || isNaN(Number(id)) || Number(id) === 0) return null;
-        return Number(id);
-      };
       const nuevoEstudiante: NuevoEstudiante = {
-        nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : 'Dominicana',
         tipo_documento_est: formData.tipoDocumento,
         documento_id_est: formData.documento,
         nombre_est: formData.nombre,
-        seg_nombre_est: formData.segNombre !== '' ? formData.segNombre : null,
+        seg_nombre_est: formData.segNombre || null,
         apellido_est: formData.apellido,
-        seg_apellido_est: formData.segApellido !== '' ? formData.segApellido : null,
+        seg_apellido_est: formData.segApellido || null,
         fecha_nac_est: formData.fechaNacimiento,
-        usuario_est: parseId(usuarioCreado?.id_usuario),
-        contacto_est: parseId(nuevoContacto?.id_contacto),
-        taller_est: formData.taller !== '' ? Number(formData.taller) : null,
-        direccion_id: nuevaDireccion && nuevaDireccion.id_dir ? Number(nuevaDireccion.id_dir) : null,
-        ciclo_escolar_est: nuevoCiclo && nuevoCiclo.id_ciclo ? Number(nuevoCiclo.id_ciclo) : null,
-        horaspasrealizadas_est: formData.horaspasrealizadas !== '' ? Number(formData.horaspasrealizadas) : null,
+        usuario_est: null,
+        contacto_est: null,
+        taller_est: formData.taller ? Number(formData.taller) : null,
+        direccion_id: null,
+        ciclo_escolar_est: null,
+        horaspasrealizadas_est: formData.horaspasrealizadas ? Number(formData.horaspasrealizadas) : null,
+        nombre_poliza: formData.nombrePoliza || null,
+        numero_poliza: formData.numeroPoliza || null,
+        fecha_inicio_pasantia: formData.fechaInicioPasantia || null,
+        fecha_fin_pasantia: formData.fechaFinPasantia || null,
+        nacionalidad: formData.nacionalidad === 'otra' ? formData.nacionalidadOtra : formData.nacionalidad
       };
-      // Limpieza final: convierte cualquier string vacío a null
-      (Object.keys(nuevoEstudiante) as (keyof NuevoEstudiante)[]).forEach((key) => {
-        const value = nuevoEstudiante[key];
-        if (typeof value === 'string' && value.trim() === '') {
-          // @ts-expect-error: forzamos null para cualquier campo string vacío
-          nuevoEstudiante[key] = null;
-        }
-      });
-      console.log('OBJETO QUE SE ENVÍA:', nuevoEstudiante);
-      await studentService.createStudent(nuevoEstudiante);
-      // Crear persona de contacto obligatoria
-      await personaContactoEstudianteService.createPersonaContactoEst({
-        nombre: formData.nombrePersonaContacto,
-        apellido: formData.apellidoPersonaContacto,
-        relacion: formData.relacionPersonaContacto as 'Padre' | 'Madre' | 'Tutor',
-        telefono: formData.telefonoPersonaContacto,
-        correo: formData.correoPersonaContacto || undefined,
-        estudiante: formData.documento, // documento_id_est
-      });
-      // Espera 300ms antes de subir los documentos para evitar error de llave foránea
-      await new Promise(res => setTimeout(res, 300));
-      try {
-        await uploadDocsEstudiante(formData.documento, {
-          id_doc_file: formData.id_doc_file!,
-          cv_doc_file: formData.cv_doc_file!,
-          anexo_iv_doc_file: formData.anexo_iv_doc_file!,
-          anexo_v_doc_file: formData.anexo_v_doc_file!,
-          acta_nac_doc_file: formData.acta_nac_doc_file!,
-          ced_padres_doc_file: formData.ced_padres_doc_file!,
-          vac_covid_doc_file: formData.vac_covid_doc_file!,
-        });
-        setSnackbar({open: true, message: 'Documentos subidos correctamente', severity: 'success'});
-      } catch {
-        setSnackbar({open: true, message: 'Error al subir los documentos', severity: 'error'});
+
+      if (editMode && editingEstudiante) {
+        await studentService.updateStudent(editingEstudiante.documento_id_est, nuevoEstudiante);
+        setSnackbar({ open: true, message: 'Estudiante actualizado correctamente', severity: 'success' });
+      } else {
+        await studentService.createStudent(nuevoEstudiante);
+        setSnackbar({ open: true, message: 'Estudiante creado correctamente', severity: 'success' });
       }
-      // Solo cerrar el formulario si todo fue exitoso
+      
       setOpenForm(false);
       loadData();
-      setFormData({
-        nacionalidad: 'Dominicana',
-        tipoDocumento: 'Cédula',
-        documento: '',
-        nombre: '',
-        segNombre: '',
-        apellido: '',
-        segApellido: '',
-        fechaNacimiento: '',
-        telefono: '',
-        email: '',
-        taller: '',
-        provincia: '',
-        ciudad: '',
-        sector: '',
-        calle: '',
-        numero: '',
-        direccionId: '',
-        inicioCiclo: '',
-        finCiclo: '',
-        estadoCiclo: 'Actual',
-        usuario: '',
-        contrasena: '',
-        id_doc_file: null,
-        cv_doc_file: null,
-        anexo_iv_doc_file: null,
-        anexo_v_doc_file: null,
-        acta_nac_doc_file: null,
-        ced_padres_doc_file: null,
-        vac_covid_doc_file: null,
-        horaspasrealizadas: '',
-        nombrePersonaContacto: '',
-        apellidoPersonaContacto: '',
-        relacionPersonaContacto: '',
-        telefonoPersonaContacto: '',
-        correoPersonaContacto: '',
-        nacionalidadOtra: '',
-      });
     } catch (error) {
-      console.error('Error al crear estudiante:', error);
-      setError('Error al crear el estudiante');
-      // No cierres el formulario si hay error
+      console.error('Error:', error);
+      setError('Error al procesar el estudiante');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -483,12 +371,12 @@ const Students = () => {
   const estudiantesFiltrados = estudiantes
     .filter(e => e.usuario_est?.estado_usuario === 'Activo')
     .filter(e =>
-      (!searchEstudiante ||
-        e.nombre_est.toLowerCase().includes(searchEstudiante.toLowerCase()) ||
-        e.apellido_est.toLowerCase().includes(searchEstudiante.toLowerCase()) ||
-        e.documento_id_est.includes(searchEstudiante)
+      (!searchTerm ||
+        e.nombre_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        e.apellido_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        e.documento_id_est.includes(searchTerm)
       ) &&
-      (!filterTaller || (e.taller_est && String(e.taller_est.id_taller) === filterTaller))
+      (!selectedTalleres.length || (e.taller_est && selectedTalleres.includes(String(e.taller_est.id_taller))))
     );
 
   // Componente para menú de documentos
@@ -756,6 +644,10 @@ const Students = () => {
       telefonoPersonaContacto: '',
       correoPersonaContacto: '',
       nacionalidadOtra: '',
+      nombrePoliza: '',
+      numeroPoliza: '',
+      fechaInicioPasantia: '',
+      fechaFinPasantia: '',
     });
     setOpenForm(true);
   };
@@ -803,6 +695,10 @@ const Students = () => {
       telefonoPersonaContacto: '',
       correoPersonaContacto: '',
       nacionalidadOtra: '',
+      nombrePoliza: '',
+      numeroPoliza: '',
+      fechaInicioPasantia: '',
+      fechaFinPasantia: '',
     });
   };
 
@@ -872,48 +768,8 @@ const Students = () => {
     }
   };
 
-  // --- ACTUALIZAR POLIZA DE SEGURO ---
-  const handlePolizaSelectChange = (e: SelectChangeEvent<string>) => {
-    setPolizaData({ ...polizaData, estudiante: e.target.value });
-    setSearchEstudiante('');
-    setFilterTaller('');
-  };
-
-  const handlePolizaMenuClose = () => {
-    setFilterAnchorEl(null);
-    setSearchEstudiante('');
-    setFilterTaller('');
-  };
-
   // --- ACTUALIZAR FECHAS Y HORAS DE PASANTÍA ---
-  const handleFechasUpdate = async () => {
-    if (!fechasData.fecha_inicio_pasantia || !fechasData.fecha_fin_pasantia || !fechasData.horaspasrealizadas_est || !fechasData.estudiante) return;
-    setSnackbar({ open: true, message: 'Actualizando fechas...', severity: 'success' });
-    try {
-      if (fechasData.estudiante === 'all') {
-        const activos = estudiantes.filter(e => e.usuario_est?.estado_usuario === 'Activo');
-        await Promise.all(
-          activos.map(e => studentService.updateFechasPasantia(e.documento_id_est, {
-            fecha_inicio_pasantia: fechasData.fecha_inicio_pasantia,
-            fecha_fin_pasantia: fechasData.fecha_fin_pasantia,
-            horaspasrealizadas_est: Number(fechasData.horaspasrealizadas_est)
-          }))
-        );
-      } else {
-        await studentService.updateFechasPasantia(fechasData.estudiante, {
-          fecha_inicio_pasantia: fechasData.fecha_inicio_pasantia,
-          fecha_fin_pasantia: fechasData.fecha_fin_pasantia,
-          horaspasrealizadas_est: Number(fechasData.horaspasrealizadas_est)
-        });
-      }
-      setSnackbar({ open: true, message: 'Fechas actualizadas correctamente', severity: 'success' });
-      setOpenFechasDialog(false);
-      setFechasData({ fecha_inicio_pasantia: '', fecha_fin_pasantia: '', horaspasrealizadas_est: '', estudiante: 'all' });
-      loadData();
-    } catch {
-      setSnackbar({ open: true, message: 'Error al actualizar fechas', severity: 'error' });
-    }
-  };
+  // const handleFechasUpdate = async () => { ... };
 
   // Función para formatear fechas tipo 'YYYY-MM-DD' a 'DD/MM/YYYY'
   const formatDate = (dateStr: string | undefined) => {
@@ -932,6 +788,129 @@ const Students = () => {
     const usuarioEliminado = estudiante.usuario_est?.estado_usuario === 'Eliminado';
     return nombreMatch && tallerMatch && usuarioEliminado;
   });
+
+  // Función para cargar los datos de fechas
+  const cargarDatosFechas = async () => {
+    try {
+      setLoading(true);
+      // Obtener estudiantes que tienen taller asignado
+      const estudiantesConTaller = estudiantes.filter(e => e.taller_est);
+      
+      // Crear las filas de datos
+      const rows = estudiantesConTaller.map(e => ({
+        documento_id_est: e.documento_id_est,
+        nombre_completo: `${e.nombre_est} ${e.apellido_est}`,
+        centro: e.taller_est?.nombre_taller || '-',
+        fecha_inicio: e.fecha_inicio_pasantia || '',
+        fecha_fin: e.fecha_fin_pasantia || '',
+        horas_realizadas: e.horaspasrealizadas_est || 0
+      }));
+
+      setFechasRows(rows);
+    } catch (error) {
+      console.error('Error al cargar datos de fechas:', error);
+      setSnackbar({ open: true, message: 'Error al cargar datos de fechas', severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para manejar cambios en las celdas
+  const handleFechaCellChange = (estudiante: string, field: 'fecha_inicio' | 'fecha_fin' | 'horas_realizadas', value: string | number) => {
+    setFechasRows(prev => prev.map(row => {
+      if (row.documento_id_est === estudiante) {
+        return { ...row, [field]: value };
+      }
+      return row;
+    }));
+  };
+
+  // Función para guardar los cambios
+  const handleGuardarFechas = async () => {
+    try {
+      setLoading(true);
+      await Promise.all(fechasRows.map(async row => {
+        const data = {
+          fecha_inicio_pasantia: row.fecha_inicio,
+          fecha_fin_pasantia: row.fecha_fin,
+          horaspasrealizadas_est: String(row.horas_realizadas)
+        };
+        await studentService.updateFechasPasantia(row.documento_id_est, {
+          ...data,
+          horaspasrealizadas_est: Number(data.horaspasrealizadas_est)
+        });
+      }));
+      setSnackbar({ open: true, message: 'Fechas actualizadas correctamente', severity: 'success' });
+      loadData(); // Recargar datos
+      setOpenFechasDialog(false);
+    } catch (error) {
+      console.error('Error al guardar fechas:', error);
+      setSnackbar({ open: true, message: 'Error al guardar las fechas', severity: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Función para exportar a Excel
+  const exportarFechasExcel = () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Fechas Pasantías');
+
+    // Definir columnas
+    worksheet.columns = [
+      { header: 'Estudiante', key: 'estudiante', width: 30 },
+      { header: 'Centro', key: 'centro', width: 30 },
+      { header: 'Fecha Inicio', key: 'fecha_inicio', width: 15 },
+      { header: 'Fecha Fin', key: 'fecha_fin', width: 15 },
+      { header: 'Horas Realizadas', key: 'horas', width: 15 }
+    ];
+
+    // Estilo para el encabezado
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4F81BD' }
+    };
+    worksheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+
+    // Agregar datos
+    fechasRows.forEach(row => {
+      worksheet.addRow({
+        estudiante: row.nombre_completo,
+        centro: row.centro,
+        fecha_inicio: row.fecha_inicio,
+        fecha_fin: row.fecha_fin,
+        horas: row.horas_realizadas
+      });
+    });
+
+    // Autoajustar columnas
+    worksheet.columns.forEach(column => {
+      column.width = Math.max(
+        column.header?.toString().length || 0,
+        ...worksheet.getColumn(column.key || '').values
+          .map(v => v?.toString().length || 0)
+      ) + 2;
+    });
+
+    // Generar archivo
+    workbook.xlsx.writeBuffer().then(buffer => {
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Fechas_Pasantias.xlsx';
+      a.click();
+      window.URL.revokeObjectURL(url);
+    });
+  };
+
+  // Modificar el handleFechasClick existente
+  const handleFechasClick = async () => {
+    await cargarDatosFechas();
+    setOpenFechasDialog(true);
+  };
 
   if (error) {
     return (
@@ -975,8 +954,12 @@ const Students = () => {
               <MUI.IconButton onClick={() => setOpenPolizaDialog(true)} color="primary">
                 <ShieldIcon />
               </MUI.IconButton>
-              <MUI.IconButton onClick={() => setOpenFechasDialog(true)} color="primary">
-                <EventIcon />
+              <MUI.IconButton 
+                onClick={handleFechasClick} 
+                color="primary"
+                title="Actualizar fechas y horas"
+              >
+                <Icons.CalendarMonth />
               </MUI.IconButton>
               <MUI.Button
                 variant="contained"
@@ -1242,49 +1225,97 @@ const Students = () => {
               </MUI.Button>
             </MUI.DialogActions>
           </MUI.Dialog>
-          <MUI.Dialog open={openFechasDialog} onClose={() => setOpenFechasDialog(false)}>
-            <MUI.DialogTitle>Actualizar Fechas y Horas de Pasantía</MUI.DialogTitle>
-            <MUI.DialogContent>
-              <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-                <MUI.TextField label="Fecha inicio pasantía" type="date" InputLabelProps={{ shrink: true }} value={fechasData.fecha_inicio_pasantia} onChange={e => setFechasData({ ...fechasData, fecha_inicio_pasantia: e.target.value })} fullWidth />
-                <MUI.TextField label="Fecha fin pasantía" type="date" InputLabelProps={{ shrink: true }} value={fechasData.fecha_fin_pasantia} onChange={e => setFechasData({ ...fechasData, fecha_fin_pasantia: e.target.value })} fullWidth />
-                <MUI.TextField label="Horas realizadas" type="number" value={fechasData.horaspasrealizadas_est} onChange={e => setFechasData({ ...fechasData, horaspasrealizadas_est: e.target.value })} fullWidth />
-                <MUI.Autocomplete
-                  options={[
-                    { label: 'Todos los estudiantes activos', value: 'all' },
-                    ...estudiantesFiltrados.map(e => ({
-                      label: `${e.nombre_est} ${e.apellido_est} (${e.documento_id_est})${e.taller_est ? ' - ' + e.taller_est.nombre_taller : ''}`,
-                      value: e.documento_id_est
-                    }))
-                  ]}
-                  value={
-                    fechasData.estudiante === 'all'
-                      ? { label: 'Todos los estudiantes activos', value: 'all' }
-                      : estudiantesFiltrados
-                          .map(e => ({
-                            label: `${e.nombre_est} ${e.apellido_est} (${e.documento_id_est})${e.taller_est ? ' - ' + e.taller_est.nombre_taller : ''}`,
-                            value: e.documento_id_est
-                          }))
-                          .find(opt => opt.value === fechasData.estudiante) || null
-                  }
-                  onChange={(_, newValue) => {
-                    setFechasData({ ...fechasData, estudiante: newValue ? newValue.value : '' });
-                  }}
-                  renderInput={(params) => (
-                    <MUI.TextField {...params} label="Aplicar a" placeholder="Buscar estudiante..." fullWidth />
-                  )}
-                  isOptionEqualToValue={(option, value) => option.value === value.value}
-                  sx={{ bgcolor: '#f5f7fa', borderRadius: 2, '& .MuiAutocomplete-inputRoot': { p: 1.2 } }}
-                  noOptionsText="No hay estudiantes que coincidan"
-                />
+          <MUI.Dialog 
+            open={openFechasDialog}
+            onClose={() => setOpenFechasDialog(false)}
+            maxWidth="lg"
+            fullWidth
+          >
+            <MUI.DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Icons.CalendarToday />
+                Actualizar Fechas y Horas de Pasantía
               </MUI.Box>
+              <MUI.Box sx={{ display: 'flex', gap: 1 }}>
+                <MUI.Button
+                  variant="outlined"
+                  startIcon={<Icons.FileDownload />}
+                  onClick={exportarFechasExcel}
+                >
+                  Exportar Excel
+                </MUI.Button>
+                <MUI.Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<Icons.Save />}
+                  onClick={handleGuardarFechas}
+                  disabled={loading}
+                >
+                  Guardar Cambios
+                </MUI.Button>
+              </MUI.Box>
+            </MUI.DialogTitle>
+            <MUI.DialogContent>
+              {loading ? (
+                <MUI.Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                  <MUI.CircularProgress />
+                </MUI.Box>
+              ) : (
+                <MUI.TableContainer component={MUI.Paper} sx={{ mt: 2 }}>
+                  <MUI.Table stickyHeader>
+                    <MUI.TableHead>
+                      <MUI.TableRow>
+                        <MUI.TableCell sx={{ width: '30%', fontWeight: 'bold' }}>Estudiante</MUI.TableCell>
+                        <MUI.TableCell sx={{ width: '25%', fontWeight: 'bold' }}>Centro</MUI.TableCell>
+                        <MUI.TableCell sx={{ width: '15%', fontWeight: 'bold' }}>Fecha Inicio</MUI.TableCell>
+                        <MUI.TableCell sx={{ width: '15%', fontWeight: 'bold' }}>Fecha Fin</MUI.TableCell>
+                        <MUI.TableCell sx={{ width: '15%', fontWeight: 'bold' }}>Horas Realizadas</MUI.TableCell>
+                      </MUI.TableRow>
+                    </MUI.TableHead>
+                    <MUI.TableBody>
+                      {fechasRows.map((row) => (
+                        <MUI.TableRow key={row.documento_id_est}>
+                          <MUI.TableCell>{row.nombre_completo}</MUI.TableCell>
+                          <MUI.TableCell>{row.centro}</MUI.TableCell>
+                          <MUI.TableCell>
+                            <MUI.TextField
+                              type="date"
+                              value={row.fecha_inicio}
+                              onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_inicio', e.target.value)}
+                              fullWidth
+                              size="small"
+                              InputLabelProps={{ shrink: true }}
+                            />
+                          </MUI.TableCell>
+                          <MUI.TableCell>
+                            <MUI.TextField
+                              type="date"
+                              value={row.fecha_fin}
+                              onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_fin', e.target.value)}
+                              fullWidth
+                              size="small"
+                              InputLabelProps={{ shrink: true }}
+                            />
+                          </MUI.TableCell>
+                          <MUI.TableCell>
+                            <MUI.TextField
+                              type="number"
+                              value={row.horas_realizadas}
+                              onChange={(e) => handleFechaCellChange(row.documento_id_est, 'horas_realizadas', e.target.value)}
+                              fullWidth
+                              size="small"
+                              InputProps={{
+                                endAdornment: <MUI.InputAdornment position="end">hrs</MUI.InputAdornment>
+                              }}
+                            />
+                          </MUI.TableCell>
+                        </MUI.TableRow>
+                      ))}
+                    </MUI.TableBody>
+                  </MUI.Table>
+                </MUI.TableContainer>
+              )}
             </MUI.DialogContent>
-            <MUI.DialogActions>
-              <MUI.Button onClick={() => setOpenFechasDialog(false)}>Cancelar</MUI.Button>
-              <MUI.Button variant="contained" color="primary" onClick={handleFechasUpdate} disabled={!(fechasData.fecha_inicio_pasantia && fechasData.fecha_fin_pasantia && fechasData.horaspasrealizadas_est && fechasData.estudiante)}>
-                Actualizar
-              </MUI.Button>
-            </MUI.DialogActions>
           </MUI.Dialog>
           <MUI.Dialog open={openForm} onClose={handleCloseForm} maxWidth="md" fullWidth>
             <MUI.DialogTitle>{editMode ? 'Editar Estudiante' : 'Nuevo Estudiante'}</MUI.DialogTitle>

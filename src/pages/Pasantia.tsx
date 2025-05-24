@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import * as MUI from '@mui/material';
 import * as Icons from '@mui/icons-material';
-import { internshipService, Taller, CentroTrabajo, PlazasCentro, Estudiante, Pasantia, EstadoPasantia } from '../services/internshipService';
-import supervisorService, { Supervisor } from '../services/supervisorService';
+import { internshipService } from '../services/internshipService';
+import type { Taller, CentroTrabajo, PlazasCentro, Estudiante, Pasantia, EstadoPasantia } from '../services/internshipService';
+import supervisorService from '../services/supervisorService';
+import type { Supervisor } from '../services/supervisorService';
 import SideBar from '../components/SideBar';
 import DashboardAppBar from '../components/DashboardAppBar';
 
