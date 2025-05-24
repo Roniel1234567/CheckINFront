@@ -366,7 +366,11 @@ const PasantiaPage = () => {
                           <MUI.Chip label={`Disponibles: ${disponibles}`} sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main, fontWeight: 'bold', fontSize: 16, px: 2, border: `2px solid ${theme.palette.primary.main}` }} />
                         </MUI.Box>
                         {disponibles === 0 && (
-                          <MUI.Typography variant="caption" color="error">No hay plazas disponibles</MUI.Typography>
+                          <MUI.Zoom in>
+                            <MUI.Alert severity="error" icon={<Icons.Block fontSize="inherit" />} sx={{ mt: 2, fontWeight: 'bold', fontSize: 18, borderRadius: 2 }}>
+                              ¡Plazas agotadas! No puedes registrar más pasantías aquí.
+                            </MUI.Alert>
+                          </MUI.Zoom>
                         )}
                       </MUI.CardContent>
                     </MUI.Card>
@@ -501,10 +505,19 @@ const PasantiaPage = () => {
               </MUI.Box>
               {error && <MUI.Alert severity="error" sx={{ mt: 2 }}>{error}</MUI.Alert>}
               {success && <MUI.Alert severity="success" sx={{ mt: 2 }}>{success}</MUI.Alert>}
+              {plazaFormSeleccionada && (plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) === 0) && (
+                <MUI.Grow in>
+                  <MUI.Alert severity="error" icon={<Icons.Block fontSize="inherit" />} sx={{ my: 2, fontWeight: 'bold', fontSize: 18, borderRadius: 2, textAlign: 'center' }}>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: '#d32f2f' }}>¡Plazas agotadas!</span><br />
+                    No puedes registrar más pasantías en esta plaza.<br />
+                    Selecciona otra plaza o centro de trabajo.
+                  </MUI.Alert>
+                </MUI.Grow>
+              )}
             </MUI.DialogContent>
             <MUI.DialogActions>
               <MUI.Button onClick={() => setOpenDialog(false)}>Cancelar</MUI.Button>
-              <MUI.Button variant="contained" onClick={handleCrearPasantias} disabled={loading}>Crear</MUI.Button>
+              <MUI.Button variant="contained" onClick={handleCrearPasantias} disabled={loading || (plazaFormSeleccionada && (plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) === 0))}>Crear</MUI.Button>
             </MUI.DialogActions>
           </MUI.Dialog>
         </MUI.Container>
