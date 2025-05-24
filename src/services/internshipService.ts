@@ -96,6 +96,7 @@ export interface Pasantia {
   fin_pas?: Date;
   estado_pas: EstadoPasantia;
   creacion_pas?: Date;
+  plaza_pas?: PlazasCentro | number;
 }
 
 export type GeneroPermitido = 'Masculino' | 'Femenino' | 'Ambos';
