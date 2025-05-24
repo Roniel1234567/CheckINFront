@@ -22,8 +22,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json'
   },
-  // Tiempo máximo de espera para la solicitud (5 segundos)
-  timeout: 5000
+  // Tiempo máximo de espera para la solicitud (30 segundos)
+  timeout: 30000
 });
 
 // Interceptor para agregar el token a las peticiones
