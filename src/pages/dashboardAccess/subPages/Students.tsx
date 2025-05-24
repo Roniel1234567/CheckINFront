@@ -1269,64 +1269,59 @@ const Students = () => {
                   <MUI.TableRow>
                     <MUI.TableCell sx={{ fontWeight: 'bold' }}>Documento</MUI.TableCell>
                     <MUI.TableCell sx={{ fontWeight: 'bold' }}>Nombre</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Apellido</MUI.TableCell>
                     <MUI.TableCell sx={{ fontWeight: 'bold' }}>Taller</MUI.TableCell>
-                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Contacto</MUI.TableCell>
-                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Fechas</MUI.TableCell>
                     <MUI.TableCell sx={{ fontWeight: 'bold' }}>Póliza</MUI.TableCell>
-                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Horas acumuladas</MUI.TableCell>
                     <MUI.TableCell sx={{ fontWeight: 'bold' }}>Documentos</MUI.TableCell>
-                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Acciones</MUI.TableCell>
+                    <MUI.TableCell sx={{ fontWeight: 'bold' }} align="center">Acciones</MUI.TableCell>
                   </MUI.TableRow>
                 </MUI.TableHead>
                 <MUI.TableBody>
-                  {filteredEstudiantes.map((estudiante) => (
-                    <MUI.TableRow key={estudiante.documento_id_est} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: '#e3f2fd' } }}>
-                      <MUI.TableCell>{estudiante.documento_id_est}</MUI.TableCell>
-                      <MUI.TableCell>{`${estudiante.nombre_est} ${estudiante.apellido_est}`}</MUI.TableCell>
-                      <MUI.TableCell>{estudiante.taller_est?.nombre_taller || '-'}</MUI.TableCell>
-                      <MUI.TableCell>{estudiante.contacto_est?.email_contacto || '-'}</MUI.TableCell>
-                      <MUI.TableCell>
-                        {estudiante.fecha_inicio_pasantia && estudiante.fecha_fin_pasantia ? (
-                          <MUI.Tooltip title="Fechas de Pasantía">
+                  {estudiantes
+                    .filter(estudiante => 
+                      estudiante.usuario_est?.estado_usuario === 'Activo' &&
+                      (!selectedTalleres.length || selectedTalleres.includes(String(estudiante.taller_est?.id_taller))) &&
+                      (!dateRange.start || new Date(estudiante.creacion_est) >= new Date(dateRange.start)) &&
+                      (!dateRange.end || new Date(estudiante.creacion_est) <= new Date(dateRange.end))
+                    )
+                    .map((estudiante) => (
+                      <MUI.TableRow key={estudiante.documento_id_est} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: '#e3f2fd' } }}>
+                        <MUI.TableCell>{estudiante.documento_id_est}</MUI.TableCell>
+                        <MUI.TableCell>{estudiante.nombre_est}</MUI.TableCell>
+                        <MUI.TableCell>{estudiante.apellido_est}</MUI.TableCell>
+                        <MUI.TableCell>{estudiante.taller_est?.nombre_taller || '-'}</MUI.TableCell>
+                        <MUI.TableCell>
+                          {estudiante.poliza ? (
                             <MUI.Chip
-                              icon={<DateRangeIcon />}
-                              label={`${formatDate(estudiante.fecha_inicio_pasantia)} - ${formatDate(estudiante.fecha_fin_pasantia)}`}
+                              label={`Póliza #${estudiante.poliza.numero_poliza}`}
+                              color="success"
                               size="small"
+                              sx={{ fontWeight: 'medium' }}
                             />
-                          </MUI.Tooltip>
-                        ) : (
-                          <MUI.Chip icon={<AddIcon />} label="Sin fechas" size="small" color="default" />
-                        )}
-                      </MUI.TableCell>
-                      <MUI.TableCell>
-                        {estudiante.nombre_poliza ? (
-                          <MUI.Tooltip title={`Número: ${estudiante.numero_poliza || 'No especificado'}`}>
+                          ) : (
                             <MUI.Chip
-                              label={estudiante.nombre_poliza}
+                              label="Sin póliza"
+                              color="error"
                               size="small"
-                              color="primary"
+                              sx={{ fontWeight: 'medium' }}
                             />
-                          </MUI.Tooltip>
-                        ) : (
-                          <MUI.Chip icon={<AddIcon />} label="Sin póliza" size="small" color="default" />
-                        )}
-                      </MUI.TableCell>
-                      <MUI.TableCell>
-                        {estudiante.horaspasrealizadas_est ?? '-'}
-                      </MUI.TableCell>
-                      <MUI.TableCell>
-                        <DocumentosMenu documento={estudiante.documento_id_est} />
-                      </MUI.TableCell>
-                      <MUI.TableCell>
-                        <MUI.IconButton size="small" color="primary" onClick={() => handleEditClick(estudiante)}>
-                          <EditIcon />
-                        </MUI.IconButton>
-                        <MUI.IconButton size="small" color="error" onClick={() => handleDeleteClick(estudiante)}>
-                          <DeleteIcon />
-                        </MUI.IconButton>
-                      </MUI.TableCell>
-                    </MUI.TableRow>
-                  ))}
+                          )}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          <DocumentosMenu documento={estudiante.documento_id_est} />
+                        </MUI.TableCell>
+                        <MUI.TableCell align="center">
+                          <MUI.Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <MUI.IconButton size="small" color="primary" onClick={() => handleEditClick(estudiante)}>
+                              <EditIcon />
+                            </MUI.IconButton>
+                            <MUI.IconButton size="small" color="error" onClick={() => handleDeleteClick(estudiante)}>
+                              <DeleteIcon />
+                            </MUI.IconButton>
+                          </MUI.Box>
+                        </MUI.TableCell>
+                      </MUI.TableRow>
+                    ))}
                 </MUI.TableBody>
               </MUI.Table>
             </MUI.TableContainer>
