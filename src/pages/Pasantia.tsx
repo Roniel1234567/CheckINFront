@@ -217,6 +217,7 @@ const PasantiaPage = () => {
     }
     setLoading(true);
     setError(null);
+    setSuccess(null);
     try {
       const supervisorId = Number(supervisorSeleccionado);
       if (isNaN(supervisorId)) throw new Error('ID de supervisor inválido');
@@ -259,6 +260,8 @@ const PasantiaPage = () => {
   const handleCancelarPasantia = async () => {
     if (!pasantiaToDelete || !pasantiaToDelete.id_pas) return;
     setLoading(true);
+    setError(null);
+    setSuccess(null);
     try {
       await internshipService.updatePasantia(pasantiaToDelete.id_pas, {
         ...pasantiaToDelete,
@@ -280,38 +283,9 @@ const PasantiaPage = () => {
   // Handler para restaurar pasantía
   const handleRestaurarPasantia = async () => {
     if (!pasantiaToRestore || !pasantiaToRestore.id_pas) return;
-
-    // Verificar si el estudiante ya tiene una pasantía activa
-    const estudianteId = pasantiaToRestore.estudiante_pas.documento_id_est;
-    const estudiantesConPasantia = pasantias
-      .filter(p => 
-        p.estudiante_pas.documento_id_est === estudianteId && 
-        (p.estado_pas === EstadoPasantia.EN_PROCESO || p.estado_pas === EstadoPasantia.PENDIENTE)
-      );
-    
-    if (estudiantesConPasantia.length > 0) {
-      setError('No se puede restaurar la pasantía porque el estudiante ya tiene una pasantía activa. Debes cancelar la pasantía activa primero.');
-      return;
-    }
-
-    // Verificar si hay plazas disponibles
-    const plazaId = typeof pasantiaToRestore.plaza_pas === 'object' && pasantiaToRestore.plaza_pas !== null
-      ? pasantiaToRestore.plaza_pas.id_plaza
-      : pasantiaToRestore.plaza_pas;
-    
-    const plaza = plazas.find(p => p.id_plaza === plazaId);
-    if (!plaza) {
-      setError('No se encontró la plaza asociada a esta pasantía');
-      return;
-    }
-
-    const ocupadas = plazasOcupadas(plaza);
-    if (ocupadas >= plaza.plazas_centro) {
-      setError('No se puede restaurar la pasantía porque la plaza ya no tiene cupos disponibles');
-      return;
-    }
-
     setLoading(true);
+    setError(null);
+    setSuccess(null);
     try {
       await internshipService.updatePasantia(pasantiaToRestore.id_pas, {
         ...pasantiaToRestore,
@@ -389,6 +363,25 @@ const PasantiaPage = () => {
           </MUI.Box>
         )}
         <MUI.Container maxWidth="lg" sx={{ py: 4 }}>
+          {/* Mensajes de éxito y error centralizados */}
+          {error && (
+            <MUI.Alert 
+              severity="error" 
+              onClose={() => setError(null)}
+              sx={{ mb: 3, borderRadius: 2 }}
+            >
+              {error}
+            </MUI.Alert>
+          )}
+          {success && (
+            <MUI.Alert 
+              severity="success" 
+              onClose={() => setSuccess(null)}
+              sx={{ mb: 3, borderRadius: 2 }}
+            >
+              {success}
+            </MUI.Alert>
+          )}
           <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
             <Icons.AssignmentTurnedIn sx={{ fontSize: 40, color: theme.palette.primary.main }} />
             <MUI.Typography variant="h3" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
@@ -580,13 +573,13 @@ const PasantiaPage = () => {
                         setCentroFiltro(String(plaza.centro_plaza.id_centro));
                         setPlazaFormSeleccionada(plaza);
                         setOpenDialog(true);
-                        // Solo limpiar los campos si no hay valores previos
-                        if (!estudiantesSeleccionados.length && !supervisorSeleccionado && !fechaInicio && !fechaFin) {
-                          setEstudiantesSeleccionados([]);
-                          setSupervisorSeleccionado('');
-                          setFechaInicio('');
-                          setFechaFin('');
-                        }
+                        // Limpiar estados al abrir el diálogo
+                        setEstudiantesSeleccionados([]);
+                        setSupervisorSeleccionado('');
+                        setFechaInicio('');
+                        setFechaFin('');
+                        setError(null);
+                        setSuccess(null);
                       }}
                     >
                       <MUI.CardContent sx={{ p: 3, height: '100%' }}>
@@ -805,7 +798,15 @@ const PasantiaPage = () => {
           </MUI.Paper>
 
           {/* Diálogo para crear pasantía */}
-          <MUI.Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+          <MUI.Dialog open={openDialog} onClose={() => {
+            setOpenDialog(false);
+            setError(null);
+            setSuccess(null);
+            setEstudiantesSeleccionados([]);
+            setSupervisorSeleccionado('');
+            setFechaInicio('');
+            setFechaFin('');
+          }} maxWidth="sm" fullWidth>
             <MUI.DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Icons.AddCircleOutline sx={{ color: theme.palette.primary.main }} /> Nueva Pasantía
             </MUI.DialogTitle>
@@ -886,21 +887,22 @@ const PasantiaPage = () => {
                   InputLabelProps={{ shrink: true }}
                 />
               </MUI.Box>
-              {error && <MUI.Alert severity="error" sx={{ mt: 2 }}>{error}</MUI.Alert>}
-              {success && <MUI.Alert severity="success" sx={{ mt: 2 }}>{success}</MUI.Alert>}
-              {plazaFormSeleccionada && (plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) === 0) && (
-                <MUI.Grow in>
-                  <MUI.Alert severity="error" icon={<Icons.Block fontSize="inherit" />} sx={{ my: 2, fontWeight: 'bold', fontSize: 18, borderRadius: 2, textAlign: 'center' }}>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: '#d32f2f' }}>¡Plazas agotadas!</span><br />
-                    No puedes registrar más pasantías en esta plaza.<br />
-                    Selecciona otra plaza o centro de trabajo.
-                  </MUI.Alert>
-                </MUI.Grow>
-              )}
             </MUI.DialogContent>
             <MUI.DialogActions>
-              <MUI.Button onClick={() => setOpenDialog(false)}>Cancelar</MUI.Button>
-              <MUI.Button variant="contained" onClick={handleCrearPasantias} disabled={!!loading || (!!plazaFormSeleccionada && (plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) === 0))}>Crear</MUI.Button>
+              <MUI.Button onClick={() => {
+                setOpenDialog(false);
+                setError(null);
+                setSuccess(null);
+              }}>
+                Cancelar
+              </MUI.Button>
+              <MUI.Button 
+                variant="contained" 
+                onClick={handleCrearPasantias} 
+                disabled={!!loading || (!!plazaFormSeleccionada && (plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) === 0))}
+              >
+                {loading ? <MUI.CircularProgress size={24} /> : 'Crear'}
+              </MUI.Button>
             </MUI.DialogActions>
           </MUI.Dialog>
 
@@ -1113,7 +1115,11 @@ const PasantiaPage = () => {
           </MUI.Dialog>
 
           {/* Diálogo de confirmación para cancelar pasantía */}
-          <MUI.Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
+          <MUI.Dialog open={openDeleteDialog} onClose={() => {
+            setOpenDeleteDialog(false);
+            setError(null);
+            setSuccess(null);
+          }}>
             <MUI.DialogTitle>
               <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Icons.Warning sx={{ color: theme.palette.error.main }} />
@@ -1121,11 +1127,6 @@ const PasantiaPage = () => {
               </MUI.Box>
             </MUI.DialogTitle>
             <MUI.DialogContent>
-              {error && (
-                <MUI.Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-                  {error}
-                </MUI.Alert>
-              )}
               <MUI.Typography>
                 ¿Estás seguro de que deseas cancelar esta pasantía? Esta acción cambiará su estado a "Cancelada".
               </MUI.Typography>
@@ -1171,11 +1172,6 @@ const PasantiaPage = () => {
               </MUI.Box>
             </MUI.DialogTitle>
             <MUI.DialogContent>
-              {error && (
-                <MUI.Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-                  {error}
-                </MUI.Alert>
-              )}
               <MUI.Typography>
                 ¿Estás seguro de que deseas restaurar esta pasantía? Esta acción cambiará su estado a "En Proceso".
               </MUI.Typography>
