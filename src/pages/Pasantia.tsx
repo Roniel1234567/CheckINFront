@@ -845,43 +845,26 @@ const PasantiaPage = () => {
                       variant="outlined"
                       error={!!error && error.includes('estudiantes')}
                       helperText={error && error.includes('estudiantes') ? error : ''}
-                      InputLabelProps={{
-                        shrink: true,
-                        sx: {
-                          backgroundColor: 'white',
-                          px: 0.5,
-                        }
-                      }}
                     />
                   )}
                   isOptionEqualToValue={(option, value) => option.documento_id_est === value.documento_id_est}
-                  PopperProps={{
-                    style: { width: 'fit-content', minWidth: '100%' }
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& .MuiAutocomplete-input': {
-                        padding: '0px !important'
-                      }
-                    }
-                  }}
                 />
                 <MUI.FormHelperText>
                   Máximo {plazaFormSeleccionada ? plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) : 0} estudiantes
                 </MUI.FormHelperText>
                 <MUI.FormControl fullWidth>
-                  <MUI.InputLabel>Supervisor</MUI.InputLabel>
+                  <MUI.InputLabel></MUI.InputLabel>
                   <MUI.Autocomplete
-                    options={supervisores.filter(s => s.centro_trabajo && String(s.centro_trabajo.id_centro) === String(centroFiltro))}
+                    options={supervisores.filter(s => s.centro_trabajo && String(s.centro_trabajo.id_centro) === centroFiltro)}
                     getOptionLabel={s => `${s.nombre_sup} ${s.apellido_sup}`}
                     value={supervisores.find(s => String(s.id_sup) === supervisorSeleccionado) || null}
                     onChange={(_, value) => setSupervisorSeleccionado(value ? String(value.id_sup) : '')}
                     renderInput={(params) => (
                       <MUI.TextField
                         {...params}
-                        label="Supervisor"
+                        label=""
                         placeholder="Buscar supervisor..."
-                        fullWidth
+                        variant="outlined"
                       />
                     )}
                   />
@@ -902,37 +885,6 @@ const PasantiaPage = () => {
                   onChange={e => setFechaFin(e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 />
-                <MUI.FormControl fullWidth>
-                  <MUI.InputLabel>Plaza</MUI.InputLabel>
-                  <MUI.Autocomplete
-                    options={plazasDisponiblesForm}
-                    getOptionLabel={p => `${p.taller_plaza.nombre_taller} - ${p.centro_plaza.nombre_centro} (Disponibles: ${p.plazas_centro - plazasOcupadas(p)})`}
-                    value={plazaFormSeleccionada}
-                    onChange={(_, value) => {
-                      if (value) {
-                        const ocupadas = plazasOcupadas(value);
-                        if (ocupadas >= value.plazas_centro) {
-                          setError('Esta plaza ya no tiene cupos disponibles');
-                          return;
-                        }
-                        setPlazaFormSeleccionada(value);
-                        setError(null);
-                      } else {
-                        setPlazaFormSeleccionada(null);
-                      }
-                    }}
-                    renderInput={(params) => (
-                      <MUI.TextField
-                        {...params}
-                        label="Plaza"
-                        placeholder="Buscar plaza..."
-                        fullWidth
-                        disabled={!centroFiltro || !tallerFiltro}
-                      />
-                    )}
-                    disabled={!centroFiltro || !tallerFiltro}
-                  />
-                </MUI.FormControl>
               </MUI.Box>
               {error && <MUI.Alert severity="error" sx={{ mt: 2 }}>{error}</MUI.Alert>}
               {success && <MUI.Alert severity="success" sx={{ mt: 2 }}>{success}</MUI.Alert>}
@@ -969,7 +921,39 @@ const PasantiaPage = () => {
                     {success}
                   </MUI.Alert>
                 )}
-                {/* Taller (solo como filtro) */}
+                {/* Supervisor */}
+                <MUI.Autocomplete
+                  options={supervisores.filter(s => s.centro_trabajo && String(s.centro_trabajo.id_centro) === centroFiltro)}
+                  getOptionLabel={s => `${s.nombre_sup} ${s.apellido_sup}`}
+                  value={supervisores.find(s => String(s.id_sup) === supervisorSeleccionado) || null}
+                  onChange={(_, value) => setSupervisorSeleccionado(value ? String(value.id_sup) : '')}
+                  renderInput={(params) => (
+                    <MUI.TextField
+                      {...params}
+                      label=""
+                      placeholder="Buscar supervisor..."
+                      variant="outlined"
+                      error={!!error && error.includes('supervisor')}
+                      helperText={error && error.includes('supervisor') ? error : ''}
+                      InputLabelProps={{
+                        shrink: true,
+                        sx: {
+                          backgroundColor: 'white',
+                          px: 0.5,
+                        }
+                      }}
+                    />
+                  )}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '& .MuiAutocomplete-input': {
+                        padding: '0px !important'
+                      }
+                    }
+                  }}
+                />
+
+                {/* Taller */}
                 <MUI.Autocomplete
                   options={talleres}
                   getOptionLabel={t => `${t.nombre_taller} - ${t.familia_taller.nombre_fam}`}
@@ -984,12 +968,26 @@ const PasantiaPage = () => {
                       {...params}
                       label="Taller"
                       placeholder="Buscar taller..."
-                      fullWidth
+                      variant="outlined"
+                      InputLabelProps={{
+                        shrink: true,
+                        sx: {
+                          backgroundColor: 'white',
+                          px: 0.5,
+                        }
+                      }}
                     />
                   )}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '& .MuiAutocomplete-input': {
+                        padding: '0px !important'
+                      }
+                    }
+                  }}
                 />
 
-                {/* Centro de Trabajo */}
+                {/* Centro */}
                 <MUI.Autocomplete
                   options={centrosFiltrados}
                   getOptionLabel={c => c.nombre_centro}
@@ -1003,10 +1001,24 @@ const PasantiaPage = () => {
                       {...params}
                       label="Centro de Trabajo"
                       placeholder="Buscar centro..."
-                      fullWidth
+                      variant="outlined"
+                      InputLabelProps={{
+                        shrink: true,
+                        sx: {
+                          backgroundColor: 'white',
+                          px: 0.5,
+                        }
+                      }}
                     />
                   )}
                   disabled={!tallerFiltro}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '& .MuiAutocomplete-input': {
+                        padding: '0px !important'
+                      }
+                    }
+                  }}
                 />
 
                 {/* Plaza */}
@@ -1032,27 +1044,24 @@ const PasantiaPage = () => {
                       {...params}
                       label="Plaza"
                       placeholder="Buscar plaza..."
-                      fullWidth
-                      disabled={!centroFiltro || !tallerFiltro}
+                      variant="outlined"
+                      InputLabelProps={{
+                        shrink: true,
+                        sx: {
+                          backgroundColor: 'white',
+                          px: 0.5,
+                        }
+                      }}
                     />
                   )}
                   disabled={!centroFiltro || !tallerFiltro}
-                />
-
-                {/* Supervisor */}
-                <MUI.Autocomplete
-                  options={supervisores.filter(s => s.centro_trabajo && String(s.centro_trabajo.id_centro) === centroFiltro)}
-                  getOptionLabel={s => `${s.nombre_sup} ${s.apellido_sup}`}
-                  value={supervisores.find(s => String(s.id_sup) === supervisorSeleccionado) || null}
-                  onChange={(_, value) => setSupervisorSeleccionado(value ? String(value.id_sup) : '')}
-                  renderInput={(params) => (
-                    <MUI.TextField
-                      {...params}
-                      label="Supervisor"
-                      placeholder="Buscar supervisor..."
-                      fullWidth
-                    />
-                  )}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      '& .MuiAutocomplete-input': {
+                        padding: '0px !important'
+                      }
+                    }
+                  }}
                 />
 
                 {/* Fechas */}
