@@ -21,6 +21,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import polizaService from '../../../services/polizaService';
 import * as Icons from '@mui/icons-material';
 import ExcelJS from 'exceljs';
+import * as XLSX from 'xlsx';
 
 // Define el tipo para la dirección completa
 interface DireccionCompleta {
@@ -876,59 +877,81 @@ const Students = () => {
     }
   };
 
-  // Función para exportar a Excel
+  // Modificar la función de exportar a Excel
   const exportarFechasExcel = () => {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Fechas Pasantías');
+    try {
+      if (!fechasTallerFiltro) {
+        setSnackbar({ 
+          open: true, 
+          message: 'Selecciona un taller antes de exportar', 
+          severity: 'warning' 
+        });
+        return;
+      }
 
-    // Definir columnas
-    worksheet.columns = [
-      { header: 'Estudiante', key: 'estudiante', width: 30 },
-      { header: 'Centro', key: 'centro', width: 30 },
-      { header: 'Fecha Inicio', key: 'fecha_inicio', width: 15 },
-      { header: 'Fecha Fin', key: 'fecha_fin', width: 15 },
-      { header: 'Horas Realizadas', key: 'horas', width: 15 }
-    ];
+      // Obtener los datos filtrados
+      const datosFiltrados = filtrarDatosFechas(fechasRows);
+      
+      if (datosFiltrados.length === 0) {
+        setSnackbar({ 
+          open: true, 
+          message: 'No hay datos para exportar', 
+          severity: 'warning' 
+        });
+        return;
+      }
 
-    // Estilo para el encabezado
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF4F81BD' }
-    };
-    worksheet.getRow(1).font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      // Obtener el nombre del taller seleccionado
+      const tallerSeleccionado = talleres.find(t => t.id_taller === Number(fechasTallerFiltro));
+      const nombreTaller = tallerSeleccionado?.nombre_taller || 'Taller';
 
-    // Agregar datos
-    fechasRows.forEach(row => {
-      worksheet.addRow({
-        estudiante: row.nombre_completo,
-        centro: row.centro,
-        fecha_inicio: row.fecha_inicio,
-        fecha_fin: row.fecha_fin,
-        horas: row.horas_realizadas
+      // Crear el workbook y la hoja
+      const wb = XLSX.utils.book_new();
+      
+      // Preparar los datos para Excel
+      const excelData = datosFiltrados.map(row => ({
+        'Documento': row.documento_id_est,
+        'Estudiante': row.nombre_completo,
+        'Centro de Trabajo': row.centro,
+        'Fecha Inicio': row.fecha_inicio || '',
+        'Fecha Fin': row.fecha_fin || '',
+        'Horas Realizadas': row.horas_realizadas
+      }));
+
+      // Crear la hoja de Excel
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Ajustar el ancho de las columnas
+      const columnas = [
+        { wch: 15 },  // Documento
+        { wch: 30 },  // Estudiante
+        { wch: 30 },  // Centro de Trabajo
+        { wch: 15 },  // Fecha Inicio
+        { wch: 15 },  // Fecha Fin
+        { wch: 15 }   // Horas Realizadas
+      ];
+      ws['!cols'] = columnas;
+
+      // Agregar la hoja al libro
+      XLSX.utils.book_append_sheet(wb, ws, nombreTaller);
+
+      // Generar el archivo y descargarlo
+      const fecha = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(wb, `Horas_Pasantia_${nombreTaller}_${fecha}.xlsx`);
+
+      setSnackbar({ 
+        open: true, 
+        message: 'Archivo Excel exportado correctamente', 
+        severity: 'success' 
       });
-    });
-
-    // Autoajustar columnas
-    worksheet.columns.forEach(column => {
-      column.width = Math.max(
-        column.header?.toString().length || 0,
-        ...worksheet.getColumn(column.key || '').values
-          .map(v => v?.toString().length || 0)
-      ) + 2;
-    });
-
-    // Generar archivo
-    workbook.xlsx.writeBuffer().then(buffer => {
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'Fechas_Pasantias.xlsx';
-      a.click();
-      window.URL.revokeObjectURL(url);
-    });
+    } catch (error) {
+      console.error('Error al exportar a Excel:', error);
+      setSnackbar({ 
+        open: true, 
+        message: 'Error al exportar el archivo Excel', 
+        severity: 'error' 
+      });
+    }
   };
 
   // Modificar el handleFechasClick existente
@@ -1100,13 +1123,21 @@ const Students = () => {
         </MUI.TableContainer>
       </MUI.DialogContent>
       <MUI.DialogActions sx={{ p: 2, gap: 1 }}>
-        <MUI.Button
-          variant="outlined"
-          startIcon={<Icons.FileDownload />}
-          onClick={exportarFechasExcel}
+        <MUI.Tooltip 
+          title={!fechasTallerFiltro ? "Selecciona un taller antes de exportar" : ""}
+          arrow
         >
-          Exportar Excel
-        </MUI.Button>
+          <span>
+            <MUI.Button
+              variant="outlined"
+              startIcon={<Icons.FileDownload />}
+              onClick={exportarFechasExcel}
+              disabled={!fechasTallerFiltro || loading}
+            >
+              Exportar Excel
+            </MUI.Button>
+          </span>
+        </MUI.Tooltip>
         <MUI.Button onClick={() => setOpenFechasDialog(false)}>
           Cancelar
         </MUI.Button>
@@ -1578,13 +1609,21 @@ const Students = () => {
               </MUI.TableContainer>
             </MUI.DialogContent>
             <MUI.DialogActions sx={{ p: 2, gap: 1 }}>
-              <MUI.Button
-                variant="outlined"
-                startIcon={<Icons.FileDownload />}
-                onClick={exportarFechasExcel}
+              <MUI.Tooltip 
+                title={!fechasTallerFiltro ? "Selecciona un taller antes de exportar" : ""}
+                arrow
               >
-                Exportar Excel
-              </MUI.Button>
+                <span>
+                  <MUI.Button
+                    variant="outlined"
+                    startIcon={<Icons.FileDownload />}
+                    onClick={exportarFechasExcel}
+                    disabled={!fechasTallerFiltro || loading}
+                  >
+                    Exportar Excel
+                  </MUI.Button>
+                </span>
+              </MUI.Tooltip>
               <MUI.Button onClick={() => setOpenFechasDialog(false)}>
                 Cancelar
               </MUI.Button>
