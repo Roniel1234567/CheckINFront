@@ -7,7 +7,7 @@ import SideBar from '../../components/SideBar';
 import DashboardAppBar from '../../components/DashboardAppBar';
 import { administradorService, type Administrador } from '../../services/administradorService';
 import { userService, type NuevoUsuario } from '../../services/userService';
-import contactService from '../../services/contactService';
+import contactService, { type NuevoContacto } from '../../services/contactService';
 
 interface FormData {
   nombre_adm: string;
@@ -17,24 +17,6 @@ interface FormData {
   email_contacto: string;
   usuario_adm: string;
   contrasena_adm: string;
-}
-
-interface NuevoContacto {
-  telefono_contacto: string;
-  email_contacto: string;
-  estado_contacto: string;
-}
-
-interface CreatedUser {
-  id_usuario: number;
-  dato_usuario: string;
-  estado_usuario: string;
-}
-
-interface CreatedContacto {
-  id_contacto: number;
-  telefono_contacto: string;
-  email_contacto: string;
 }
 
 function Administradores() {
@@ -210,32 +192,48 @@ function Administradores() {
       setLoading(true);
 
       if (selectedAdministrador) {
-        // Modo edición
-        if (selectedAdministrador.usuario_adm && 
-            (formData.usuario_adm !== selectedAdministrador.usuario_adm.dato_usuario || formData.contrasena_adm)) {
-          await userService.updateUser(selectedAdministrador.usuario_adm.id_usuario, {
-            dato_usuario: formData.usuario_adm,
-            contrasena_usuario: formData.contrasena_adm || undefined,
-            rol_usuario: 4,
+        try {
+          // Modo edición
+          if (selectedAdministrador.usuario_adm && 
+              (formData.usuario_adm !== selectedAdministrador.usuario_adm.dato_usuario || formData.contrasena_adm)) {
+            await userService.updateUser(selectedAdministrador.usuario_adm.id_usuario, {
+              dato_usuario: formData.usuario_adm,
+              contrasena_usuario: formData.contrasena_adm || undefined,
+              rol_usuario: 4
+            });
+          }
+
+          // Primero actualizar el contacto
+          const contactoData: Partial<NuevoContacto> = {
+            telefono_contacto: formData.telefono_contacto,
+            email_contacto: formData.email_contacto
+          };
+          await contactService.updateContacto(selectedAdministrador.contacto_adm.id_contacto, contactoData);
+
+          // Luego actualizar el administrador
+          const adminData: Partial<Administrador> = {
+            nombre_adm: formData.nombre_adm,
+            apellido_adm: formData.apellido_adm,
+            puesto_adm: formData.puesto_adm
+          };
+          await administradorService.updateAdministrador(selectedAdministrador.id_adm, adminData);
+
+          setSnackbar({
+            open: true,
+            message: 'Administrador actualizado correctamente',
+            severity: 'success'
+          });
+          
+          setActiveTab('1');
+          await loadAdministradores();
+        } catch (error) {
+          console.error('Error al actualizar administrador:', error);
+          setSnackbar({
+            open: true,
+            message: 'Error al actualizar el administrador',
+            severity: 'error'
           });
         }
-
-        await administradorService.updateAdministrador(selectedAdministrador.id_adm, {
-          nombre_adm: formData.nombre_adm,
-          apellido_adm: formData.apellido_adm,
-          puesto_adm: formData.puesto_adm,
-          contacto_adm: {
-            ...selectedAdministrador.contacto_adm,
-            telefono_contacto: formData.telefono_contacto,
-            email_contacto: formData.email_contacto,
-          },
-        });
-
-        setSnackbar({
-          open: true,
-          message: 'Administrador actualizado correctamente',
-          severity: 'success',
-        });
       } else {
         // Modo creación
         try {
