@@ -441,252 +441,473 @@ function Administradores() {
 
         {loading && (
           <MUI.Backdrop
-            sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+            sx={{ 
+              color: '#fff', 
+              zIndex: (theme) => theme.zIndex.drawer + 1,
+              backdropFilter: 'blur(3px)'
+            }}
             open={loading}
           >
-            <MUI.CircularProgress color="inherit" />
+            <MUI.Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <MUI.CircularProgress color="primary" />
+              <MUI.Typography variant="h6" color="white">
+                Procesando...
+              </MUI.Typography>
+            </MUI.Box>
           </MUI.Backdrop>
         )}
 
         <TabContext value={activeTab}>
-          <MUI.Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
-            <TabList onChange={handleTabChange}>
-              <MUI.Tab label="Administradores" value="1" icon={<Icons.ViewList />} />
+          <MUI.Box sx={{ 
+            borderBottom: 1, 
+            borderColor: 'divider', 
+            mb: 3,
+            backgroundColor: 'background.paper',
+            borderRadius: '16px 16px 0 0',
+            p: 2,
+            boxShadow: 1
+          }}>
+            <TabList 
+              onChange={handleTabChange}
+              sx={{
+                '& .MuiTab-root': {
+                  minHeight: 60,
+                  fontSize: '1rem',
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    backgroundColor: 'action.hover',
+                    borderRadius: 1
+                  }
+                }
+              }}
+            >
+              <MUI.Tab 
+                label="Administradores" 
+                value="1" 
+                icon={<Icons.ViewList />} 
+                iconPosition="start"
+              />
               <MUI.Tab 
                 label={selectedAdministrador ? "Editar Administrador" : "Nuevo Administrador"} 
                 value="2" 
-                icon={selectedAdministrador ? <Icons.Edit /> : <Icons.Add />} 
+                icon={selectedAdministrador ? <Icons.Edit /> : <Icons.Add />}
+                iconPosition="start"
               />
             </TabList>
           </MUI.Box>
 
-          <TabPanel value="1">
-            <MUI.Box sx={{ mb: 4, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-              <MUI.TextField
-                variant="outlined"
-                placeholder="Buscar administrador..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                size="small"
-                sx={{ flexGrow: 1, minWidth: 200 }}
-                InputProps={{
-                  startAdornment: (
-                    <MUI.InputAdornment position="start">
-                      <Icons.Search />
-                    </MUI.InputAdornment>
-                  ),
-                }}
-              />
+          <TabPanel value="1" sx={{ p: 0 }}>
+            <MUI.Paper elevation={3} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+              <MUI.Box sx={{ 
+                p: 3, 
+                display: 'flex', 
+                gap: 2, 
+                flexWrap: 'wrap',
+                backgroundColor: 'background.paper',
+                borderBottom: 1,
+                borderColor: 'divider'
+              }}>
+                <MUI.TextField
+                  variant="outlined"
+                  placeholder="Buscar administrador..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  size="small"
+                  sx={{ 
+                    flexGrow: 1, 
+                    minWidth: 200,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        backgroundColor: 'action.hover'
+                      }
+                    }
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <MUI.InputAdornment position="start">
+                        <Icons.Search />
+                      </MUI.InputAdornment>
+                    ),
+                  }}
+                />
 
-              <MUI.FormControlLabel
-                control={
-                  <MUI.Switch
-                    checked={showInactivos}
-                    onChange={(e) => setShowInactivos(e.target.checked)}
-                  />
-                }
-                label="Mostrar inactivos"
-              />
+                <MUI.FormControlLabel
+                  control={
+                    <MUI.Switch
+                      checked={showInactivos}
+                      onChange={(e) => setShowInactivos(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <MUI.Typography sx={{ color: 'text.secondary' }}>
+                      Mostrar inactivos
+                    </MUI.Typography>
+                  }
+                />
 
-              <MUI.Button
-                variant="contained"
-                startIcon={<Icons.Add />}
-                onClick={() => handleOpenDialog()}
-              >
-                Nuevo Administrador
-              </MUI.Button>
-            </MUI.Box>
+                <MUI.Button
+                  variant="contained"
+                  startIcon={<Icons.Add />}
+                  onClick={() => handleOpenDialog()}
+                  sx={{ 
+                    borderRadius: 2,
+                    textTransform: 'none',
+                    fontWeight: 500,
+                    boxShadow: 2,
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      transform: 'translateY(-2px)',
+                      boxShadow: 4
+                    }
+                  }}
+                >
+                  Nuevo Administrador
+                </MUI.Button>
+              </MUI.Box>
 
-            <MUI.TableContainer component={MUI.Paper}>
-              <MUI.Table>
-                <MUI.TableHead>
-                  <MUI.TableRow>
-                    <MUI.TableCell>Nombre</MUI.TableCell>
-                    <MUI.TableCell>Puesto</MUI.TableCell>
-                    <MUI.TableCell>Contacto</MUI.TableCell>
-                    <MUI.TableCell>Usuario</MUI.TableCell>
-                    <MUI.TableCell>Estado</MUI.TableCell>
-                    <MUI.TableCell>Acciones</MUI.TableCell>
-                  </MUI.TableRow>
-                </MUI.TableHead>
-                <MUI.TableBody>
-                  {administradoresFiltrados.map((admin) => (
-                    <MUI.TableRow key={admin.id_adm}>
-                      <MUI.TableCell>
-                        {admin.nombre_adm} {admin.apellido_adm}
-                      </MUI.TableCell>
-                      <MUI.TableCell>{admin.puesto_adm}</MUI.TableCell>
-                      <MUI.TableCell>
-                        <div>{admin.contacto_adm.email_contacto}</div>
-                        <div>{admin.contacto_adm.telefono_contacto}</div>
-                      </MUI.TableCell>
-                      <MUI.TableCell>{admin.usuario_adm.dato_usuario}</MUI.TableCell>
-                      <MUI.TableCell>
-                        <MUI.Chip
-                          label={admin.usuario_adm.estado_usuario}
-                          color={admin.usuario_adm.estado_usuario === 'Activo' ? 'success' : 'error'}
-                          size="small"
-                        />
-                      </MUI.TableCell>
-                      <MUI.TableCell>
-                        <MUI.IconButton
-                          color="primary"
-                          onClick={() => handleOpenDialog(admin)}
-                          size="small"
-                        >
-                          <Icons.Edit />
-                        </MUI.IconButton>
-                        {admin.usuario_adm.estado_usuario === 'Activo' ? (
-                          <MUI.IconButton
-                            color="error"
-                            onClick={() => handleDesactivarClick(admin)}
-                            size="small"
-                          >
-                            <Icons.Delete />
-                          </MUI.IconButton>
-                        ) : (
-                          <MUI.IconButton
-                            color="success"
-                            onClick={() => handleRestaurarClick(admin)}
-                            size="small"
-                          >
-                            <Icons.RestoreFromTrash />
-                          </MUI.IconButton>
-                        )}
-                      </MUI.TableCell>
+              <MUI.TableContainer>
+                <MUI.Table>
+                  <MUI.TableHead>
+                    <MUI.TableRow>
+                      <MUI.TableCell sx={{ fontWeight: 'bold' }}>Nombre</MUI.TableCell>
+                      <MUI.TableCell sx={{ fontWeight: 'bold' }}>Puesto</MUI.TableCell>
+                      <MUI.TableCell sx={{ fontWeight: 'bold' }}>Contacto</MUI.TableCell>
+                      <MUI.TableCell sx={{ fontWeight: 'bold' }}>Usuario</MUI.TableCell>
+                      <MUI.TableCell sx={{ fontWeight: 'bold' }}>Estado</MUI.TableCell>
+                      <MUI.TableCell sx={{ fontWeight: 'bold' }}>Acciones</MUI.TableCell>
                     </MUI.TableRow>
-                  ))}
-                </MUI.TableBody>
-              </MUI.Table>
-            </MUI.TableContainer>
+                  </MUI.TableHead>
+                  <MUI.TableBody>
+                    {administradoresFiltrados.map((admin) => (
+                      <MUI.TableRow 
+                        key={admin.id_adm}
+                        sx={{
+                          transition: 'all 0.2s',
+                          '&:hover': {
+                            backgroundColor: 'action.hover'
+                          }
+                        }}
+                      >
+                        <MUI.TableCell>
+                          <MUI.Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            {admin.nombre_adm} {admin.apellido_adm}
+                          </MUI.Typography>
+                        </MUI.TableCell>
+                        <MUI.TableCell>{admin.puesto_adm}</MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <MUI.Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Icons.Email fontSize="small" color="action" />
+                              {admin.contacto_adm.email_contacto}
+                            </MUI.Typography>
+                            <MUI.Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Icons.Phone fontSize="small" color="action" />
+                              {admin.contacto_adm.telefono_contacto}
+                            </MUI.Typography>
+                          </MUI.Box>
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Icons.Person fontSize="small" color="action" />
+                            {admin.usuario_adm.dato_usuario}
+                          </MUI.Typography>
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.Chip
+                            label={admin.usuario_adm.estado_usuario}
+                            color={admin.usuario_adm.estado_usuario === 'Activo' ? 'success' : 'error'}
+                            size="small"
+                            sx={{ 
+                              fontWeight: 500,
+                              minWidth: 80,
+                              transition: 'all 0.2s'
+                            }}
+                          />
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.Box sx={{ display: 'flex', gap: 1 }}>
+                            <MUI.Tooltip title="Editar">
+                              <MUI.IconButton
+                                color="primary"
+                                onClick={() => handleOpenDialog(admin)}
+                                size="small"
+                                sx={{ 
+                                  transition: 'all 0.2s',
+                                  '&:hover': {
+                                    transform: 'scale(1.1)',
+                                    backgroundColor: 'primary.light'
+                                  }
+                                }}
+                              >
+                                <Icons.Edit />
+                              </MUI.IconButton>
+                            </MUI.Tooltip>
+                            {admin.usuario_adm.estado_usuario === 'Activo' ? (
+                              <MUI.Tooltip title="Eliminar">
+                                <MUI.IconButton
+                                  color="error"
+                                  onClick={() => handleDesactivarClick(admin)}
+                                  size="small"
+                                  sx={{ 
+                                    transition: 'all 0.2s',
+                                    '&:hover': {
+                                      transform: 'scale(1.1)',
+                                      backgroundColor: 'error.light'
+                                    }
+                                  }}
+                                >
+                                  <Icons.Delete />
+                                </MUI.IconButton>
+                              </MUI.Tooltip>
+                            ) : (
+                              <MUI.Tooltip title="Restaurar">
+                                <MUI.IconButton
+                                  color="success"
+                                  onClick={() => handleRestaurarClick(admin)}
+                                  size="small"
+                                  sx={{ 
+                                    transition: 'all 0.2s',
+                                    '&:hover': {
+                                      transform: 'scale(1.1)',
+                                      backgroundColor: 'success.light'
+                                    }
+                                  }}
+                                >
+                                  <Icons.RestoreFromTrash />
+                                </MUI.IconButton>
+                              </MUI.Tooltip>
+                            )}
+                          </MUI.Box>
+                        </MUI.TableCell>
+                      </MUI.TableRow>
+                    ))}
+                  </MUI.TableBody>
+                </MUI.Table>
+              </MUI.TableContainer>
+            </MUI.Paper>
           </TabPanel>
 
-          <TabPanel value="2">
-            <MUI.Grid container spacing={2}>
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Nombre"
-                  value={formData.nombre_adm}
-                  onChange={(e) => setFormData({ ...formData, nombre_adm: e.target.value })}
-                  error={formErrors.nombre_adm}
-                  helperText={formErrors.nombre_adm ? 'Este campo es requerido' : ''}
-                />
+          <TabPanel value="2" sx={{ p: 0 }}>
+            <MUI.Paper elevation={3} sx={{ borderRadius: 2, p: 3 }}>
+              <MUI.Grid container spacing={3}>
+                <MUI.Grid item xs={12}>
+                  <MUI.Typography variant="h5" sx={{ mb: 3, fontWeight: 500, color: 'primary.main' }}>
+                    {selectedAdministrador ? "Editar Administrador" : "Nuevo Administrador"}
+                  </MUI.Typography>
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={6}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Nombre"
+                    value={formData.nombre_adm}
+                    onChange={(e) => setFormData({ ...formData, nombre_adm: e.target.value })}
+                    error={formErrors.nombre_adm}
+                    helperText={formErrors.nombre_adm ? 'Este campo es requerido' : ''}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: 'action.hover'
+                        }
+                      }
+                    }}
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={6}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Apellido"
+                    value={formData.apellido_adm}
+                    onChange={(e) => setFormData({ ...formData, apellido_adm: e.target.value })}
+                    error={formErrors.apellido_adm}
+                    helperText={formErrors.apellido_adm ? 'Este campo es requerido' : ''}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: 'action.hover'
+                        }
+                      }
+                    }}
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Puesto"
+                    value={formData.puesto_adm}
+                    onChange={(e) => setFormData({ ...formData, puesto_adm: e.target.value })}
+                    error={formErrors.puesto_adm}
+                    helperText={formErrors.puesto_adm ? 'Este campo es requerido' : ''}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: 'action.hover'
+                        }
+                      }
+                    }}
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={6}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Teléfono"
+                    value={formData.telefono_contacto}
+                    onChange={(e) => {
+                      setFormData({ ...formData, telefono_contacto: e.target.value });
+                      checkTelefono(e.target.value);
+                    }}
+                    error={formErrors.telefono_contacto || !telefonoDisponible}
+                    helperText={
+                      formErrors.telefono_contacto 
+                        ? 'Este campo es requerido' 
+                        : !telefonoDisponible 
+                          ? 'Este teléfono ya está registrado' 
+                          : ''
+                    }
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: 'action.hover'
+                        }
+                      }
+                    }}
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={6}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Email"
+                    value={formData.email_contacto}
+                    onChange={(e) => {
+                      setFormData({ ...formData, email_contacto: e.target.value });
+                      checkEmail(e.target.value);
+                    }}
+                    error={formErrors.email_contacto || !emailDisponible}
+                    helperText={
+                      formErrors.email_contacto 
+                        ? 'Este campo es requerido' 
+                        : !emailDisponible 
+                          ? 'Este email ya está registrado' 
+                          : ''
+                    }
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: 'action.hover'
+                        }
+                      }
+                    }}
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={6}>
+                  <MUI.TextField
+                    fullWidth
+                    label="Usuario"
+                    value={formData.usuario_adm}
+                    onChange={(e) => {
+                      setFormData({ ...formData, usuario_adm: e.target.value });
+                      checkUsuario(e.target.value);
+                    }}
+                    disabled={!!selectedAdministrador}
+                    error={formErrors.usuario_adm || !usuarioDisponible}
+                    helperText={
+                      formErrors.usuario_adm 
+                        ? 'Este campo es requerido' 
+                        : !usuarioDisponible 
+                          ? 'Este usuario ya existe' 
+                          : ''
+                    }
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: 'action.hover'
+                        }
+                      }
+                    }}
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={6}>
+                  <MUI.TextField
+                    fullWidth
+                    type="password"
+                    label="Contraseña"
+                    value={formData.contrasena_adm}
+                    onChange={(e) => setFormData({ ...formData, contrasena_adm: e.target.value })}
+                    error={formErrors.contrasena_adm}
+                    helperText={
+                      formErrors.contrasena_adm 
+                        ? 'Este campo es requerido' 
+                        : selectedAdministrador 
+                          ? 'Dejar en blanco para mantener la contraseña actual' 
+                          : ''
+                    }
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: 'action.hover'
+                        }
+                      }
+                    }}
+                  />
+                </MUI.Grid>
+                <MUI.Grid item xs={12}>
+                  <MUI.Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2 }}>
+                    <MUI.Button
+                      onClick={() => setActiveTab('1')}
+                      startIcon={<Icons.Cancel />}
+                      sx={{ 
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 500,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: 'action.hover'
+                        }
+                      }}
+                    >
+                      Cancelar
+                    </MUI.Button>
+                    <MUI.Button
+                      variant="contained"
+                      onClick={handleSave}
+                      startIcon={<Icons.Save />}
+                      disabled={!usuarioDisponible || !telefonoDisponible || !emailDisponible}
+                      sx={{ 
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 500,
+                        boxShadow: 2,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: 4
+                        }
+                      }}
+                    >
+                      {selectedAdministrador ? 'Actualizar' : 'Guardar'}
+                    </MUI.Button>
+                  </MUI.Box>
+                </MUI.Grid>
               </MUI.Grid>
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Apellido"
-                  value={formData.apellido_adm}
-                  onChange={(e) => setFormData({ ...formData, apellido_adm: e.target.value })}
-                  error={formErrors.apellido_adm}
-                  helperText={formErrors.apellido_adm ? 'Este campo es requerido' : ''}
-                />
-              </MUI.Grid>
-              <MUI.Grid item xs={12}>
-                <MUI.TextField
-                  fullWidth
-                  label="Puesto"
-                  value={formData.puesto_adm}
-                  onChange={(e) => setFormData({ ...formData, puesto_adm: e.target.value })}
-                  error={formErrors.puesto_adm}
-                  helperText={formErrors.puesto_adm ? 'Este campo es requerido' : ''}
-                />
-              </MUI.Grid>
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Teléfono"
-                  value={formData.telefono_contacto}
-                  onChange={(e) => {
-                    setFormData({ ...formData, telefono_contacto: e.target.value });
-                    checkTelefono(e.target.value);
-                  }}
-                  error={formErrors.telefono_contacto || !telefonoDisponible}
-                  helperText={
-                    formErrors.telefono_contacto 
-                      ? 'Este campo es requerido' 
-                      : !telefonoDisponible 
-                        ? 'Este teléfono ya está registrado' 
-                        : ''
-                  }
-                />
-              </MUI.Grid>
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Email"
-                  value={formData.email_contacto}
-                  onChange={(e) => {
-                    setFormData({ ...formData, email_contacto: e.target.value });
-                    checkEmail(e.target.value);
-                  }}
-                  error={formErrors.email_contacto || !emailDisponible}
-                  helperText={
-                    formErrors.email_contacto 
-                      ? 'Este campo es requerido' 
-                      : !emailDisponible 
-                        ? 'Este email ya está registrado' 
-                        : ''
-                  }
-                />
-              </MUI.Grid>
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Usuario"
-                  value={formData.usuario_adm}
-                  onChange={(e) => {
-                    setFormData({ ...formData, usuario_adm: e.target.value });
-                    checkUsuario(e.target.value);
-                  }}
-                  disabled={!!selectedAdministrador}
-                  error={formErrors.usuario_adm || !usuarioDisponible}
-                  helperText={
-                    formErrors.usuario_adm 
-                      ? 'Este campo es requerido' 
-                      : !usuarioDisponible 
-                        ? 'Este usuario ya existe' 
-                        : ''
-                  }
-                />
-              </MUI.Grid>
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  type="password"
-                  label="Contraseña"
-                  value={formData.contrasena_adm}
-                  onChange={(e) => setFormData({ ...formData, contrasena_adm: e.target.value })}
-                  error={formErrors.contrasena_adm}
-                  helperText={
-                    formErrors.contrasena_adm 
-                      ? 'Este campo es requerido' 
-                      : selectedAdministrador 
-                        ? 'Dejar en blanco para mantener la contraseña actual' 
-                        : ''
-                  }
-                />
-              </MUI.Grid>
-              <MUI.Grid item xs={12}>
-                <MUI.Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                  <MUI.Button
-                    onClick={() => setActiveTab('1')}
-                    startIcon={<Icons.Cancel />}
-                  >
-                    Cancelar
-                  </MUI.Button>
-                  <MUI.Button
-                    variant="contained"
-                    onClick={handleSave}
-                    startIcon={<Icons.Save />}
-                    disabled={!usuarioDisponible || !telefonoDisponible || !emailDisponible}
-                  >
-                    {selectedAdministrador ? 'Actualizar' : 'Guardar'}
-                  </MUI.Button>
-                </MUI.Box>
-              </MUI.Grid>
-            </MUI.Grid>
+            </MUI.Paper>
           </TabPanel>
         </TabContext>
 
@@ -694,16 +915,53 @@ function Administradores() {
         <MUI.Dialog
           open={confirmDesactivar}
           onClose={handleCancelDesactivar}
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              boxShadow: 24
+            }
+          }}
         >
-          <MUI.DialogTitle>Eliminar Administrador</MUI.DialogTitle>
+          <MUI.DialogTitle sx={{ 
+            pb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            color: 'error.main'
+          }}>
+            <Icons.Warning color="error" />
+            Eliminar Administrador
+          </MUI.DialogTitle>
           <MUI.DialogContent>
             <MUI.Typography>
               ¿Está seguro de que desea eliminar este administrador?
             </MUI.Typography>
+            <MUI.Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Esta acción desactivará el acceso del administrador al sistema.
+            </MUI.Typography>
           </MUI.DialogContent>
-          <MUI.DialogActions>
-            <MUI.Button onClick={handleCancelDesactivar}>Cancelar</MUI.Button>
-            <MUI.Button onClick={handleConfirmDesactivar} color="error">
+          <MUI.DialogActions sx={{ p: 2, pt: 0 }}>
+            <MUI.Button 
+              onClick={handleCancelDesactivar}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
+              Cancelar
+            </MUI.Button>
+            <MUI.Button 
+              onClick={handleConfirmDesactivar} 
+              color="error"
+              variant="contained"
+              startIcon={<Icons.Delete />}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
               Eliminar
             </MUI.Button>
           </MUI.DialogActions>
@@ -713,16 +971,53 @@ function Administradores() {
         <MUI.Dialog
           open={confirmRestaurar}
           onClose={handleCancelRestaurar}
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              boxShadow: 24
+            }
+          }}
         >
-          <MUI.DialogTitle>Restaurar Administrador</MUI.DialogTitle>
+          <MUI.DialogTitle sx={{ 
+            pb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            color: 'success.main'
+          }}>
+            <Icons.RestoreFromTrash color="success" />
+            Restaurar Administrador
+          </MUI.DialogTitle>
           <MUI.DialogContent>
             <MUI.Typography>
               ¿Está seguro de que desea restaurar este administrador?
             </MUI.Typography>
+            <MUI.Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Esta acción reactivará el acceso del administrador al sistema.
+            </MUI.Typography>
           </MUI.DialogContent>
-          <MUI.DialogActions>
-            <MUI.Button onClick={handleCancelRestaurar}>Cancelar</MUI.Button>
-            <MUI.Button onClick={handleConfirmRestaurar} color="primary">
+          <MUI.DialogActions sx={{ p: 2, pt: 0 }}>
+            <MUI.Button 
+              onClick={handleCancelRestaurar}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
+              Cancelar
+            </MUI.Button>
+            <MUI.Button 
+              onClick={handleConfirmRestaurar} 
+              color="success"
+              variant="contained"
+              startIcon={<Icons.RestoreFromTrash />}
+              sx={{ 
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 500
+              }}
+            >
               Restaurar
             </MUI.Button>
           </MUI.DialogActions>
@@ -738,7 +1033,25 @@ function Administradores() {
           <MUI.Alert
             onClose={handleCloseSnackbar}
             severity={snackbar.severity}
-            sx={{ width: '100%' }}
+            variant="filled"
+            sx={{ 
+              width: '100%',
+              borderRadius: 2,
+              boxShadow: 3,
+              '& .MuiAlert-icon': {
+                fontSize: '1.5rem'
+              }
+            }}
+            action={
+              <MUI.IconButton
+                size="small"
+                aria-label="close"
+                color="inherit"
+                onClick={handleCloseSnackbar}
+              >
+                <Icons.Close fontSize="small" />
+              </MUI.IconButton>
+            }
           >
             {snackbar.message}
           </MUI.Alert>
