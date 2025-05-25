@@ -125,6 +125,7 @@ const Students = () => {
     nacionalidad: 'Dominicana',
     tipoDocumento: 'Cédula',
     documento: '',
+    pasaporte_codigo_pais: '',
     nombre: '',
     segNombre: '',
     apellido: '',
@@ -252,6 +253,7 @@ const Students = () => {
           seg_apellido_est: formData.segApellido || undefined,
           fecha_nac_est: formData.fechaNacimiento,
           sexo_est: formData.sexo_est ? formData.sexo_est as "Masculino" | "Femenino" : undefined,
+          pasaporte_codigo_pais: formData.tipoDocumento === 'Pasaporte' ? formData.pasaporte_codigo_pais : undefined,
           nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
           horaspasrealizadas_est: formData.horaspasrealizadas ? Number(formData.horaspasrealizadas) : undefined,
           taller_est: formData.taller ? {
@@ -326,6 +328,7 @@ const Students = () => {
           seg_apellido_est: formData.segApellido || undefined,
           fecha_nac_est: formData.fechaNacimiento,
           sexo_est: formData.sexo_est ? formData.sexo_est as "Masculino" | "Femenino" : undefined,
+          pasaporte_codigo_pais: formData.tipoDocumento === 'Pasaporte' ? formData.pasaporte_codigo_pais : undefined,
           nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
           horaspasrealizadas_est: formData.horaspasrealizadas ? Number(formData.horaspasrealizadas) : undefined,
           taller_est: formData.taller ? Number(formData.taller) : null,
@@ -636,6 +639,7 @@ const Students = () => {
       nacionalidadOtra: esDominicano ? '' : (nacionalidadOriginal || '').trim(),
       tipoDocumento: estudiante.tipo_documento_est || (esDominicano ? 'Cédula' : 'Pasaporte'),
       documento: estudiante.documento_id_est,
+      pasaporte_codigo_pais: estudiante.pasaporte_codigo_pais || '',
       nombre: estudiante.nombre_est,
       segNombre: estudiante.seg_nombre_est || '',
       apellido: estudiante.apellido_est,
@@ -722,6 +726,7 @@ const Students = () => {
       nacionalidad: 'Dominicana',
       tipoDocumento: 'Cédula',
       documento: '',
+      pasaporte_codigo_pais: '',
       nombre: '',
       segNombre: '',
       apellido: '',
@@ -774,6 +779,7 @@ const Students = () => {
       nacionalidad: 'Dominicana',
       tipoDocumento: 'Cédula',
       documento: '',
+      pasaporte_codigo_pais: '',
       nombre: '',
       segNombre: '',
       apellido: '',
@@ -1867,6 +1873,19 @@ const Students = () => {
                       helperText={!documentoDisponible ? "Este documento ya está en uso" : ""}
                     />
                   </MUI.Grid>
+                  {formData.tipoDocumento === 'Pasaporte' && (
+                    <MUI.Grid item xs={12} sm={6}>
+                      <MUI.TextField
+                        fullWidth
+                        label="Código de País del Pasaporte"
+                        name="pasaporte_codigo_pais"
+                        value={formData.pasaporte_codigo_pais}
+                        onChange={handleInputChange}
+                        required={formData.tipoDocumento === 'Pasaporte'}
+                        helperText="Ejemplo: DO, US, ES, etc."
+                      />
+                    </MUI.Grid>
+                  )}
                   <MUI.Grid item xs={12} sm={6}>
                     <MUI.TextField
                       fullWidth
