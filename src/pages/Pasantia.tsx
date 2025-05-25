@@ -728,7 +728,24 @@ const PasantiaPage = () => {
                     <MUI.TableRow key={p.id_pas} sx={showHistorial ? { bgcolor: '#fff3f3' } : undefined}>
                       <MUI.TableCell>{p.estudiante_pas.nombre_est} {p.estudiante_pas.apellido_est}</MUI.TableCell>
                       <MUI.TableCell>
-                        {p.estudiante_pas.taller_est?.nombre_taller || '-'}
+                        {(() => {
+                          // Si no hay plaza asignada, mostrar '-'
+                          if (!p.plaza_pas) return '-';
+                          
+                          // Obtener el ID de la plaza (puede ser un objeto o un número)
+                          const plazaId = typeof p.plaza_pas === 'object' ? p.plaza_pas.id_plaza : p.plaza_pas;
+                          
+                          // Buscar la plaza en el array de plazas
+                          const plaza = plazas.find(pl => pl.id_plaza === plazaId);
+                          
+                          // Si encontramos la plaza, mostrar su taller
+                          if (plaza?.taller_plaza) {
+                            return plaza.taller_plaza.nombre_taller;
+                          }
+                          
+                          // Si no encontramos la plaza o no tiene taller, mostrar '-'
+                          return '-';
+                        })()}
                       </MUI.TableCell>
                       <MUI.TableCell>{p.centro_pas.nombre_centro}</MUI.TableCell>
                       <MUI.TableCell>{p.supervisor_pas?.nombre_sup || '-'}</MUI.TableCell>
