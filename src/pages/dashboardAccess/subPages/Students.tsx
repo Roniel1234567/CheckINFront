@@ -130,6 +130,7 @@ const Students = () => {
     apellido: '',
     segApellido: '',
     fechaNacimiento: '',
+    sexo_est: '',
     telefono: '',
     email: '',
     taller: '',
@@ -246,12 +247,13 @@ const Students = () => {
         const estudianteActualizado: Partial<Estudiante> = {
           tipo_documento_est: formData.tipoDocumento,
           nombre_est: formData.nombre,
-          seg_nombre_est: formData.segNombre || null,
+          seg_nombre_est: formData.segNombre || undefined,
           apellido_est: formData.apellido,
-          seg_apellido_est: formData.segApellido || null,
+          seg_apellido_est: formData.segApellido || undefined,
           fecha_nac_est: formData.fechaNacimiento,
+          sexo_est: formData.sexo_est ? formData.sexo_est as "Masculino" | "Femenino" : undefined,
           nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
-          horaspasrealizadas_est: formData.horasPasantia ? formData.horasPasantia : '0',
+          horaspasrealizadas_est: formData.horaspasrealizadas ? Number(formData.horaspasrealizadas) : undefined,
           taller_est: formData.taller ? {
             id_taller: Number(formData.taller),
             nombre_taller: '',
@@ -319,12 +321,13 @@ const Students = () => {
           tipo_documento_est: formData.tipoDocumento,
           documento_id_est: formData.documento,
           nombre_est: formData.nombre,
-          seg_nombre_est: formData.segNombre || null,
+          seg_nombre_est: formData.segNombre || undefined,
           apellido_est: formData.apellido,
-          seg_apellido_est: formData.segApellido || null,
+          seg_apellido_est: formData.segApellido || undefined,
           fecha_nac_est: formData.fechaNacimiento,
+          sexo_est: formData.sexo_est ? formData.sexo_est as "Masculino" | "Femenino" : undefined,
           nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
-          horaspasrealizadas_est: formData.horaspasrealizadas ? Number(formData.horaspasrealizadas) : null,
+          horaspasrealizadas_est: formData.horaspasrealizadas ? Number(formData.horaspasrealizadas) : undefined,
           taller_est: formData.taller ? Number(formData.taller) : null,
           contacto_est: nuevoContacto.id_contacto,
           usuario_est: nuevoUsuario.id_usuario || nuevoUsuario.id || nuevoUsuario.usuario_id,
@@ -347,8 +350,10 @@ const Students = () => {
         });
 
         setSnackbar({ open: true, message: 'Estudiante creado correctamente', severity: 'success' });
+        handleCloseForm(); // Cerrar el formulario después de crear exitosamente
+        loadData(); // Recargar la lista de estudiantes
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error:', error);
       setError(error.response?.data?.message || error.message || 'Error al procesar la solicitud');
       setSnackbar({
@@ -636,6 +641,7 @@ const Students = () => {
       apellido: estudiante.apellido_est,
       segApellido: estudiante.seg_apellido_est || '',
       fechaNacimiento: estudiante.fecha_nac_est,
+      sexo_est: estudiante.sexo_est || '',
       telefono: estudiante.contacto_est?.telefono_contacto || '',
       email: estudiante.contacto_est?.email_contacto || '',
       taller: estudiante.taller_est ? String(estudiante.taller_est.id_taller) : '',
@@ -721,6 +727,7 @@ const Students = () => {
       apellido: '',
       segApellido: '',
       fechaNacimiento: '',
+      sexo_est: '',
       telefono: '',
       email: '',
       taller: '',
@@ -772,6 +779,7 @@ const Students = () => {
       apellido: '',
       segApellido: '',
       fechaNacimiento: '',
+      sexo_est: '',
       telefono: '',
       email: '',
       taller: '',
@@ -1908,6 +1916,21 @@ const Students = () => {
                       InputLabelProps={{ shrink: true }}
                       required
                     />
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12} sm={6}>
+                    <MUI.FormControl fullWidth required>
+                        <MUI.InputLabel id="sexo-label">Sexo</MUI.InputLabel>
+                        <MUI.Select
+                            labelId="sexo-label"
+                            name="sexo_est"
+                            value={formData.sexo_est}
+                            label="Sexo"
+                            onChange={handleSelectChange}
+                        >
+                            <MUI.MenuItem value="Masculino">Masculino</MUI.MenuItem>
+                            <MUI.MenuItem value="Femenino">Femenino</MUI.MenuItem>
+                        </MUI.Select>
+                    </MUI.FormControl>
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>
                     <MUI.TextField
