@@ -1217,8 +1217,6 @@ function Companies() {
                   <MUI.TableHead>
                     <MUI.TableRow>
                       <MUI.TableCell>Empresa</MUI.TableCell>
-                      <MUI.TableCell>Dirección</MUI.TableCell>
-                      <MUI.TableCell>Contacto</MUI.TableCell>
                       <MUI.TableCell align="center">Acciones</MUI.TableCell>
                     </MUI.TableRow>
                   </MUI.TableHead>
@@ -1226,13 +1224,6 @@ function Companies() {
                     {empresasPendientes.map((empresa) => (
                       <MUI.TableRow key={empresa.id_centro}>
                         <MUI.TableCell>{empresa.nombre_centro}</MUI.TableCell>
-                        <MUI.TableCell>
-                          {empresa.direccion?.calle_dir} {empresa.direccion?.num_res_dir}
-                        </MUI.TableCell>
-                        <MUI.TableCell>
-                          {empresa.contacto?.telefono_contacto}<br/>
-                          {empresa.contacto?.email_contacto}
-                        </MUI.TableCell>
                         <MUI.TableCell align="center">
                           <MUI.ButtonGroup>
                             <MUI.Button
@@ -1263,8 +1254,6 @@ function Companies() {
                   <MUI.TableHead>
                     <MUI.TableRow>
                       <MUI.TableCell>Empresa</MUI.TableCell>
-                      <MUI.TableCell>Dirección</MUI.TableCell>
-                      <MUI.TableCell>Contacto</MUI.TableCell>
                       <MUI.TableCell align="center">Acciones</MUI.TableCell>
                     </MUI.TableRow>
                   </MUI.TableHead>
@@ -1272,13 +1261,6 @@ function Companies() {
                     {empresasAceptadas.map((empresa) => (
                       <MUI.TableRow key={empresa.id_centro}>
                         <MUI.TableCell>{empresa.nombre_centro}</MUI.TableCell>
-                        <MUI.TableCell>
-                          {empresa.direccion?.calle_dir} {empresa.direccion?.num_res_dir}
-                        </MUI.TableCell>
-                        <MUI.TableCell>
-                          {empresa.contacto?.telefono_contacto}<br/>
-                          {empresa.contacto?.email_contacto}
-                        </MUI.TableCell>
                         <MUI.TableCell align="center">
                           <MUI.Tooltip title="Restaurar a Pendiente">
                             <MUI.IconButton
@@ -1303,8 +1285,6 @@ function Companies() {
                   <MUI.TableHead>
                     <MUI.TableRow>
                       <MUI.TableCell>Empresa</MUI.TableCell>
-                      <MUI.TableCell>Dirección</MUI.TableCell>
-                      <MUI.TableCell>Contacto</MUI.TableCell>
                       <MUI.TableCell align="center">Acciones</MUI.TableCell>
                     </MUI.TableRow>
                   </MUI.TableHead>
@@ -1312,13 +1292,6 @@ function Companies() {
                     {empresasRechazadas.map((empresa) => (
                       <MUI.TableRow key={empresa.id_centro}>
                         <MUI.TableCell>{empresa.nombre_centro}</MUI.TableCell>
-                        <MUI.TableCell>
-                          {empresa.direccion?.calle_dir} {empresa.direccion?.num_res_dir}
-                        </MUI.TableCell>
-                        <MUI.TableCell>
-                          {empresa.contacto?.telefono_contacto}<br/>
-                          {empresa.contacto?.email_contacto}
-                        </MUI.TableCell>
                         <MUI.TableCell align="center">
                           <MUI.Tooltip title="Restaurar a Pendiente">
                             <MUI.IconButton
