@@ -49,6 +49,7 @@ function Companies() {
   const [openDialog, setOpenDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingCentro, setEditingCentro] = useState<any>(null);
+  const [openValidarEmpresas, setOpenValidarEmpresas] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     nombre_centro: '',
     telefono_contacto: '',
@@ -544,34 +545,50 @@ function Companies() {
     }));
   };
 
-  const [openValidarEmpresas, setOpenValidarEmpresas] = useState(false);
-  const [empresasPendientes, setEmpresasPendientes] = useState<any[]>([]);
-  const [busquedaPendientes, setBusquedaPendientes] = useState('');
+  // Agregar estados para las empresas por estado de validación
+  const [empresasAceptadas, setEmpresasAceptadas] = useState<CentroTrabajo[]>([]);
+  const [empresasRechazadas, setEmpresasRechazadas] = useState<CentroTrabajo[]>([]);
+  const [empresasPendientes, setEmpresasPendientes] = useState<CentroTrabajo[]>([]);
+  const [tabValue, setTabValue] = useState(0);
 
-  const cargarEmpresasPendientes = async () => {
+  // Modificar cargarEmpresas para cargar todos los estados
+  const cargarEmpresas = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/centros-trabajo/pendientes');
-      const data = await res.json();
-      console.log('Empresas pendientes recibidas:', data);
-      setEmpresasPendientes(data);
+      const [pendientesRes, aceptadasRes, rechazadasRes] = await Promise.all([
+        fetch('http://localhost:5000/api/centros-trabajo/pendientes'),
+        fetch('http://localhost:5000/api/centros-trabajo/validacion/aceptadas'),
+        fetch('http://localhost:5000/api/centros-trabajo/validacion/rechazadas')
+      ]);
+
+      const [pendientes, aceptadas, rechazadas] = await Promise.all([
+        pendientesRes.json(),
+        aceptadasRes.json(),
+        rechazadasRes.json()
+      ]);
+
+      setEmpresasPendientes(pendientes);
+      setEmpresasAceptadas(aceptadas);
+      setEmpresasRechazadas(rechazadas);
     } catch (error) {
-      console.error('Error al cargar empresas pendientes:', error);
+      console.error('Error al cargar empresas:', error);
       setEmpresasPendientes([]);
+      setEmpresasAceptadas([]);
+      setEmpresasRechazadas([]);
     }
   };
 
   useEffect(() => {
     if (openValidarEmpresas) {
-      cargarEmpresasPendientes();
+      cargarEmpresas();
     }
   }, [openValidarEmpresas]);
 
-  const handleValidarCentro = async (id: number, estado: 'Aceptada' | 'Rechazada') => {
+  const handleValidarCentro = async (id: number, estado: 'Aceptada' | 'Rechazada' | 'Pendiente') => {
     try {
       await axios.put(`http://localhost:5000/api/centros-trabajo/${id}/validar`, {
         validacion: estado
       });
-      cargarEmpresasPendientes();
+      cargarEmpresas();
       loadCentrosTrabajo();
     } catch (error) {
       console.error('Error al validar centro:', error);
@@ -1174,67 +1191,156 @@ function Companies() {
           </MUI.DialogActions>
         </MUI.Dialog>
 
-        <MUI.Dialog open={openValidarEmpresas} onClose={() => setOpenValidarEmpresas(false)} maxWidth="md" fullWidth>
-          <MUI.DialogTitle>Empresas pendientes de validación</MUI.DialogTitle>
+        {/* Diálogo de validación de empresas */}
+        <MUI.Dialog 
+          open={openValidarEmpresas} 
+          onClose={() => setOpenValidarEmpresas(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <MUI.DialogTitle>
+            Validación de Empresas
+          </MUI.DialogTitle>
           <MUI.DialogContent>
-                <MUI.TextField
-                  fullWidth
-                  variant="outlined"
-              placeholder="Buscar por nombre o email..."
-              value={busquedaPendientes}
-              onChange={e => setBusquedaPendientes(e.target.value)}
-                  sx={{ mb: 2 }}
-            />
-                  <MUI.Table>
-                    <MUI.TableHead>
-                      <MUI.TableRow>
-                  <MUI.TableCell>Nombre</MUI.TableCell>
-                  <MUI.TableCell>Contacto</MUI.TableCell>
-                  <MUI.TableCell>Validación</MUI.TableCell>
-                        <MUI.TableCell>Acciones</MUI.TableCell>
-                      </MUI.TableRow>
-                    </MUI.TableHead>
-                    <MUI.TableBody>
-                {(Array.isArray(empresasPendientes) && empresasPendientes.length === 0) ? (
-                  <MUI.TableRow>
-                    <MUI.TableCell colSpan={4} align="center">
-                      No hay empresas pendientes de validación.
-                    </MUI.TableCell>
-                  </MUI.TableRow>
-                ) : (
-                  empresasPendientes
-                    .filter(centro =>
-                      centro.nombre_centro.toLowerCase().includes(busquedaPendientes.toLowerCase()) ||
-                      (centro.contacto_centro?.email_contacto || '').toLowerCase().includes(busquedaPendientes.toLowerCase())
-                    )
-                    .map((centro) => (
-                      <MUI.TableRow key={centro.id_centro}>
-                        <MUI.TableCell>{centro.nombre_centro}</MUI.TableCell>
-                        <MUI.TableCell>{centro.contacto_centro?.email_contacto || '-'}</MUI.TableCell>
-                            <MUI.TableCell>
-                          <MUI.Chip label={centro.validacion} color="warning" />
-                            </MUI.TableCell>
-                            <MUI.TableCell>
-              <MUI.Button 
-                            color="success"
-                            onClick={() => handleValidarCentro(centro.id_centro, 'Aceptada')}
-                            sx={{ mr: 1 }}
-              >
-                            Aceptar
-              </MUI.Button>
-            <MUI.Button 
-                            color="error"
-                            onClick={() => handleValidarCentro(centro.id_centro, 'Rechazada')}
-                          >
-                            Rechazar
-            </MUI.Button>
+            <MUI.Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+              <MUI.Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
+                <MUI.Tab label="Pendientes" />
+                <MUI.Tab label="Aceptadas" />
+                <MUI.Tab label="Rechazadas" />
+              </MUI.Tabs>
+            </MUI.Box>
+
+            {/* Panel de Pendientes */}
+            {tabValue === 0 && (
+              <MUI.TableContainer>
+                <MUI.Table>
+                  <MUI.TableHead>
+                    <MUI.TableRow>
+                      <MUI.TableCell>Empresa</MUI.TableCell>
+                      <MUI.TableCell>Dirección</MUI.TableCell>
+                      <MUI.TableCell>Contacto</MUI.TableCell>
+                      <MUI.TableCell align="center">Acciones</MUI.TableCell>
+                    </MUI.TableRow>
+                  </MUI.TableHead>
+                  <MUI.TableBody>
+                    {empresasPendientes.map((empresa) => (
+                      <MUI.TableRow key={empresa.id_centro}>
+                        <MUI.TableCell>{empresa.nombre_centro}</MUI.TableCell>
+                        <MUI.TableCell>
+                          {empresa.direccion?.calle_dir} {empresa.direccion?.num_res_dir}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          {empresa.contacto?.telefono_contacto}<br/>
+                          {empresa.contacto?.email_contacto}
+                        </MUI.TableCell>
+                        <MUI.TableCell align="center">
+                          <MUI.ButtonGroup>
+                            <MUI.Button
+                              color="success"
+                              onClick={() => handleValidarCentro(empresa.id_centro, 'Aceptada')}
+                            >
+                              <Icons.Check />
+                            </MUI.Button>
+                            <MUI.Button
+                              color="error"
+                              onClick={() => handleValidarCentro(empresa.id_centro, 'Rechazada')}
+                            >
+                              <Icons.Close />
+                            </MUI.Button>
+                          </MUI.ButtonGroup>
                         </MUI.TableCell>
                       </MUI.TableRow>
-                    ))
-                )}
-              </MUI.TableBody>
-            </MUI.Table>
+                    ))}
+                  </MUI.TableBody>
+                </MUI.Table>
+              </MUI.TableContainer>
+            )}
+
+            {/* Panel de Aceptadas */}
+            {tabValue === 1 && (
+              <MUI.TableContainer>
+                <MUI.Table>
+                  <MUI.TableHead>
+                    <MUI.TableRow>
+                      <MUI.TableCell>Empresa</MUI.TableCell>
+                      <MUI.TableCell>Dirección</MUI.TableCell>
+                      <MUI.TableCell>Contacto</MUI.TableCell>
+                      <MUI.TableCell align="center">Acciones</MUI.TableCell>
+                    </MUI.TableRow>
+                  </MUI.TableHead>
+                  <MUI.TableBody>
+                    {empresasAceptadas.map((empresa) => (
+                      <MUI.TableRow key={empresa.id_centro}>
+                        <MUI.TableCell>{empresa.nombre_centro}</MUI.TableCell>
+                        <MUI.TableCell>
+                          {empresa.direccion?.calle_dir} {empresa.direccion?.num_res_dir}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          {empresa.contacto?.telefono_contacto}<br/>
+                          {empresa.contacto?.email_contacto}
+                        </MUI.TableCell>
+                        <MUI.TableCell align="center">
+                          <MUI.Tooltip title="Restaurar a Pendiente">
+                            <MUI.IconButton
+                              color="primary"
+                              onClick={() => handleValidarCentro(empresa.id_centro, 'Pendiente')}
+                            >
+                              <Icons.Restore />
+                            </MUI.IconButton>
+                          </MUI.Tooltip>
+                        </MUI.TableCell>
+                      </MUI.TableRow>
+                    ))}
+                  </MUI.TableBody>
+                </MUI.Table>
+              </MUI.TableContainer>
+            )}
+
+            {/* Panel de Rechazadas */}
+            {tabValue === 2 && (
+              <MUI.TableContainer>
+                <MUI.Table>
+                  <MUI.TableHead>
+                    <MUI.TableRow>
+                      <MUI.TableCell>Empresa</MUI.TableCell>
+                      <MUI.TableCell>Dirección</MUI.TableCell>
+                      <MUI.TableCell>Contacto</MUI.TableCell>
+                      <MUI.TableCell align="center">Acciones</MUI.TableCell>
+                    </MUI.TableRow>
+                  </MUI.TableHead>
+                  <MUI.TableBody>
+                    {empresasRechazadas.map((empresa) => (
+                      <MUI.TableRow key={empresa.id_centro}>
+                        <MUI.TableCell>{empresa.nombre_centro}</MUI.TableCell>
+                        <MUI.TableCell>
+                          {empresa.direccion?.calle_dir} {empresa.direccion?.num_res_dir}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          {empresa.contacto?.telefono_contacto}<br/>
+                          {empresa.contacto?.email_contacto}
+                        </MUI.TableCell>
+                        <MUI.TableCell align="center">
+                          <MUI.Tooltip title="Restaurar a Pendiente">
+                            <MUI.IconButton
+                              color="primary"
+                              onClick={() => handleValidarCentro(empresa.id_centro, 'Pendiente')}
+                            >
+                              <Icons.Restore />
+                            </MUI.IconButton>
+                          </MUI.Tooltip>
+                        </MUI.TableCell>
+                      </MUI.TableRow>
+                    ))}
+                  </MUI.TableBody>
+                </MUI.Table>
+              </MUI.TableContainer>
+            )}
           </MUI.DialogContent>
+          <MUI.DialogActions>
+            <MUI.Button onClick={() => setOpenValidarEmpresas(false)}>
+              Cerrar
+            </MUI.Button>
+          </MUI.DialogActions>
         </MUI.Dialog>
         </MUI.Box>
 
