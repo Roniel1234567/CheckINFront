@@ -31,6 +31,7 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
     { id: 'talleres', text: 'Gestión de Talleres', icon: <Icons.Build />, path: '/talleres' },
     { id: 'tutores', text: 'Gestión de Tutores', icon: <Icons.SupervisorAccount />, path: '/tutores' },
     { id: 'supervisores', text: 'Gestión de Supervisores', icon: <Icons.SupervisorAccount />, path: '/supervisores' },
+    { id: 'administradores', text: 'Gestión de Administradores', icon: <Icons.AdminPanelSettings />, path: '/administradores' },
     { id: 'companies', text: 'Centros de Trabajo', icon: <Icons.Business />, path: '/Centros-Trabajo' },
     { id: 'plazas', text: 'Plazas', icon: <Icons.BusinessCenter />, path: '/plazas' },
     { id: 'evaluaciones', text: 'Evaluaciones', icon: <Icons.Assessment />, path: '/evaluaciones' },
