@@ -26,8 +26,6 @@ const PasantiaPage = () => {
   const [centroFiltro, setCentroFiltro] = useState('');
   const [estudiantesSeleccionados, setEstudiantesSeleccionados] = useState<string[]>([]);
   const [supervisorSeleccionado, setSupervisorSeleccionado] = useState('');
-  const [fechaInicio, setFechaInicio] = useState('');
-  const [fechaFin, setFechaFin] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -104,7 +102,7 @@ const PasantiaPage = () => {
   // Filtrar plazas por taller seleccionado
   const plazasFiltradas = plazas.filter(p => {
     const tallerId = p.taller_plaza?.id_taller;
-    return !tallerFiltro || (tallerId && Number(tallerId) === Number(tallerFiltro));
+    return !tallerFiltro || (tallerId && String(tallerId) === tallerFiltro);
   });
 
   // Filtrar centros por taller (solo los que tienen plazas para ese taller)
@@ -119,15 +117,15 @@ const PasantiaPage = () => {
   // Filtrar estudiantes por taller
   const estudiantesFiltrados = estudiantes.filter(e => {
     const tallerId = e.taller_est?.id_taller;
-    return !tallerFiltro || (tallerId && Number(tallerId) === Number(tallerFiltro));
+    return !tallerFiltro || (tallerId && String(tallerId) === tallerFiltro);
   });
 
   // Filtrar plazas para el menú de plazas según centro y taller seleccionados
   const plazasDisponiblesForm = plazas.filter(p => {
     const tallerId = p.taller_plaza?.id_taller;
     const centroId = p.centro_plaza?.id_centro;
-    return (!tallerFiltro || (tallerId && Number(tallerId) === Number(tallerFiltro))) &&
-      (!centroFiltro || (centroId && Number(centroId) === Number(centroFiltro)));
+    return (!tallerFiltro || (tallerId && String(tallerId) === tallerFiltro)) &&
+      (!centroFiltro || (centroId && String(centroId) === centroFiltro));
   });
 
   // Función para verificar si un estudiante ya tiene una pasantía activa
@@ -145,20 +143,78 @@ const PasantiaPage = () => {
     return estudiantesConPasantia;
   };
 
-  // Modificar el handleCrearPasantias para incluir la validación
-  const handleCrearPasantias = async () => {
-    if (!plazaFormSeleccionada || estudiantesSeleccionados.length === 0 || !supervisorSeleccionado || !fechaInicio) {
-      setError('Completa todos los campos requeridos');
-      return;
+  // Mover cargarDatos fuera del useEffect
+  const cargarDatos = async () => {
+    setLoading(true);
+    try {
+      const [talleresData, centrosData, plazasData, estudiantesData, pasantiasData, supervisoresData] = await Promise.all([
+        internshipService.getAllTalleres(),
+        internshipService.getAllCentrosTrabajo(),
+        internshipService.getAllPlazas(),
+        internshipService.getAllEstudiantes(),
+        internshipService.getAllPasantias(),
+        supervisorService.getAllSupervisores(),
+      ]);
+
+      setTalleres(talleresData);
+      setCentros(centrosData);
+      setPlazas(plazasData);
+      setEstudiantes(estudiantesData);
+      setPasantias(pasantiasData);
+      setSupervisores(supervisoresData);
+    } catch (error) {
+      console.error('Error al cargar datos:', error);
+      setError('Error al cargar los datos');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Usar useEffect con la función cargarDatos
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  // Modificar handleEditClick
+  const handleEditClick = (pasantia: Pasantia) => {
+    setPasantiaToEdit(pasantia);
+    
+    // Obtener el taller y centro de la plaza actual
+    const plazaId = typeof pasantia.plaza_pas === 'object' ? pasantia.plaza_pas.id_plaza : pasantia.plaza_pas;
+    const plazaActual = plazas.find(p => p.id_plaza === plazaId);
+    
+    if (plazaActual?.taller_plaza?.id_taller) {
+      setTallerFiltro(String(plazaActual.taller_plaza.id_taller));
     }
 
-    // Verificar estudiantes con pasantías activas
-    const estudiantesConPasantia = verificarPasantiasActivas(estudiantesSeleccionados);
-    if (estudiantesConPasantia.length > 0) {
-      const mensajeError = `Los siguientes estudiantes ya tienen pasantías activas:\n${
-        estudiantesConPasantia.map(e => `- ${e.nombre}`).join('\n')
-      }\nDebes cancelar sus pasantías actuales antes de asignarles una nueva.`;
-      setError(mensajeError);
+    if (plazaActual?.centro_plaza?.id_centro) {
+      setCentroFiltro(String(plazaActual.centro_plaza.id_centro));
+    }
+
+    // Establecer la plaza
+    if (plazaActual) {
+      setPlazaFormSeleccionada(plazaActual);
+    }
+
+    // Establecer el supervisor
+    if (pasantia.supervisor_pas?.id_sup) {
+      setSupervisorSeleccionado(String(pasantia.supervisor_pas.id_sup));
+    }
+
+    setOpenEditDialog(true);
+  };
+
+  // Diálogo de edición
+  const getTallerNombre = (id: string) => {
+    if (!id) return '';
+    const taller = talleres.find(t => String(t.id_taller) === id);
+    return taller ? taller.nombre_taller : '';
+  };
+
+  // Modificar el handleCrearPasantias para incluir la validación
+  const handleCrearPasantias = async () => {
+    if (!plazaFormSeleccionada || estudiantesSeleccionados.length === 0 || !supervisorSeleccionado) {
+      setError('Completa todos los campos requeridos');
       return;
     }
 
@@ -169,7 +225,7 @@ const PasantiaPage = () => {
       // Solo permite asignar hasta el máximo de plazas disponibles
       const disponibles = plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada);
       if (estudiantesSeleccionados.length > disponibles) {
-        setError('No puedes asignar más estudiantes que plazas disponibles');
+        setError('No puedes seleccionar más estudiantes que plazas disponibles');
         setLoading(false);
         return;
       }
@@ -190,22 +246,23 @@ const PasantiaPage = () => {
             contacto_sup: supervisorObj.contacto_sup.email_contacto,
           },
           plaza_pas: plazaFormSeleccionada.id_plaza,
-          inicio_pas: new Date(fechaInicio),
-          fin_pas: fechaFin ? new Date(fechaFin) : undefined,
           estado_pas: EstadoPasantia.EN_PROCESO,
         });
       }));
+
+      // Limpiar completamente el formulario
       setSuccess('Pasantías creadas correctamente');
       setOpenDialog(false);
       setEstudiantesSeleccionados([]);
-      setCentroFiltro('');
       setTallerFiltro('');
-      setFechaInicio('');
-      setFechaFin('');
-      // Recargar pasantías
-      const pasantiasData = await internshipService.getAllPasantias();
-      setPasantias(pasantiasData);
-    } catch {
+      setCentroFiltro('');
+      setSupervisorSeleccionado('');
+      setPlazaFormSeleccionada(null);
+
+      // Recargar todos los datos
+      await cargarDatos();
+    } catch (error) {
+      console.error('Error al crear las pasantías:', error);
       setError('Error al crear las pasantías');
     } finally {
       setLoading(false);
@@ -214,7 +271,7 @@ const PasantiaPage = () => {
 
   // Handler para editar pasantía
   const handleEditarPasantia = async () => {
-    if (!pasantiaToEdit || !plazaFormSeleccionada || !supervisorSeleccionado || !fechaInicio) {
+    if (!pasantiaToEdit || !plazaFormSeleccionada || !supervisorSeleccionado) {
       setError('Completa todos los campos requeridos');
       return;
     }
@@ -241,17 +298,19 @@ const PasantiaPage = () => {
           contacto_sup: supervisorObj.contacto_sup.email_contacto,
         },
         plaza_pas: plazaFormSeleccionada.id_plaza,
-        inicio_pas: new Date(fechaInicio),
-        fin_pas: fechaFin ? new Date(fechaFin) : undefined,
         estado_pas: pasantiaToEdit.estado_pas,
       });
 
       setSuccess('Pasantía actualizada correctamente');
       setOpenEditDialog(false);
       setPasantiaToEdit(null);
-      // Recargar pasantías
-      const pasantiasData = await internshipService.getAllPasantias();
-      setPasantias(pasantiasData);
+      setTallerFiltro('');
+      setCentroFiltro('');
+      setSupervisorSeleccionado('');
+      setPlazaFormSeleccionada(null);
+
+      // Recargar todos los datos
+      await cargarDatos();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al actualizar la pasantía');
     } finally {
@@ -316,34 +375,6 @@ const PasantiaPage = () => {
     setDrawerOpen(!isMobile);
   }, [isMobile]);
 
-  // Cargar datos iniciales
-  useEffect(() => {
-    const cargarDatos = async () => {
-      setLoading(true);
-      try {
-        const [talleresData, centrosData, plazasData, estudiantesData, pasantiasData, supervisoresData] = await Promise.all([
-          internshipService.getAllTalleres(),
-          internshipService.getAllCentrosTrabajo(),
-          internshipService.getAllPlazas(),
-          internshipService.getAllEstudiantes(),
-          internshipService.getAllPasantias(),
-          supervisorService.getAllSupervisores(),
-        ]);
-        setTalleres(talleresData);
-        setCentros(centrosData);
-        setPlazas(plazasData);
-        setEstudiantes(estudiantesData);
-        setPasantias(pasantiasData);
-        setSupervisores(supervisoresData);
-      } catch {
-        setError('Error al cargar los datos');
-      } finally {
-        setLoading(false);
-      }
-    };
-    cargarDatos();
-  }, []);
-
   return (
     <MUI.Box sx={{ display: 'flex', width: '100vw', minHeight: '100vh', bgcolor: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.light} 100%)`, p: 0 }}>
       <SideBar drawerOpen={drawerOpen} toggleDrawer={toggleDrawer} />
@@ -393,6 +424,7 @@ const PasantiaPage = () => {
           </MUI.Box>
           <MUI.Paper elevation={3} sx={{ p: 3, borderRadius: 4, mb: 4, background: theme.palette.primary.main }}>
             <MUI.Grid container spacing={2} alignItems="center">
+              {/* Filtro de Taller */}
               <MUI.Grid item xs={12} md={3}>
                 <MUI.FormControl fullWidth>
                   <MUI.InputLabel sx={{ color: '#fff' }}>Taller</MUI.InputLabel>
@@ -400,93 +432,83 @@ const PasantiaPage = () => {
                     value={tallerFiltro}
                     onChange={e => {
                       setTallerFiltro(e.target.value);
+                      setCentroFiltro('');
                       setPlazaFormSeleccionada(null);
                     }}
                     label="Taller"
-                    startAdornment={<Icons.Construction sx={{ mr: 1, color: '#fff' }} />}
-                    sx={{ color: '#fff',
+                    sx={{
+                      color: '#fff',
                       '& .MuiSelect-icon': { color: '#fff' },
                       '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
                     }}
-                    inputProps={{ sx: { color: '#fff' } }}
                   >
                     <MUI.MenuItem value=""><em>Todos</em></MUI.MenuItem>
                     {talleres.map(t => (
-                      <MUI.MenuItem key={t.id_taller} value={t.id_taller}>{t.nombre_taller} - {t.familia_taller.nombre_fam}</MUI.MenuItem>
-                    ))}
-                  </MUI.Select>
-                </MUI.FormControl>
-              </MUI.Grid>
-              <MUI.Grid item xs={12} md={3}>
-                <MUI.Autocomplete
-                  options={tallerFiltro ? centrosFiltrados : []}
-                  getOptionLabel={c => c.nombre_centro}
-                  value={tallerFiltro ? (centrosFiltrados.find(c => String(c.id_centro) === String(centroFiltro)) || null) : null}
-                  onChange={(_, value) => {
-                    setCentroFiltro(value ? String(value.id_centro) : '');
-                    setPlazaFormSeleccionada(null);
-                  }}
-                  renderInput={params => (
-                    <MUI.TextField
-                      {...params}
-                      label="Centro de Trabajo"
-                      placeholder="Buscar centro..."
-                      variant="outlined"
-                      InputLabelProps={{ shrink: true }}
-                      sx={{
-                        bgcolor: theme.palette.primary.main,
-                        color: '#fff',
-                        borderRadius: 2,
-                        '& .MuiInputLabel-root': { color: '#fff' },
-                        '& .MuiOutlinedInput-root': {
-                          color: '#fff',
-                          '& fieldset': { borderColor: '#fff' },
-                        },
-                        '& .MuiAutocomplete-inputRoot': {
-                          color: '#fff',
-                        },
-                      }}
-                      inputProps={{ ...params.inputProps, style: { color: '#fff' } }}
-                      disabled={!tallerFiltro}
-                    />
-                  )}
-                  isOptionEqualToValue={(option, value) => option.id_centro === value.id_centro}
-                  disableClearable={false}
-                  disabled={!tallerFiltro}
-                />
-              </MUI.Grid>
-              <MUI.Grid item xs={12} md={3}>
-                <MUI.FormControl fullWidth>
-                  <MUI.InputLabel sx={{ color: '#fff' }}>Plaza</MUI.InputLabel>
-                  <MUI.Select
-                    value={plazaFormSeleccionada ? plazaFormSeleccionada.id_plaza : ''}
-                    onChange={e => {
-                      const plaza = plazas.filter(p =>
-                        (!tallerFiltro || Number(p.taller_plaza.id_taller) === Number(tallerFiltro)) &&
-                        (!centroFiltro || Number(p.centro_plaza.id_centro) === Number(centroFiltro))
-                      ).find(p => p.id_plaza === Number(e.target.value));
-                      setPlazaFormSeleccionada(plaza || null);
-                    }}
-                    label="Plaza"
-                    disabled={!centroFiltro || !tallerFiltro}
-                    sx={{ color: '#fff',
-                      '& .MuiSelect-icon': { color: '#fff' },
-                      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
-                    }}
-                    inputProps={{ sx: { color: '#fff' } }}
-                  >
-                    <MUI.MenuItem value=""><em>Seleccione una plaza</em></MUI.MenuItem>
-                    {plazas.filter(p =>
-                      (!tallerFiltro || Number(p.taller_plaza.id_taller) === Number(tallerFiltro)) &&
-                      (!centroFiltro || Number(p.centro_plaza.id_centro) === Number(centroFiltro))
-                    ).map(p => (
-                      <MUI.MenuItem key={p.id_plaza} value={p.id_plaza}>
-                        {p.taller_plaza.nombre_taller} - {p.centro_plaza.nombre_centro} (Totales: {p.plazas_centro})
+                      <MUI.MenuItem key={t.id_taller} value={String(t.id_taller)}>
+                        {t.nombre_taller}
                       </MUI.MenuItem>
                     ))}
                   </MUI.Select>
                 </MUI.FormControl>
               </MUI.Grid>
+
+              {/* Filtro de Centro */}
+              <MUI.Grid item xs={12} md={3}>
+                <MUI.FormControl fullWidth>
+                  <MUI.InputLabel sx={{ color: '#fff' }}>Centro de Trabajo</MUI.InputLabel>
+                  <MUI.Select
+                    value={centroFiltro}
+                    onChange={e => {
+                      setCentroFiltro(e.target.value);
+                      setPlazaFormSeleccionada(null);
+                    }}
+                    label="Centro de Trabajo"
+                    disabled={!tallerFiltro}
+                    sx={{
+                      color: '#fff',
+                      '& .MuiSelect-icon': { color: '#fff' },
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
+                    }}
+                  >
+                    <MUI.MenuItem value=""><em>Todos</em></MUI.MenuItem>
+                    {centrosFiltrados.map(c => (
+                      <MUI.MenuItem key={c.id_centro} value={String(c.id_centro)}>
+                        {c.nombre_centro}
+                      </MUI.MenuItem>
+                    ))}
+                  </MUI.Select>
+                </MUI.FormControl>
+              </MUI.Grid>
+
+              {/* Filtro de Plaza */}
+              <MUI.Grid item xs={12} md={3}>
+                <MUI.FormControl fullWidth>
+                  <MUI.InputLabel sx={{ color: '#fff' }}>Plaza</MUI.InputLabel>
+                  <MUI.Select
+                    value={plazaFormSeleccionada ? String(plazaFormSeleccionada.id_plaza) : ''}
+                    onChange={e => {
+                      const plaza = plazas.find(p => String(p.id_plaza) === e.target.value);
+                      setPlazaFormSeleccionada(plaza || null);
+                    }}
+                    label="Plaza"
+                    disabled={!centroFiltro || !tallerFiltro}
+                    sx={{
+                      color: '#fff',
+                      '& .MuiSelect-icon': { color: '#fff' },
+                      '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
+                    }}
+                  >
+                    <MUI.MenuItem value=""><em>Seleccione una plaza</em></MUI.MenuItem>
+                    {plazasDisponiblesForm.map(p => (
+                      <MUI.MenuItem key={p.id_plaza} value={String(p.id_plaza)}>
+                        {p.taller_plaza.nombre_taller} - {p.centro_plaza.nombre_centro} (Disponibles: {p.plazas_centro - plazasOcupadas(p)})
+                      </MUI.MenuItem>
+                    ))}
+                  </MUI.Select>
+                </MUI.FormControl>
+              </MUI.Grid>
+
+              {/* Botón Nueva Pasantía */}
               <MUI.Grid item xs={12} md={3}>
                 <MUI.Button
                   variant="contained"
@@ -501,7 +523,7 @@ const PasantiaPage = () => {
                     py: 1.5,
                     color: theme.palette.primary.main,
                     bgcolor: theme.palette.warning.light,
-                    '&:hover': { bgcolor: theme.palette.warning.main, color: theme.palette.primary.main }
+                    '&:hover': { bgcolor: theme.palette.warning.main }
                   }}
                   onClick={() => setOpenDialog(true)}
                   disabled={!plazaFormSeleccionada || plazasOcupadas(plazaFormSeleccionada) >= (plazaFormSeleccionada?.plazas_centro || 0)}
@@ -517,7 +539,7 @@ const PasantiaPage = () => {
             <MUI.Button
               variant={mostrarPlazas ? 'contained' : 'outlined'}
               color="primary"
-              onClick={() => setMostrarPlazas((prev) => !prev)}
+              onClick={() => setMostrarPlazas(!mostrarPlazas)}
               disabled={!tallerFiltro}
               sx={{
                 fontWeight: 'bold',
@@ -538,37 +560,26 @@ const PasantiaPage = () => {
             </MUI.Button>
           </MUI.Box>
 
-          {/* Tarjetas de plazas solo si mostrarPlazas y hay taller seleccionado */}
+          {/* Tarjetas de plazas */}
           {mostrarPlazas && tallerFiltro && (
-            <MUI.Grid container spacing={6} sx={{ mb: 4, display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+            <MUI.Grid container spacing={3} sx={{ mb: 4 }}>
               {plazasFiltradas.map((plaza) => {
                 const ocupadas = plazasOcupadas(plaza);
                 const disponibles = plaza.plazas_centro - ocupadas;
                 return (
-                  <MUI.Grid item xs={12} sm={'auto'} md={'auto'} key={plaza.id_plaza} sx={{ display: 'flex', alignItems: 'stretch' }}>
+                  <MUI.Grid item xs={12} sm={6} md={4} key={plaza.id_plaza}>
                     <MUI.Card
                       sx={{
-                        borderRadius: 5,
+                        borderRadius: 4,
                         boxShadow: '0 8px 32px rgba(26,35,126,0.10)',
-                        background: '#fff',
-                        color: theme.palette.primary.main,
-                        border: `2.5px solid ${theme.palette.primary.main}`,
-                        position: 'relative',
-                        overflow: 'hidden',
-                        minHeight: 220,
-                        minWidth: 380,
-                        maxWidth: 380,
-                        width: 380,
+                        border: `2px solid ${theme.palette.primary.main}`,
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'stretch',
                         transition: 'transform 0.2s',
-                        p: 2,
                         '&:hover': {
-                          transform: 'translateY(-4px) scale(1.03)',
-                          boxShadow: '0 16px 40px rgba(26,35,126,0.18)',
+                          transform: 'translateY(-4px)',
+                          boxShadow: '0 12px 40px rgba(26,35,126,0.15)',
                         },
                       }}
                       onClick={() => {
@@ -576,37 +587,32 @@ const PasantiaPage = () => {
                         setCentroFiltro(String(plaza.centro_plaza.id_centro));
                         setPlazaFormSeleccionada(plaza);
                         setOpenDialog(true);
-                        // Limpiar estados al abrir el diálogo
-                        setEstudiantesSeleccionados([]);
-                        setSupervisorSeleccionado('');
-                        setFechaInicio('');
-                        setFechaFin('');
-                        setError(null);
-                        setSuccess(null);
                       }}
                     >
-                      <MUI.CardContent sx={{ p: 3, height: '100%' }}>
-                        <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                          <Icons.Engineering sx={{ fontSize: 32, color: theme.palette.primary.main }} />
-                          <MUI.Typography variant="h6" sx={{ fontWeight: 'bold', color: theme.palette.primary.main, fontSize: 22 }}>
-                            {plaza.taller_plaza.nombre_taller}
-                          </MUI.Typography>
-                        </MUI.Box>
-                        <MUI.Typography variant="subtitle1" sx={{ fontWeight: 500, mb: 2, color: theme.palette.primary.main, opacity: 0.85 }}>
-                          <Icons.Business sx={{ fontSize: 20, mr: 1, color: theme.palette.primary.main }} /> {plaza.centro_plaza.nombre_centro}
+                      <MUI.CardContent sx={{ flexGrow: 1, p: 3 }}>
+                        <MUI.Typography variant="h6" gutterBottom sx={{ color: theme.palette.primary.main, fontWeight: 'bold' }}>
+                          {plaza.taller_plaza.nombre_taller}
                         </MUI.Typography>
-                        <MUI.Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 1, flexWrap: 'wrap' }}>
-                          <MUI.Chip label={`Totales: ${plaza.plazas_centro}`} sx={{ bgcolor: theme.palette.primary.main, color: '#fff', fontWeight: 'bold', fontSize: 16, px: 2 }} />
-                          <MUI.Chip label={`Ocupadas: ${ocupadas}`} sx={{ bgcolor: theme.palette.warning.light, color: theme.palette.primary.main, fontWeight: 'bold', fontSize: 16, px: 2 }} />
-                          <MUI.Chip label={`Disponibles: ${disponibles}`} sx={{ bgcolor: theme.palette.primary.light, color: theme.palette.primary.main, fontWeight: 'bold', fontSize: 16, px: 2, border: `2px solid ${theme.palette.primary.main}` }} />
+                        <MUI.Typography variant="body1" sx={{ mb: 2, color: theme.palette.text.secondary }}>
+                          {plaza.centro_plaza.nombre_centro}
+                        </MUI.Typography>
+                        <MUI.Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                          <MUI.Chip
+                            label={`Total: ${plaza.plazas_centro}`}
+                            color="primary"
+                            size="small"
+                          />
+                          <MUI.Chip
+                            label={`Ocupadas: ${ocupadas}`}
+                            color="warning"
+                            size="small"
+                          />
+                          <MUI.Chip
+                            label={`Disponibles: ${disponibles}`}
+                            color="success"
+                            size="small"
+                          />
                         </MUI.Box>
-                        {disponibles === 0 && (
-                          <MUI.Zoom in>
-                            <MUI.Alert severity="error" icon={<Icons.Block fontSize="inherit" />} sx={{ mt: 2, fontWeight: 'bold', fontSize: 18, borderRadius: 2 }}>
-                              ¡Plazas agotadas! No puedes registrar más pasantías aquí.
-                            </MUI.Alert>
-                          </MUI.Zoom>
-                        )}
                       </MUI.CardContent>
                     </MUI.Card>
                   </MUI.Grid>
@@ -713,8 +719,6 @@ const PasantiaPage = () => {
                     <MUI.TableCell>Taller</MUI.TableCell>
                     <MUI.TableCell>Centro</MUI.TableCell>
                     <MUI.TableCell>Supervisor</MUI.TableCell>
-                    <MUI.TableCell>Inicio</MUI.TableCell>
-                    <MUI.TableCell>Fin</MUI.TableCell>
                     <MUI.TableCell>Estado</MUI.TableCell>
                     <MUI.TableCell align="center">Acciones</MUI.TableCell>
                   </MUI.TableRow>
@@ -724,18 +728,10 @@ const PasantiaPage = () => {
                     <MUI.TableRow key={p.id_pas} sx={showHistorial ? { bgcolor: '#fff3f3' } : undefined}>
                       <MUI.TableCell>{p.estudiante_pas.nombre_est} {p.estudiante_pas.apellido_est}</MUI.TableCell>
                       <MUI.TableCell>
-                        {(() => {
-                          const plazaId = typeof p.plaza_pas === 'object' && p.plaza_pas !== null
-                            ? p.plaza_pas.id_plaza
-                            : p.plaza_pas;
-                          const plaza = plazas.find(pl => pl.id_plaza === plazaId);
-                          return plaza?.taller_plaza?.nombre_taller || '-';
-                        })()}
+                        {p.estudiante_pas.taller_est?.nombre_taller || '-'}
                       </MUI.TableCell>
                       <MUI.TableCell>{p.centro_pas.nombre_centro}</MUI.TableCell>
                       <MUI.TableCell>{p.supervisor_pas?.nombre_sup || '-'}</MUI.TableCell>
-                      <MUI.TableCell>{p.inicio_pas ? new Date(p.inicio_pas).toLocaleDateString() : '-'}</MUI.TableCell>
-                      <MUI.TableCell>{p.fin_pas ? new Date(p.fin_pas).toLocaleDateString() : '-'}</MUI.TableCell>
                       <MUI.TableCell>
                         <MUI.Chip 
                           label={p.estado_pas} 
@@ -763,16 +759,7 @@ const PasantiaPage = () => {
                                 <MUI.IconButton
                                   size="small"
                                   color="primary"
-                                  onClick={() => {
-                                    setPasantiaToEdit(p);
-                                    setTallerFiltro(p.estudiante_pas.taller_est?.id_taller || '');
-                                    setCentroFiltro(String(p.centro_pas.id_centro));
-                                    setPlazaFormSeleccionada(plazas.find(plaza => plaza.id_plaza === (typeof p.plaza_pas === 'object' ? p.plaza_pas.id_plaza : p.plaza_pas)) || null);
-                                    setSupervisorSeleccionado(String(p.supervisor_pas?.id_sup || ''));
-                                    setFechaInicio(p.inicio_pas ? new Date(p.inicio_pas).toISOString().split('T')[0] : '');
-                                    setFechaFin(p.fin_pas ? new Date(p.fin_pas).toISOString().split('T')[0] : '');
-                                    setOpenEditDialog(true);
-                                  }}
+                                  onClick={() => handleEditClick(p)}
                                 >
                                   <Icons.Edit />
                                 </MUI.IconButton>
@@ -807,8 +794,8 @@ const PasantiaPage = () => {
             setSuccess(null);
             setEstudiantesSeleccionados([]);
             setSupervisorSeleccionado('');
-            setFechaInicio('');
-            setFechaFin('');
+            setError(null);
+            setSuccess(null);
           }} maxWidth="sm" fullWidth>
             <MUI.DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Icons.AddCircleOutline sx={{ color: theme.palette.primary.main }} /> Nueva Pasantía
@@ -873,22 +860,6 @@ const PasantiaPage = () => {
                     )}
                   />
                 </MUI.FormControl>
-                <MUI.TextField
-                  fullWidth
-                  label="Fecha de Inicio"
-                  type="date"
-                  value={fechaInicio}
-                  onChange={e => setFechaInicio(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <MUI.TextField
-                  fullWidth
-                  label="Fecha de Fin (opcional)"
-                  type="date"
-                  value={fechaFin}
-                  onChange={e => setFechaFin(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
               </MUI.Box>
             </MUI.DialogContent>
             <MUI.DialogActions>
@@ -911,206 +882,95 @@ const PasantiaPage = () => {
 
           {/* Diálogo para editar pasantía */}
           <MUI.Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="sm" fullWidth>
-            <MUI.DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Icons.Edit sx={{ color: theme.palette.primary.main }} /> Editar Pasantía
+            <MUI.DialogTitle>
+              <Icons.Edit /> Editar Pasantía
             </MUI.DialogTitle>
             <MUI.DialogContent>
               <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                {error && (
-                  <MUI.Alert severity="error" onClose={() => setError(null)}>
-                    {error}
-                  </MUI.Alert>
-                )}
-                {success && (
-                  <MUI.Alert severity="success" onClose={() => setSuccess(null)}>
-                    {success}
-                  </MUI.Alert>
-                )}
-                {/* Supervisor */}
-                <MUI.Autocomplete
-                  options={supervisores.filter(s => s.centro_trabajo && String(s.centro_trabajo.id_centro) === centroFiltro)}
-                  getOptionLabel={s => `${s.nombre_sup} ${s.apellido_sup}`}
-                  value={supervisores.find(s => String(s.id_sup) === supervisorSeleccionado) || null}
-                  onChange={(_, value) => setSupervisorSeleccionado(value ? String(value.id_sup) : '')}
-                  renderInput={(params) => (
-                    <MUI.TextField
-                      {...params}
-                      label=""
-                      placeholder="Buscar supervisor..."
-                      variant="outlined"
-                      error={!!error && error.includes('supervisor')}
-                      helperText={error && error.includes('supervisor') ? error : ''}
-                      InputLabelProps={{
-                        shrink: true,
-                        sx: {
-                          backgroundColor: 'white',
-                          px: 0.5,
-                        }
-                      }}
-                    />
-                  )}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& .MuiAutocomplete-input': {
-                        padding: '0px !important'
-                      }
-                    }
-                  }}
+                {/* Estudiante */}
+                <MUI.TextField
+                  label="Estudiante"
+                  value={pasantiaToEdit ? `${pasantiaToEdit.estudiante_pas.nombre_est} ${pasantiaToEdit.estudiante_pas.apellido_est}` : ''}
+                  disabled
+                  fullWidth
                 />
 
                 {/* Taller */}
-                <MUI.Autocomplete
-                  options={talleres}
-                  getOptionLabel={t => `${t.nombre_taller} - ${t.familia_taller.nombre_fam}`}
-                  value={talleres.find(t => String(t.id_taller) === tallerFiltro) || null}
-                  onChange={(_, value) => {
-                    setTallerFiltro(value ? String(value.id_taller) : '');
-                    setCentroFiltro('');
-                    setPlazaFormSeleccionada(null);
-                  }}
-                  renderInput={(params) => (
-                    <MUI.TextField
-                      {...params}
-                      label="Taller"
-                      placeholder="Buscar taller..."
-                      variant="outlined"
-                      InputLabelProps={{
-                        shrink: true,
-                        sx: {
-                          backgroundColor: 'white',
-                          px: 0.5,
-                        }
-                      }}
-                    />
-                  )}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& .MuiAutocomplete-input': {
-                        padding: '0px !important'
-                      }
-                    }
-                  }}
+                <MUI.TextField
+                  label="Taller"
+                  value={pasantiaToEdit?.estudiante_pas?.taller_est?.nombre_taller || ''}
+                  disabled
+                  fullWidth
                 />
 
                 {/* Centro */}
-                <MUI.Autocomplete
-                  options={centrosFiltrados}
-                  getOptionLabel={c => c.nombre_centro}
-                  value={centrosFiltrados.find(c => String(c.id_centro) === centroFiltro) || null}
-                  onChange={(_, value) => {
-                    setCentroFiltro(value ? String(value.id_centro) : '');
-                    setPlazaFormSeleccionada(null);
-                  }}
-                  renderInput={(params) => (
-                    <MUI.TextField
-                      {...params}
-                      label="Centro de Trabajo"
-                      placeholder="Buscar centro..."
-                      variant="outlined"
-                      InputLabelProps={{
-                        shrink: true,
-                        sx: {
-                          backgroundColor: 'white',
-                          px: 0.5,
-                        }
-                      }}
-                    />
-                  )}
-                  disabled={!tallerFiltro}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& .MuiAutocomplete-input': {
-                        padding: '0px !important'
-                      }
-                    }
-                  }}
-                />
+                <MUI.FormControl fullWidth>
+                  <MUI.InputLabel>Centro de Trabajo</MUI.InputLabel>
+                  <MUI.Select
+                    value={centroFiltro}
+                    label="Centro de Trabajo"
+                    onChange={(e) => {
+                      setCentroFiltro(e.target.value);
+                      setPlazaFormSeleccionada(null);
+                      setSupervisorSeleccionado('');
+                    }}
+                  >
+                    {centrosFiltrados.map((centro) => (
+                      <MUI.MenuItem key={centro.id_centro} value={String(centro.id_centro)}>
+                        {centro.nombre_centro}
+                      </MUI.MenuItem>
+                    ))}
+                  </MUI.Select>
+                </MUI.FormControl>
+
+                {/* Supervisor */}
+                <MUI.FormControl fullWidth>
+                  <MUI.InputLabel>Supervisor</MUI.InputLabel>
+                  <MUI.Select
+                    value={supervisorSeleccionado}
+                    label="Supervisor"
+                    onChange={(e) => setSupervisorSeleccionado(e.target.value)}
+                  >
+                    {supervisores
+                      .filter(s => s.centro_trabajo && String(s.centro_trabajo.id_centro) === centroFiltro)
+                      .map((supervisor) => (
+                        <MUI.MenuItem key={supervisor.id_sup} value={String(supervisor.id_sup)}>
+                          {supervisor.nombre_sup} {supervisor.apellido_sup}
+                        </MUI.MenuItem>
+                      ))}
+                  </MUI.Select>
+                </MUI.FormControl>
 
                 {/* Plaza */}
-                <MUI.Autocomplete
-                  options={plazasDisponiblesForm}
-                  getOptionLabel={p => `${p.taller_plaza.nombre_taller} - ${p.centro_plaza.nombre_centro} (Disponibles: ${p.plazas_centro - plazasOcupadas(p)})`}
-                  value={plazaFormSeleccionada}
-                  onChange={(_, value) => {
-                    if (value) {
-                      const ocupadas = plazasOcupadas(value);
-                      if (ocupadas >= value.plazas_centro) {
-                        setError('Esta plaza ya no tiene cupos disponibles');
-                        return;
+                <MUI.FormControl fullWidth>
+                  <MUI.InputLabel>Plaza</MUI.InputLabel>
+                  <MUI.Select
+                    value={plazaFormSeleccionada ? String(plazaFormSeleccionada.id_plaza) : ''}
+                    label="Plaza"
+                    onChange={(e) => {
+                      const plaza = plazas.find(p => String(p.id_plaza) === e.target.value);
+                      if (plaza) {
+                        setPlazaFormSeleccionada(plaza);
                       }
-                      setPlazaFormSeleccionada(value);
-                      setError(null);
-                    } else {
-                      setPlazaFormSeleccionada(null);
-                    }
-                  }}
-                  renderInput={(params) => (
-                    <MUI.TextField
-                      {...params}
-                      label="Plaza"
-                      placeholder="Buscar plaza..."
-                      variant="outlined"
-                      InputLabelProps={{
-                        shrink: true,
-                        sx: {
-                          backgroundColor: 'white',
-                          px: 0.5,
-                        }
-                      }}
-                    />
-                  )}
-                  disabled={!centroFiltro || !tallerFiltro}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '& .MuiAutocomplete-input': {
-                        padding: '0px !important'
-                      }
-                    }
-                  }}
-                />
-
-                {/* Fechas */}
-                <MUI.TextField
-                  fullWidth
-                  label="Fecha de Inicio"
-                  type="date"
-                  value={fechaInicio}
-                  onChange={e => setFechaInicio(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-                <MUI.TextField
-                  fullWidth
-                  label="Fecha de Fin (opcional)"
-                  type="date"
-                  value={fechaFin}
-                  onChange={e => setFechaFin(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
-                />
-
-                {plazaFormSeleccionada && (plazasOcupadas(plazaFormSeleccionada, pasantiaToEdit) >= plazaFormSeleccionada.plazas_centro) && 
-                 (!pasantiaToEdit || plazaFormSeleccionada.id_plaza !== (typeof pasantiaToEdit.plaza_pas === 'object' ? pasantiaToEdit.plaza_pas.id_plaza : pasantiaToEdit.plaza_pas)) && (
-                  <MUI.Grow in>
-                    <MUI.Alert severity="error" icon={<Icons.Block fontSize="inherit" />} sx={{ my: 2, fontWeight: 'bold', fontSize: 18, borderRadius: 2, textAlign: 'center' }}>
-                      <span style={{ fontSize: 22, fontWeight: 700, color: '#d32f2f' }}>¡Plaza sin cupos disponibles!</span><br />
-                      No puedes asignar esta plaza porque ya no tiene cupos disponibles.<br />
-                      Por favor, selecciona otra plaza.
-                    </MUI.Alert>
-                  </MUI.Grow>
-                )}
+                    }}
+                  >
+                    {plazasDisponiblesForm.map((plaza) => (
+                      <MUI.MenuItem key={plaza.id_plaza} value={String(plaza.id_plaza)}>
+                        {plaza.taller_plaza.nombre_taller} - {plaza.centro_plaza.nombre_centro}
+                      </MUI.MenuItem>
+                    ))}
+                  </MUI.Select>
+                </MUI.FormControl>
               </MUI.Box>
             </MUI.DialogContent>
             <MUI.DialogActions>
-              <MUI.Button onClick={() => {
-                setOpenEditDialog(false);
-                setError(null);
-                setSuccess(null);
-              }}>
+              <MUI.Button onClick={() => setOpenEditDialog(false)}>
                 Cancelar
               </MUI.Button>
               <MUI.Button 
                 variant="contained" 
                 onClick={handleEditarPasantia}
-                disabled={loading || false}
+                disabled={loading}
               >
                 {loading ? <MUI.CircularProgress size={24} /> : 'Guardar Cambios'}
               </MUI.Button>
