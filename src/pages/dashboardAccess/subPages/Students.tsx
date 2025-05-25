@@ -65,6 +65,8 @@ interface FechasPasantiaRow {
   fecha_inicio: string | null;
   fecha_fin: string | null;
   horas_realizadas: number;
+  tipo_documento_est: string;
+  pasaporte_codigo_pais?: string;
 }
 
 interface User {
@@ -941,7 +943,9 @@ const Students = () => {
           centro: pasantiaActiva ? pasantiaActiva.centro_pas.nombre_centro : '-',
           fecha_inicio: e.fecha_inicio_pasantia || null,
           fecha_fin: e.fecha_fin_pasantia || null,
-          horas_realizadas: Number(e.horaspasrealizadas_est || 0)
+          horas_realizadas: Number(e.horaspasrealizadas_est || 0),
+          tipo_documento_est: e.tipo_documento_est || '',
+          pasaporte_codigo_pais: e.pasaporte_codigo_pais || ''
         };
       });
 
@@ -1163,12 +1167,12 @@ const Students = () => {
           </MUI.Grid>
         </MUI.Grid>
 
-        {/* Tabla */}
-        <MUI.TableContainer>
+        {/* Tabla de fechas */}
+        <MUI.TableContainer component={MUI.Paper} sx={{ mt: 2 }}>
           <MUI.Table>
             <MUI.TableHead>
               <MUI.TableRow>
-                <MUI.TableCell>Estudiante</MUI.TableCell>
+                <MUI.TableCell>Documento - Nombre</MUI.TableCell>
                 <MUI.TableCell>Centro</MUI.TableCell>
                 <MUI.TableCell>Fecha Inicio</MUI.TableCell>
                 <MUI.TableCell>Fecha Fin</MUI.TableCell>
@@ -1178,7 +1182,12 @@ const Students = () => {
             <MUI.TableBody>
               {filtrarDatosFechas(fechasRows).map((row) => (
                 <MUI.TableRow key={row.documento_id_est}>
-                  <MUI.TableCell>{row.nombre_completo}</MUI.TableCell>
+                  <MUI.TableCell>
+                    {row.tipo_documento_est === 'Pasaporte' ? 
+                      `${row.pasaporte_codigo_pais || ''}-${row.documento_id_est}` : 
+                      row.documento_id_est
+                    } - {row.nombre_completo}
+                  </MUI.TableCell>
                   <MUI.TableCell>{row.centro}</MUI.TableCell>
                   <MUI.TableCell>
                     <MUI.TextField
@@ -1394,8 +1403,14 @@ const Students = () => {
                     // Mostrar estudiantes eliminados
                     filteredEliminados.map((estudiante) => (
                       <MUI.TableRow key={estudiante.documento_id_est} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: '#fffde7' } }}>
-                        <MUI.TableCell>{estudiante.documento_id_est}</MUI.TableCell>
-                        <MUI.TableCell>{`${estudiante.nombre_est} ${estudiante.apellido_est}`}</MUI.TableCell>
+                        <MUI.TableCell>
+                          {estudiante.tipo_documento_est === 'Pasaporte' && estudiante.pasaporte_codigo_pais ? 
+                            `${estudiante.pasaporte_codigo_pais}-${estudiante.documento_id_est}` : 
+                            estudiante.documento_id_est
+                          }
+                        </MUI.TableCell>
+                        <MUI.TableCell>{estudiante.nombre_est}</MUI.TableCell>
+                        <MUI.TableCell>{estudiante.apellido_est}</MUI.TableCell>
                         <MUI.TableCell>{estudiante.taller_est?.nombre_taller || '-'}</MUI.TableCell>
                         <MUI.TableCell>{estudiante.contacto_est?.email_contacto || '-'}</MUI.TableCell>
                         <MUI.TableCell>
@@ -1448,7 +1463,12 @@ const Students = () => {
                     // Mostrar estudiantes activos
                     filteredEstudiantes.map((estudiante) => (
                       <MUI.TableRow key={estudiante.documento_id_est} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: '#e3f2fd' } }}>
-                        <MUI.TableCell>{estudiante.documento_id_est}</MUI.TableCell>
+                        <MUI.TableCell>
+                          {estudiante.tipo_documento_est === 'Pasaporte' ? 
+                            `${estudiante.pasaporte_codigo_pais || ''}-${estudiante.documento_id_est}` : 
+                            estudiante.documento_id_est
+                          }
+                        </MUI.TableCell>
                         <MUI.TableCell>{estudiante.nombre_est}</MUI.TableCell>
                         <MUI.TableCell>{estudiante.apellido_est}</MUI.TableCell>
                         <MUI.TableCell>{estudiante.taller_est?.nombre_taller || '-'}</MUI.TableCell>
@@ -1514,8 +1534,13 @@ const Students = () => {
                 <MUI.TableBody>
                   {filteredEliminados.map((estudiante) => (
                     <MUI.TableRow key={estudiante.documento_id_est} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: '#fffde7' } }}>
-                      <MUI.TableCell>{estudiante.documento_id_est}</MUI.TableCell>
-                      <MUI.TableCell>{`${estudiante.nombre_est} ${estudiante.apellido_est}`}</MUI.TableCell>
+                      <MUI.TableCell>
+                        {estudiante.tipo_documento_est === 'Pasaporte' ? 
+                          `${estudiante.pasaporte_codigo_pais || ''}-${estudiante.documento_id_est}` : 
+                          estudiante.documento_id_est
+                        }
+                      </MUI.TableCell>
+                      <MUI.TableCell>{estudiante.nombre_est}</MUI.TableCell>
                       <MUI.TableCell>{estudiante.taller_est?.nombre_taller || '-'}</MUI.TableCell>
                       <MUI.TableCell>{estudiante.contacto_est?.email_contacto || '-'}</MUI.TableCell>
                       <MUI.TableCell>
@@ -1702,12 +1727,12 @@ const Students = () => {
                 </MUI.Grid>
               </MUI.Grid>
 
-              {/* Tabla */}
-              <MUI.TableContainer>
+              {/* Tabla de fechas */}
+              <MUI.TableContainer component={MUI.Paper} sx={{ mt: 2 }}>
                 <MUI.Table>
                   <MUI.TableHead>
                     <MUI.TableRow>
-                      <MUI.TableCell>Estudiante</MUI.TableCell>
+                      <MUI.TableCell>Documento - Nombre</MUI.TableCell>
                       <MUI.TableCell>Centro</MUI.TableCell>
                       <MUI.TableCell>Fecha Inicio</MUI.TableCell>
                       <MUI.TableCell>Fecha Fin</MUI.TableCell>
@@ -1717,7 +1742,12 @@ const Students = () => {
                   <MUI.TableBody>
                     {filtrarDatosFechas(fechasRows).map((row) => (
                       <MUI.TableRow key={row.documento_id_est}>
-                        <MUI.TableCell>{row.nombre_completo}</MUI.TableCell>
+                        <MUI.TableCell>
+                          {row.tipo_documento_est === 'Pasaporte' ? 
+                            `${row.pasaporte_codigo_pais || ''}-${row.documento_id_est}` : 
+                            row.documento_id_est
+                          } - {row.nombre_completo}
+                        </MUI.TableCell>
                         <MUI.TableCell>{row.centro}</MUI.TableCell>
                         <MUI.TableCell>
                           <MUI.TextField
