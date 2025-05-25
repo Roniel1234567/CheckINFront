@@ -463,9 +463,10 @@ const Students = () => {
   // Filtro compuesto
   const filteredEstudiantes = estudiantes.filter(estudiante => {
     // Filtro por nombre, apellido o documento
-    const nombreMatch = estudiante.nombre_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const searchMatch = !searchTerm || 
+      estudiante.nombre_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
       estudiante.apellido_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      estudiante.documento_id_est.includes(searchTerm);
+      estudiante.documento_id_est.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Filtro por taller
     const tallerMatch = selectedTalleres.length === 0 ||
@@ -473,42 +474,27 @@ const Students = () => {
 
     // Filtro por fechas
     let fechaMatch = true;
-    const filtroInicio = dateRange.start ? new Date(dateRange.start) : null;
-    const filtroFin = dateRange.end ? new Date(dateRange.end) : null;
-    const estInicio = estudiante.fecha_inicio_pasantia ? new Date(estudiante.fecha_inicio_pasantia) : null;
-    const estFin = estudiante.fecha_fin_pasantia ? new Date(estudiante.fecha_fin_pasantia) : null;
-
-    if ((filtroInicio || filtroFin)) {
-      // Si hay filtro de fechas, pero el estudiante no tiene fechas, no lo muestres
-      if (!estInicio || !estFin) {
+    if (dateRange.start || dateRange.end) {
+      const fechaInicio = estudiante.fecha_inicio_pasantia ? new Date(estudiante.fecha_inicio_pasantia) : null;
+      const fechaFin = estudiante.fecha_fin_pasantia ? new Date(estudiante.fecha_fin_pasantia) : null;
+      
+      if (dateRange.start && fechaInicio) {
+        fechaMatch = fechaMatch && fechaInicio >= new Date(dateRange.start);
+      }
+      if (dateRange.end && fechaFin) {
+        fechaMatch = fechaMatch && fechaFin <= new Date(dateRange.end);
+      }
+      // Si hay filtro de fechas pero el estudiante no tiene fechas, no lo incluimos
+      if (!fechaInicio || !fechaFin) {
         fechaMatch = false;
-      } else {
-        if (filtroInicio && filtroFin) {
-          fechaMatch = estInicio >= filtroInicio && estFin <= filtroFin;
-        } else if (filtroInicio) {
-          fechaMatch = estInicio >= filtroInicio;
-        } else if (filtroFin) {
-          fechaMatch = estFin <= filtroFin;
-        }
       }
     }
 
-    // Solo mostrar estudiantes con usuario activo
-    const usuarioActivo = estudiante.usuario_est?.estado_usuario === 'Activo';
+    // Solo mostrar estudiantes activos
+    const estadoMatch = estudiante.usuario_est?.estado_usuario === 'Activo';
 
-    return nombreMatch && tallerMatch && fechaMatch && usuarioActivo;
+    return searchMatch && tallerMatch && fechaMatch && estadoMatch;
   });
-
-  const estudiantesFiltrados = estudiantes
-    .filter(e => e.usuario_est?.estado_usuario === 'Activo')
-    .filter(e =>
-      (!searchTerm ||
-        e.nombre_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.apellido_est.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.documento_id_est.includes(searchTerm)
-      ) &&
-      (!selectedTalleres.length || (e.taller_est && selectedTalleres.includes(String(e.taller_est.id_taller))))
-    );
 
   // Componente para menú de documentos
   const tiposDocs = [
@@ -1376,28 +1362,77 @@ const Students = () => {
             </MUI.Box>
           </MUI.Menu>
           {!showHistorial ? (
-            <MUI.TableContainer component={MUI.Paper} elevation={3} sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#fff' }}>
-              <MUI.Table sx={{ minWidth: 900 }}>
-                <MUI.TableHead sx={{ bgcolor: '#f5f7fa' }}>
+            <MUI.TableContainer component={MUI.Paper} sx={{ mt: 3, borderRadius: 2, boxShadow: 3 }}>
+              <MUI.Table>
+                <MUI.TableHead>
                   <MUI.TableRow>
-                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Documento</MUI.TableCell>
-                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Nombre</MUI.TableCell>
-                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Apellido</MUI.TableCell>
-                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Taller</MUI.TableCell>
-                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Póliza</MUI.TableCell>
-                    <MUI.TableCell sx={{ fontWeight: 'bold' }}>Documentos</MUI.TableCell>
-                    <MUI.TableCell sx={{ fontWeight: 'bold' }} align="center">Acciones</MUI.TableCell>
+                    <MUI.TableCell>Documento</MUI.TableCell>
+                    <MUI.TableCell>Nombre</MUI.TableCell>
+                    <MUI.TableCell>Apellido</MUI.TableCell>
+                    <MUI.TableCell>Taller</MUI.TableCell>
+                    <MUI.TableCell>Póliza</MUI.TableCell>
+                    <MUI.TableCell>Documentos</MUI.TableCell>
+                    <MUI.TableCell>Acciones</MUI.TableCell>
                   </MUI.TableRow>
                 </MUI.TableHead>
                 <MUI.TableBody>
-                  {estudiantes
-                    .filter(estudiante => 
-                      estudiante.usuario_est?.estado_usuario === 'Activo' &&
-                      (!selectedTalleres.length || selectedTalleres.includes(String(estudiante.taller_est?.id_taller))) &&
-                      (!dateRange.start || new Date(estudiante.creacion_est) >= new Date(dateRange.start)) &&
-                      (!dateRange.end || new Date(estudiante.creacion_est) <= new Date(dateRange.end))
-                    )
-                    .map((estudiante) => (
+                  {showHistorial ? (
+                    // Mostrar estudiantes eliminados
+                    filteredEliminados.map((estudiante) => (
+                      <MUI.TableRow key={estudiante.documento_id_est} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: '#fffde7' } }}>
+                        <MUI.TableCell>{estudiante.documento_id_est}</MUI.TableCell>
+                        <MUI.TableCell>{`${estudiante.nombre_est} ${estudiante.apellido_est}`}</MUI.TableCell>
+                        <MUI.TableCell>{estudiante.taller_est?.nombre_taller || '-'}</MUI.TableCell>
+                        <MUI.TableCell>{estudiante.contacto_est?.email_contacto || '-'}</MUI.TableCell>
+                        <MUI.TableCell>
+                          {estudiante.fecha_inicio_pasantia && estudiante.fecha_fin_pasantia ? (
+                            <MUI.Tooltip title="Fechas de Pasantía">
+                              <MUI.Chip
+                                icon={<DateRangeIcon />}
+                                label={`${formatDate(estudiante.fecha_inicio_pasantia)} - ${formatDate(estudiante.fecha_fin_pasantia)}`}
+                                size="small"
+                              />
+                            </MUI.Tooltip>
+                          ) : (
+                            <MUI.Chip icon={<AddIcon />} label="Sin fechas" size="small" color="default" />
+                          )}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          {estudiante.nombre_poliza ? (
+                            <MUI.Tooltip title={`Número: ${estudiante.numero_poliza || 'No especificado'}`}>
+                              <MUI.Chip
+                                label={estudiante.nombre_poliza}
+                                size="small"
+                                color="primary"
+                              />
+                            </MUI.Tooltip>
+                          ) : (
+                            <MUI.Chip icon={<AddIcon />} label="Sin póliza" size="small" color="default" />
+                          )}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          {estudiante.horaspasrealizadas_est ?? '-'}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.IconButton size="small" color="success" onClick={async () => {
+                            setRestaurando(estudiante.documento_id_est);
+                            try {
+                              await userService.updateUser(estudiante.usuario_est.id_usuario, { estado_usuario: 'Activo' });
+                              setSnackbar({ open: true, message: 'Estudiante restablecido correctamente', severity: 'success' });
+                              loadData();
+                            } catch {
+                              setSnackbar({ open: true, message: 'Error al restablecer estudiante', severity: 'error' });
+                            }
+                            setRestaurando(null);
+                          }} disabled={restaurando === estudiante.documento_id_est}>
+                            <RestoreIcon />
+                          </MUI.IconButton>
+                        </MUI.TableCell>
+                      </MUI.TableRow>
+                    ))
+                  ) : (
+                    // Mostrar estudiantes activos
+                    filteredEstudiantes.map((estudiante) => (
                       <MUI.TableRow key={estudiante.documento_id_est} hover sx={{ transition: 'background 0.2s', '&:hover': { bgcolor: '#e3f2fd' } }}>
                         <MUI.TableCell>{estudiante.documento_id_est}</MUI.TableCell>
                         <MUI.TableCell>{estudiante.nombre_est}</MUI.TableCell>
@@ -1423,18 +1458,27 @@ const Students = () => {
                         <MUI.TableCell>
                           <DocumentosMenu documento={estudiante.documento_id_est} />
                         </MUI.TableCell>
-                        <MUI.TableCell align="center">
-                          <MUI.Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                            <MUI.IconButton size="small" color="primary" onClick={() => handleEditClick(estudiante)}>
+                        <MUI.TableCell>
+                          <MUI.Box sx={{ display: 'flex', gap: 1 }}>
+                            <MUI.IconButton 
+                              size="small" 
+                              onClick={() => handleEditClick(estudiante)}
+                              sx={{ color: theme.palette.primary.main }}
+                            >
                               <EditIcon />
                             </MUI.IconButton>
-                            <MUI.IconButton size="small" color="error" onClick={() => handleDeleteClick(estudiante)}>
+                            <MUI.IconButton 
+                              size="small" 
+                              onClick={() => handleDeleteClick(estudiante)}
+                              sx={{ color: theme.palette.error.main }}
+                            >
                               <DeleteIcon />
                             </MUI.IconButton>
                           </MUI.Box>
                         </MUI.TableCell>
                       </MUI.TableRow>
-                    ))}
+                    ))
+                  )}
                 </MUI.TableBody>
               </MUI.Table>
             </MUI.TableContainer>
@@ -1540,7 +1584,7 @@ const Students = () => {
                 <MUI.Autocomplete
                   options={[
                     { label: 'Todos los estudiantes activos', value: 'all' },
-                    ...estudiantesFiltrados.map(e => ({
+                    ...estudiantes.map(e => ({
                       label: `${e.nombre_est} ${e.apellido_est} (${e.documento_id_est})${e.taller_est ? ' - ' + e.taller_est.nombre_taller : ''}`,
                       value: e.documento_id_est
                     }))
@@ -1548,7 +1592,7 @@ const Students = () => {
                   value={
                     polizaData.estudiante === 'all'
                       ? { label: 'Todos los estudiantes activos', value: 'all' }
-                      : estudiantesFiltrados
+                      : estudiantes
                           .map(e => ({
                             label: `${e.nombre_est} ${e.apellido_est} (${e.documento_id_est})${e.taller_est ? ' - ' + e.taller_est.nombre_taller : ''}`,
                             value: e.documento_id_est
