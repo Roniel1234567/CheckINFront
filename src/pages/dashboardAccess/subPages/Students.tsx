@@ -67,6 +67,18 @@ interface FechasPasantiaRow {
   horas_realizadas: number;
 }
 
+interface User {
+  id_usu: number;
+  usuario: string;
+  contrasena_usu: string;
+  rol_usu: number;
+  estado_usu: string;
+  creacion_usu: string;
+  email_usu: string;
+  reset_token?: string;
+  reset_token_expiry?: Date;
+}
+
 const Students = () => {
   const theme = MUI.useTheme();
   const isMobile = MUI.useMediaQuery(theme.breakpoints.down('md'));
@@ -196,126 +208,154 @@ const Students = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+    setError('');
 
     try {
-      // Validar campos requeridos
-      if (!formData.documento || !formData.nombre || !formData.apellido || !formData.telefono || !formData.email || !formData.provincia || !formData.ciudad || !formData.sector || !formData.calle || !formData.numero || !formData.usuario || !formData.contrasena) {
-        setError('Todos los campos obligatorios deben estar completos');
-        setLoading(false);
-        return;
+      if (editMode) {
+        // Obtener el estudiante actual antes de actualizarlo
+        const estudianteActual = await studentService.getStudentById(formData.documento);
+        
+        // 1. Actualizar dirección si existe
+        if (estudianteActual.direccion_id?.id_dir && formData.sector) {
+          try {
+            await direccionService.updateDireccion(estudianteActual.direccion_id.id_dir, {
+              sector_dir: Number(formData.sector),
+              calle_dir: formData.calle,
+              num_res_dir: formData.numero
+            });
+          } catch (error) {
+            console.error('Error al actualizar dirección:', error);
+            throw new Error('Error al actualizar la dirección del estudiante');
+          }
+        }
+
+        // 2. Actualizar contacto si existe
+        if (estudianteActual.contacto_est?.id_contacto) {
+          try {
+            await contactService.updateContacto(estudianteActual.contacto_est.id_contacto, {
+              telefono_contacto: formData.telefono,
+              email_contacto: formData.email
+            });
+          } catch (error) {
+            console.error('Error al actualizar contacto:', error);
+            throw new Error('Error al actualizar el contacto del estudiante');
+          }
+        }
+
+        // 3. Actualizar estudiante
+        const estudianteActualizado: Partial<Estudiante> = {
+          tipo_documento_est: formData.tipoDocumento,
+          nombre_est: formData.nombre,
+          seg_nombre_est: formData.segNombre || null,
+          apellido_est: formData.apellido,
+          seg_apellido_est: formData.segApellido || null,
+          fecha_nac_est: formData.fechaNacimiento,
+          nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
+          horaspasrealizadas_est: formData.horasPasantia ? formData.horasPasantia : '0',
+          taller_est: formData.taller ? {
+            id_taller: Number(formData.taller),
+            nombre_taller: '',
+            cod_titulo_taller: '',
+            estado_taller: ''
+          } : undefined,
+          fecha_inicio_pasantia: formData.fechaInicioPasantia || null,
+          fecha_fin_pasantia: formData.fechaFinPasantia || null,
+          // Preservar los objetos existentes
+          direccion_id: estudianteActual.direccion_id,
+          ciclo_escolar_est: estudianteActual.ciclo_escolar_est,
+          usuario_est: estudianteActual.usuario_est,
+          contacto_est: estudianteActual.contacto_est
+        };
+
+        await studentService.updateStudent(formData.documento, estudianteActualizado);
+
+        setSnackbar({
+          open: true,
+          message: 'Estudiante actualizado correctamente',
+          severity: 'success'
+        });
+
+        handleCloseForm();
+        loadData();
+      } else {
+        // Validar campos requeridos
+        if (!formData.documento || !formData.nombre || !formData.apellido || !formData.telefono || !formData.email || !formData.provincia || !formData.ciudad || !formData.sector || !formData.calle || !formData.numero || !formData.usuario || !formData.contrasena) {
+          setError('Todos los campos obligatorios deben estar completos');
+          setLoading(false);
+          return;
+        }
+
+        // 1. Crear ciclo escolar
+        const nuevoCiclo = await cicloEscolarService.createCicloEscolar({
+          inicio_ciclo: Number(formData.inicioCiclo),
+          fin_ciclo: Number(formData.finCiclo),
+          estado_ciclo: formData.estadoCiclo
+        });
+        const cicloEscolarId = nuevoCiclo.id_ciclo;
+
+        // 2. Crear dirección
+        const nuevaDireccion = await direccionService.createDireccion({
+          sector_dir: Number(formData.sector),
+          calle_dir: formData.calle,
+          num_res_dir: formData.numero
+        });
+
+        // 3. Crear contacto
+        const nuevoContacto = await contactService.createContacto({
+          email_contacto: formData.email,
+          telefono_contacto: formData.telefono
+        });
+
+        // 4. Crear usuario
+        const nuevoUsuario = await userService.createUser({
+          dato_usuario: formData.usuario,
+          contrasena_usuario: formData.contrasena,
+          rol_usuario: 1,
+          estado_usuario: 'Activo'
+        });
+
+        // 5. Crear estudiante
+        const nuevoEstudiante = {
+          tipo_documento_est: formData.tipoDocumento,
+          documento_id_est: formData.documento,
+          nombre_est: formData.nombre,
+          seg_nombre_est: formData.segNombre || null,
+          apellido_est: formData.apellido,
+          seg_apellido_est: formData.segApellido || null,
+          fecha_nac_est: formData.fechaNacimiento,
+          nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
+          horaspasrealizadas_est: formData.horaspasrealizadas ? Number(formData.horaspasrealizadas) : null,
+          taller_est: formData.taller ? Number(formData.taller) : null,
+          contacto_est: nuevoContacto.id_contacto,
+          usuario_est: nuevoUsuario.id_usuario || nuevoUsuario.id || nuevoUsuario.usuario_id,
+          direccion_id: nuevaDireccion.id_dir,
+          ciclo_escolar_est: cicloEscolarId,
+          fecha_inicio_pasantia: formData.fechaInicioPasantia || null,
+          fecha_fin_pasantia: formData.fechaFinPasantia || null
+        };
+
+        await studentService.createStudent(nuevoEstudiante);
+
+        // 6. Crear persona de contacto del estudiante
+        await personaContactoEstudianteService.createPersonaContactoEst({
+          nombre: formData.nombrePersonaContacto,
+          apellido: formData.apellidoPersonaContacto,
+          relacion: formData.relacionPersonaContacto,
+          telefono: formData.telefonoPersonaContacto,
+          correo: formData.correoPersonaContacto,
+          estudiante: formData.documento
+        });
+
+        setSnackbar({ open: true, message: 'Estudiante creado correctamente', severity: 'success' });
       }
-
-      // 1. Crear ciclo escolar
-      const nuevoCiclo = await cicloEscolarService.createCicloEscolar({
-        inicio_ciclo: Number(formData.inicioCiclo),
-        fin_ciclo: Number(formData.finCiclo),
-        estado_ciclo: formData.estadoCiclo
-      });
-      const cicloEscolarId = nuevoCiclo.id_ciclo;
-
-      // 2. Crear dirección
-      const nuevaDireccion = await direccionService.createDireccion({
-        sector_dir: Number(formData.sector),
-        calle_dir: formData.calle,
-        num_res_dir: formData.numero
-      });
-
-      // 3. Crear contacto
-      const nuevoContacto = await contactService.createContacto({
-        email_contacto: formData.email,
-        telefono_contacto: formData.telefono
-      });
-
-      // 4. Crear usuario
-      const nuevoUsuario = await userService.createUser({
-        dato_usuario: formData.usuario,
-        contrasena_usuario: formData.contrasena,
-        rol_usuario: 1,
-        estado_usuario: 'Activo'
-      });
-
-      // 5. Crear estudiante
-      const nuevoEstudiante = {
-        tipo_documento_est: formData.tipoDocumento,
-        documento_id_est: formData.documento,
-        nombre_est: formData.nombre,
-        seg_nombre_est: formData.segNombre || null,
-        apellido_est: formData.apellido,
-        seg_apellido_est: formData.segApellido || null,
-        fecha_nac_est: formData.fechaNacimiento,
-        nacionalidad: formData.nacionalidad === 'otra' ? formData.nacionalidadOtra : formData.nacionalidad,
-        horaspasrealizadas_est: formData.horaspasrealizadas ? Number(formData.horaspasrealizadas) : null,
-        taller_est: formData.taller ? Number(formData.taller) : null,
-        contacto_est: nuevoContacto.id_contacto,
-        usuario_est: nuevoUsuario.id_usuario || nuevoUsuario.id || nuevoUsuario.usuario_id,
-        direccion_id: nuevaDireccion.id_dir,
-        ciclo_escolar_est: cicloEscolarId,
-        fecha_inicio_pasantia: formData.fechaInicioPasantia || null,
-        fecha_fin_pasantia: formData.fechaFinPasantia || null
-      };
-
-      await studentService.createStudent(nuevoEstudiante);
-
-      // 6. Crear persona de contacto del estudiante
-      await personaContactoEstudianteService.createPersonaContactoEst({
-        nombre: formData.nombrePersonaContacto,
-        apellido: formData.apellidoPersonaContacto,
-        relacion: formData.relacionPersonaContacto,
-        telefono: formData.telefonoPersonaContacto,
-        correo: formData.correoPersonaContacto,
-        estudiante: formData.documento
-      });
-
-      setSnackbar({ open: true, message: 'Estudiante creado correctamente', severity: 'success' });
-      setOpenForm(false);
-      // Limpiar todos los campos del formulario
-      setFormData({
-        nacionalidad: 'Dominicana',
-        tipoDocumento: 'Cédula',
-        documento: '',
-        nombre: '',
-        segNombre: '',
-        apellido: '',
-        segApellido: '',
-        fechaNacimiento: '',
-        telefono: '',
-        email: '',
-        taller: '',
-        provincia: '',
-        ciudad: '',
-        sector: '',
-        calle: '',
-        numero: '',
-        direccionId: '',
-        inicioCiclo: '',
-        finCiclo: '',
-        estadoCiclo: 'Actual',
-        usuario: '',
-        contrasena: '',
-        id_doc_file: null,
-        cv_doc_file: null,
-        anexo_iv_doc_file: null,
-        anexo_v_doc_file: null,
-        acta_nac_doc_file: null,
-        ced_padres_doc_file: null,
-        vac_covid_doc_file: null,
-        horaspasrealizadas: '',
-        nombrePersonaContacto: '',
-        apellidoPersonaContacto: '',
-        relacionPersonaContacto: '',
-        telefonoPersonaContacto: '',
-        correoPersonaContacto: '',
-        nacionalidadOtra: '',
-        nombrePoliza: '',
-        numeroPoliza: '',
-        fechaInicioPasantia: '',
-        fechaFinPasantia: ''
-      });
-      loadData();
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Error al procesar la solicitud');
-      setSnackbar({ open: true, message: error.response?.data?.message || 'Error al procesar la solicitud', severity: 'error' });
+      console.error('Error:', error);
+      setError(error.response?.data?.message || error.message || 'Error al procesar la solicitud');
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || error.message || 'Error al procesar la solicitud',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
@@ -569,10 +609,14 @@ const Students = () => {
     let personaContacto = null;
     let docs: DocsEstudiante | null = null;
     try {
-      personaContacto = await personaContactoEstudianteService.getPersonaContactoByDocumento(estudiante.documento_id_est);
-    } catch {
+      const contactoResp = await personaContactoEstudianteService.getPersonaContactoByDocumento(estudiante.documento_id_est);
+      personaContacto = Array.isArray(contactoResp) ? contactoResp[0] : contactoResp;
+      console.log("Datos de persona de contacto cargados:", personaContacto); // Debug
+    } catch (error) {
+      console.error("Error cargando persona de contacto:", error);
       personaContacto = null;
     }
+
     try {
       const docsResp = await getDocsEstudianteByDocumento(estudiante.documento_id_est);
       docs = docsResp && Array.isArray(docsResp) && docsResp.length > 0 ? docsResp[0] : docsResp;
@@ -581,67 +625,25 @@ const Students = () => {
       setDocsEstudiante(null);
     }
 
-    if (provinciaId && ciudadId && sectorId) {
-      const ciudadesProv = await internshipService.getCiudadesByProvincia(Number(provinciaId));
-      setCiudades(ciudadesProv);
-      const sectoresCiudad = await internshipService.getSectoresByCiudad(Number(ciudadId));
-      setSectores(sectoresCiudad as unknown as Sector[]);
-      setPendingLocation({
-        provincia: String(provinciaId),
-        ciudad: String(ciudadId),
-        sector: String(sectorId)
-      });
-      setFormData(prev => ({
-        ...prev,
-        provincia: String(provinciaId),
-        calle: direccionCompleta ? direccionCompleta.calle_dir : '',
-        numero: direccionCompleta ? direccionCompleta.num_res_dir : '',
-        direccionId: direccionCompleta ? String(direccionCompleta.id_dir) : '',
-        nacionalidad: (estudiante.nacionalidad || '').trim().toLowerCase() === 'dominicana' ? 'Dominicana' : 'Otra',
-        nacionalidadOtra: (estudiante.nacionalidad && estudiante.nacionalidad.trim().toLowerCase() !== 'dominicana') ? estudiante.nacionalidad.trim() : '',
-        tipoDocumento: (estudiante.nacionalidad || '').trim().toLowerCase() === 'dominicana' ? 'Cédula' : 'Pasaporte',
-        documento: estudiante.documento_id_est,
-        nombre: estudiante.nombre_est,
-        segNombre: estudiante.seg_nombre_est || '',
-        apellido: estudiante.apellido_est,
-        segApellido: estudiante.seg_apellido_est || '',
-        fechaNacimiento: estudiante.fecha_nac_est,
-        telefono: estudiante.contacto_est?.telefono_contacto || '',
-        email: estudiante.contacto_est?.email_contacto || '',
-        taller: estudiante.taller_est ? String(estudiante.taller_est.id_taller) : '',
-        inicioCiclo: estudiante.ciclo_escolar_est?.inicio_ciclo ? String(estudiante.ciclo_escolar_est.inicio_ciclo) : '',
-        finCiclo: estudiante.ciclo_escolar_est?.fin_ciclo ? String(estudiante.ciclo_escolar_est.fin_ciclo) : '',
-        estadoCiclo: estudiante.ciclo_escolar_est?.estado_ciclo || 'Actual',
-        usuario: estudiante.usuario_est?.dato_usuario || '',
-        contrasena: '',
-        id_doc_file: docs?.id_doc_file as unknown as File || null,
-        cv_doc_file: docs?.cv_doc_file as unknown as File || null,
-        anexo_iv_doc_file: docs?.anexo_iv_doc_file as unknown as File || null,
-        anexo_v_doc_file: docs?.anexo_v_doc_file as unknown as File || null,
-        acta_nac_doc_file: docs?.acta_nac_doc_file as unknown as File || null,
-        ced_padres_doc_file: docs?.ced_padres_doc_file as unknown as File || null,
-        vac_covid_doc_file: docs?.vac_covid_doc_file as unknown as File || null,
-        horaspasrealizadas: estudiante.horaspasrealizadas_est || '',
-        nombrePersonaContacto: personaContacto?.nombre || '',
-        apellidoPersonaContacto: personaContacto?.apellido || '',
-        relacionPersonaContacto: personaContacto?.relacion || '',
-        telefonoPersonaContacto: personaContacto?.telefono || '',
-        correoPersonaContacto: personaContacto?.correo || '',
-      }));
-      return;
-    }
-    // Si no hay provincia/ciudad/sector, setea igual pero vacíos
-    setFormData(prev => ({
-      ...prev,
-      provincia: provinciaId || '',
-      ciudad: ciudadId || '',
-      sector: sectorId || '',
+    // Normalizar la nacionalidad
+    console.log("Estudiante completo:", estudiante); // Debug para ver el objeto completo
+
+    const nacionalidadOriginal = estudiante.nacionalidad || '';
+    console.log("Nacionalidad directa del estudiante:", nacionalidadOriginal); // Debug
+
+    // Si la nacionalidad está vacía, asumimos que es dominicana (valor por defecto)
+    const esDominicano = !nacionalidadOriginal || nacionalidadOriginal.trim().toLowerCase() === 'dominicana';
+    
+    const datosFormulario = {
+      provincia: String(provinciaId || ''),
+      ciudad: String(ciudadId || ''),
+      sector: String(sectorId || ''),
       calle: direccionCompleta ? direccionCompleta.calle_dir : '',
       numero: direccionCompleta ? direccionCompleta.num_res_dir : '',
-      direccionId: '',
-      nacionalidad: (estudiante.nacionalidad || '').trim().toLowerCase() === 'dominicana' ? 'Dominicana' : 'Otra',
-      nacionalidadOtra: (estudiante.nacionalidad && estudiante.nacionalidad.trim().toLowerCase() !== 'dominicana') ? estudiante.nacionalidad.trim() : '',
-      tipoDocumento: (estudiante.nacionalidad || '').trim().toLowerCase() === 'dominicana' ? 'Cédula' : 'Pasaporte',
+      direccionId: direccionCompleta ? String(direccionCompleta.id_dir) : '',
+      nacionalidad: esDominicano ? 'Dominicana' : 'Otra',
+      nacionalidadOtra: esDominicano ? '' : (nacionalidadOriginal || '').trim(),
+      tipoDocumento: estudiante.tipo_documento_est || (esDominicano ? 'Cédula' : 'Pasaporte'),
       documento: estudiante.documento_id_est,
       nombre: estudiante.nombre_est,
       segNombre: estudiante.seg_nombre_est || '',
@@ -669,7 +671,33 @@ const Students = () => {
       relacionPersonaContacto: personaContacto?.relacion || '',
       telefonoPersonaContacto: personaContacto?.telefono || '',
       correoPersonaContacto: personaContacto?.correo || '',
-    }));
+      nombrePoliza: '',
+      numeroPoliza: '',
+      fechaInicioPasantia: estudiante.fecha_inicio_pasantia || '',
+      fechaFinPasantia: estudiante.fecha_fin_pasantia || ''
+    };
+
+    console.log("Datos de nacionalidad:", {
+      original: nacionalidadOriginal,
+      esDominicano,
+      nacionalidad: datosFormulario.nacionalidad,
+      nacionalidadOtra: datosFormulario.nacionalidadOtra
+    }); // Debug
+
+    console.log("Datos del formulario a cargar:", datosFormulario); // Debug
+    setFormData(datosFormulario);
+
+    if (provinciaId && ciudadId) {
+      const ciudadesProv = await internshipService.getCiudadesByProvincia(Number(provinciaId));
+      setCiudades(ciudadesProv);
+      const sectoresCiudad = await internshipService.getSectoresByCiudad(Number(ciudadId));
+      setSectores(sectoresCiudad as unknown as Sector[]);
+      setPendingLocation({
+        provincia: String(provinciaId),
+        ciudad: String(ciudadId),
+        sector: String(sectorId)
+      });
+    }
   };
 
   const handleDeleteClick = (estudiante: Estudiante) => {

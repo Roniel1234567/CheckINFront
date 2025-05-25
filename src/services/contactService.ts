@@ -11,18 +11,25 @@ export interface Contacto {
 export interface NuevoContacto {
   telefono_contacto: string;
   email_contacto: string;
+  estado_contacto?: string;
 }
 
 const contactService = {
-  createContacto: async (contactoData: NuevoContacto): Promise<Contacto> => {
-    try {
-      const response = await api.post<Contacto>('/contactos', contactoData);
-      return response.data;
-    } catch (error) {
-      console.error('Error al crear contacto:', error);
-      throw new Error('No se pudo crear el contacto');
-    }
+  createContacto: async (data: NuevoContacto): Promise<Contacto> => {
+    const response = await api.post('/contactos', data);
+    return response.data;
   },
+
+  getContactoById: async (id: number): Promise<Contacto> => {
+    const response = await api.get(`/contactos/${id}`);
+    return response.data;
+  },
+
+  updateContacto: async (id: number, data: Partial<NuevoContacto>): Promise<Contacto> => {
+    const response = await api.put(`/contactos/${id}`, data);
+    return response.data;
+  },
+
   getAllContactos: async (): Promise<Contacto[]> => {
     const response = await api.get<Contacto[]>('/contactos');
     return response.data;
