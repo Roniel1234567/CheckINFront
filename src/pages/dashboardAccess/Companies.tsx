@@ -595,6 +595,13 @@ function Companies() {
     }
   };
 
+  // Función para filtrar empresas basado en el término de búsqueda
+  const filtrarEmpresas = (empresas: CentroTrabajo[]) => {
+    return empresas.filter(empresa => 
+      empresa.nombre_centro.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
   return (
     <MUI.Box sx={{ display: 'flex', width:'100vw',minHeight: '100vh', bgcolor: MUI.alpha(theme.palette.background.paper, 0.6), p:0}}>
       {/* Sidebar */}
@@ -1203,6 +1210,21 @@ function Companies() {
           </MUI.DialogTitle>
           <MUI.DialogContent>
             <MUI.Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+              <MUI.TextField
+                fullWidth
+                variant="outlined"
+                placeholder="Buscar empresa..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{ mb: 2 }}
+                InputProps={{
+                  startAdornment: (
+                    <MUI.InputAdornment position="start">
+                      <Icons.Search />
+                    </MUI.InputAdornment>
+                  ),
+                }}
+              />
               <MUI.Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
                 <MUI.Tab label="Pendientes" />
                 <MUI.Tab label="Aceptadas" />
@@ -1221,7 +1243,7 @@ function Companies() {
                     </MUI.TableRow>
                   </MUI.TableHead>
                   <MUI.TableBody>
-                    {empresasPendientes.map((empresa) => (
+                    {filtrarEmpresas(empresasPendientes).map((empresa) => (
                       <MUI.TableRow key={empresa.id_centro}>
                         <MUI.TableCell>{empresa.nombre_centro}</MUI.TableCell>
                         <MUI.TableCell align="center">
@@ -1258,7 +1280,7 @@ function Companies() {
                     </MUI.TableRow>
                   </MUI.TableHead>
                   <MUI.TableBody>
-                    {empresasAceptadas.map((empresa) => (
+                    {filtrarEmpresas(empresasAceptadas).map((empresa) => (
                       <MUI.TableRow key={empresa.id_centro}>
                         <MUI.TableCell>{empresa.nombre_centro}</MUI.TableCell>
                         <MUI.TableCell align="center">
@@ -1289,7 +1311,7 @@ function Companies() {
                     </MUI.TableRow>
                   </MUI.TableHead>
                   <MUI.TableBody>
-                    {empresasRechazadas.map((empresa) => (
+                    {filtrarEmpresas(empresasRechazadas).map((empresa) => (
                       <MUI.TableRow key={empresa.id_centro}>
                         <MUI.TableCell>{empresa.nombre_centro}</MUI.TableCell>
                         <MUI.TableCell align="center">
