@@ -30,33 +30,27 @@ const PasantiaPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [mostrarPlazas, setMostrarPlazas] = useState(false);
+  const [tipoVista, setTipoVista] = useState<'activas' | 'canceladas' | 'terminadas'>('activas');
 
   // Nuevo estado para la plaza seleccionada en el formulario
   const [plazaFormSeleccionada, setPlazaFormSeleccionada] = useState<PlazasCentro | null>(null);
 
-  // Después de los estados existentes, antes del useEffect
+  // Estados para diálogos
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [showHistorial, setShowHistorial] = useState<boolean>(false);
+  const [openRestoreDialog, setOpenRestoreDialog] = useState(false);
   const [pasantiaToEdit, setPasantiaToEdit] = useState<Pasantia | null>(null);
   const [pasantiaToDelete, setPasantiaToDelete] = useState<Pasantia | null>(null);
-
-  // Nuevo estado para la pasantía a restaurar
-  const [openRestoreDialog, setOpenRestoreDialog] = useState(false);
   const [pasantiaToRestore, setPasantiaToRestore] = useState<Pasantia | null>(null);
-
-  // Separar las pasantías activas y canceladas
-  const pasantiasActivas = pasantias.filter(p => p.estado_pas !== EstadoPasantia.CANCELADA);
-  const pasantiasCanceladas = pasantias.filter(p => p.estado_pas === EstadoPasantia.CANCELADA);
-
-  // Filtros separados para pasantías canceladas
-  const [searchTallerFiltroCanceladas, setSearchTallerFiltroCanceladas] = useState<string>('');
-  const [searchCentroFiltroCanceladas, setSearchCentroFiltroCanceladas] = useState<string>('');
 
   // Nuevo estado para el término de búsqueda
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Restaurar la función plazasOcupadas que se perdió
+  // Filtros separados para cada tipo de pasantía
+  const [searchTallerFiltroTerminadas, setSearchTallerFiltroTerminadas] = useState<string>('');
+  const [searchCentroFiltroTerminadas, setSearchCentroFiltroTerminadas] = useState<string>('');
+
+  // Función para calcular plazas ocupadas
   const plazasOcupadas = (plaza: PlazasCentro, pasantiaActual?: Pasantia | null) =>
     pasantias.filter(p => {
       if (!plaza.id_plaza) return false;
@@ -68,6 +62,69 @@ const PasantiaPage = () => {
       return plazaId && Number(plazaId) === Number(plaza.id_plaza) &&
         (p.estado_pas === EstadoPasantia.EN_PROCESO || p.estado_pas === EstadoPasantia.PENDIENTE);
     }).length;
+
+  // Separar las pasantías por estado
+  const [pasantiasActivas, pasantiasCanceladas, pasantiasTerminadas] = pasantias.reduce<[Pasantia[], Pasantia[], Pasantia[]]>(
+    (acc, pasantia) => {
+      // Verificar si el estudiante tiene ambas fechas establecidas
+      const estudiante = estudiantes.find(e => e.documento_id_est === pasantia.estudiante_pas.documento_id_est);
+      const tieneFechaInicio = estudiante?.fecha_inicio_pasantia;
+      const tieneFechaFin = estudiante?.fecha_fin_pasantia;
+
+      if (tieneFechaInicio && tieneFechaFin) {
+        // Se considera terminada
+        acc[2].push({ ...pasantia, estado_pas: EstadoPasantia.TERMINADA });
+      } else if (pasantia.estado_pas === EstadoPasantia.CANCELADA) {
+        acc[1].push(pasantia);
+      } else {
+        acc[0].push(pasantia);
+      }
+      return acc;
+    },
+    [[], [], []] // [activas, canceladas, terminadas]
+  );
+
+  // Efecto para actualizar el estado de las pasantías cuando se detectan fechas completas
+  useEffect(() => {
+    const actualizarEstadoPasantias = async () => {
+      let actualizacionesRealizadas = false;
+
+      // Convertir pasantias a array si no lo es
+      const pasantiasArray = Array.isArray(pasantias) ? pasantias : [];
+
+      for (const pasantia of pasantiasArray) {
+        if (!pasantia.id_pas) continue; // Saltar si no hay ID
+
+        const estudiante = estudiantes.find(e => e.documento_id_est === pasantia.estudiante_pas.documento_id_est);
+        const tieneFechaInicio = estudiante?.fecha_inicio_pasantia;
+        const tieneFechaFin = estudiante?.fecha_fin_pasantia;
+
+        if (tieneFechaInicio && tieneFechaFin && pasantia.estado_pas !== EstadoPasantia.TERMINADA) {
+          try {
+            await internshipService.updatePasantia(pasantia.id_pas, {
+              ...pasantia,
+              estado_pas: EstadoPasantia.TERMINADA
+            });
+            actualizacionesRealizadas = true;
+          } catch (error) {
+            console.error('Error al actualizar el estado de la pasantía:', error);
+          }
+        }
+      }
+
+      // Si se realizaron actualizaciones, recargar las pasantías
+      if (actualizacionesRealizadas) {
+        try {
+          const pasantiasData = await internshipService.getAllPasantias();
+          setPasantias(pasantiasData);
+        } catch (error) {
+          console.error('Error al recargar las pasantías:', error);
+        }
+      }
+    };
+
+    actualizarEstadoPasantias();
+  }, [estudiantes, pasantias]); // Se ejecuta cuando cambian los estudiantes o las pasantías
 
   // Filtrar pasantías según los criterios de búsqueda y estado
   const filtrarPasantias = (pasantiasList: Pasantia[], tallerFiltro: string, centroFiltro: string) => {
@@ -97,7 +154,8 @@ const PasantiaPage = () => {
   };
 
   const pasantiasActivasFiltradas = filtrarPasantias(pasantiasActivas, tallerFiltro, centroFiltro);
-  const pasantiasCanceladasFiltradas = filtrarPasantias(pasantiasCanceladas, searchTallerFiltroCanceladas, searchCentroFiltroCanceladas);
+  const pasantiasCanceladasFiltradas = filtrarPasantias(pasantiasCanceladas, searchTallerFiltroTerminadas, searchCentroFiltroTerminadas);
+  const pasantiasTerminadasFiltradas = filtrarPasantias(pasantiasTerminadas, searchTallerFiltroTerminadas, searchCentroFiltroTerminadas);
 
   // Filtrar plazas por taller seleccionado
   const plazasFiltradas = plazas.filter(p => {
@@ -175,7 +233,7 @@ const PasantiaPage = () => {
     cargarDatos();
   }, []);
 
-  // Modificar handleEditClick
+  // Diálogo de edición
   const handleEditClick = (pasantia: Pasantia) => {
     setPasantiaToEdit(pasantia);
     
@@ -202,13 +260,6 @@ const PasantiaPage = () => {
     }
 
     setOpenEditDialog(true);
-  };
-
-  // Diálogo de edición
-  const getTallerNombre = (id: string) => {
-    if (!id) return '';
-    const taller = talleres.find(t => String(t.id_taller) === id);
-    return taller ? taller.nombre_taller : '';
   };
 
   // Modificar el handleCrearPasantias para incluir la validación
@@ -625,17 +676,25 @@ const PasantiaPage = () => {
           <MUI.Paper elevation={2} sx={{ p: 3, borderRadius: 4, mb: 4 }}>
             <MUI.Box sx={{ mb: 3 }}>
               <MUI.Typography variant="h5" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                {showHistorial ? (
-                  <>
-                    <Icons.History sx={{ fontSize: 28, color: theme.palette.error.main }} /> 
-                    Historial de Pasantías Canceladas
-                  </>
-                ) : (
-                  <>
-                    <Icons.ListAlt sx={{ fontSize: 28, color: theme.palette.primary.main }} /> 
-                    Pasantías Activas
-                  </>
-                )}
+                {(() => {
+                  switch (tipoVista) {
+                    case 'canceladas':
+                      return <>
+                        <Icons.History sx={{ fontSize: 28, color: theme.palette.error.main }} /> 
+                        Historial de Pasantías Canceladas
+                      </>;
+                    case 'terminadas':
+                      return <>
+                        <Icons.CheckCircle sx={{ fontSize: 28, color: theme.palette.success.main }} /> 
+                        Pasantías Terminadas
+                      </>;
+                    default:
+                      return <>
+                        <Icons.ListAlt sx={{ fontSize: 28, color: theme.palette.primary.main }} /> 
+                        Pasantías Activas
+                      </>;
+                  }
+                })()}
               </MUI.Typography>
               
               {/* Filtros */}
@@ -660,10 +719,8 @@ const PasantiaPage = () => {
                   <MUI.Autocomplete
                     options={talleres}
                     getOptionLabel={t => `${t.nombre_taller} - ${t.familia_taller.nombre_fam}`}
-                    value={talleres.find(t => String(t.id_taller) === (showHistorial ? searchTallerFiltroCanceladas : tallerFiltro)) || null}
-                    onChange={(_, value) => showHistorial ? 
-                      setSearchTallerFiltroCanceladas(value ? String(value.id_taller) : '') :
-                      setTallerFiltro(value ? String(value.id_taller) : '')}
+                    value={talleres.find(t => String(t.id_taller) === tallerFiltro) || null}
+                    onChange={(_, value) => setTallerFiltro(value ? String(value.id_taller) : '')}
                     renderInput={(params) => (
                       <MUI.TextField
                         {...params}
@@ -678,10 +735,8 @@ const PasantiaPage = () => {
                   <MUI.Autocomplete
                     options={centros}
                     getOptionLabel={c => c.nombre_centro}
-                    value={centros.find(c => String(c.id_centro) === (showHistorial ? searchCentroFiltroCanceladas : centroFiltro)) || null}
-                    onChange={(_, value) => showHistorial ?
-                      setSearchCentroFiltroCanceladas(value ? String(value.id_centro) : '') :
-                      setCentroFiltro(value ? String(value.id_centro) : '')}
+                    value={centros.find(c => String(c.id_centro) === centroFiltro) || null}
+                    onChange={(_, value) => setCentroFiltro(value ? String(value.id_centro) : '')}
                     renderInput={(params) => (
                       <MUI.TextField
                         {...params}
@@ -693,19 +748,26 @@ const PasantiaPage = () => {
                   />
                 </MUI.Grid>
                 <MUI.Grid item xs={12} md={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <MUI.FormControlLabel
-                    control={
-                      <MUI.Switch
-                        checked={showHistorial}
-                        onChange={(e) => {
-                          setShowHistorial(e.target.checked);
-                          setSearchTerm(''); // Limpiar búsqueda al cambiar de vista
-                        }}
-                        color="primary"
-                      />
-                    }
-                    label={showHistorial ? "Ver Activas" : "Ver Historial"}
-                  />
+                  <MUI.ButtonGroup variant="outlined" color="primary">
+                    <MUI.Button
+                      variant={tipoVista === 'activas' ? 'contained' : 'outlined'}
+                      onClick={() => setTipoVista('activas')}
+                    >
+                      Activas
+                    </MUI.Button>
+                    <MUI.Button
+                      variant={tipoVista === 'terminadas' ? 'contained' : 'outlined'}
+                      onClick={() => setTipoVista('terminadas')}
+                    >
+                      Terminadas
+                    </MUI.Button>
+                    <MUI.Button
+                      variant={tipoVista === 'canceladas' ? 'contained' : 'outlined'}
+                      onClick={() => setTipoVista('canceladas')}
+                    >
+                      Canceladas
+                    </MUI.Button>
+                  </MUI.ButtonGroup>
                 </MUI.Grid>
               </MUI.Grid>
             </MUI.Box>
@@ -718,87 +780,232 @@ const PasantiaPage = () => {
                     <MUI.TableCell>Estudiante</MUI.TableCell>
                     <MUI.TableCell>Taller</MUI.TableCell>
                     <MUI.TableCell>Centro</MUI.TableCell>
-                    <MUI.TableCell>Supervisor</MUI.TableCell>
-                    <MUI.TableCell>Estado</MUI.TableCell>
-                    <MUI.TableCell align="center">Acciones</MUI.TableCell>
+                    {tipoVista === 'terminadas' ? (
+                      <>
+                        <MUI.TableCell>Fecha Inicio</MUI.TableCell>
+                        <MUI.TableCell>Fecha Fin</MUI.TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <MUI.TableCell>Supervisor</MUI.TableCell>
+                        <MUI.TableCell>Estado</MUI.TableCell>
+                        <MUI.TableCell align="center">Acciones</MUI.TableCell>
+                      </>
+                    )}
                   </MUI.TableRow>
                 </MUI.TableHead>
                 <MUI.TableBody>
-                  {(showHistorial ? pasantiasCanceladasFiltradas : pasantiasActivasFiltradas).map(p => (
-                    <MUI.TableRow key={p.id_pas} sx={showHistorial ? { bgcolor: '#fff3f3' } : undefined}>
-                      <MUI.TableCell>{p.estudiante_pas.nombre_est} {p.estudiante_pas.apellido_est}</MUI.TableCell>
-                      <MUI.TableCell>
-                        {(() => {
-                          // Si no hay plaza asignada, mostrar '-'
-                          if (!p.plaza_pas) return '-';
-                          
-                          // Obtener el ID de la plaza (puede ser un objeto o un número)
-                          const plazaId = typeof p.plaza_pas === 'object' ? p.plaza_pas.id_plaza : p.plaza_pas;
-                          
-                          // Buscar la plaza en el array de plazas
-                          const plaza = plazas.find(pl => pl.id_plaza === plazaId);
-                          
-                          // Si encontramos la plaza, mostrar su taller
-                          if (plaza?.taller_plaza) {
-                            return plaza.taller_plaza.nombre_taller;
-                          }
-                          
-                          // Si no encontramos la plaza o no tiene taller, mostrar '-'
-                          return '-';
-                        })()}
-                      </MUI.TableCell>
-                      <MUI.TableCell>{p.centro_pas.nombre_centro}</MUI.TableCell>
-                      <MUI.TableCell>{p.supervisor_pas?.nombre_sup || '-'}</MUI.TableCell>
-                      <MUI.TableCell>
-                        <MUI.Chip 
-                          label={p.estado_pas} 
-                          color={p.estado_pas === EstadoPasantia.CANCELADA ? 'error' : 'info'}
-                        />
-                      </MUI.TableCell>
-                      <MUI.TableCell align="center">
-                        <MUI.Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          {p.estado_pas === EstadoPasantia.CANCELADA ? (
-                            <MUI.Tooltip title="Restaurar pasantía">
-                              <MUI.IconButton
-                                size="small"
-                                color="success"
-                                onClick={() => {
-                                  setPasantiaToRestore(p);
-                                  setOpenRestoreDialog(true);
-                                }}
-                              >
-                                <Icons.Restore />
-                              </MUI.IconButton>
-                            </MUI.Tooltip>
-                          ) : (
-                            <>
-                              <MUI.Tooltip title="Editar pasantía">
-                                <MUI.IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handleEditClick(p)}
-                                >
-                                  <Icons.Edit />
-                                </MUI.IconButton>
-                              </MUI.Tooltip>
-                              <MUI.Tooltip title="Cancelar pasantía">
-                                <MUI.IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => {
-                                    setPasantiaToDelete(p);
-                                    setOpenDeleteDialog(true);
-                                  }}
-                                >
-                                  <Icons.Delete />
-                                </MUI.IconButton>
-                              </MUI.Tooltip>
-                            </>
-                          )}
-                        </MUI.Box>
-                      </MUI.TableCell>
-                    </MUI.TableRow>
-                  ))}
+                  {(() => {
+                    let pasantiasMostradas;
+                    switch (tipoVista) {
+                      case 'canceladas':
+                        pasantiasMostradas = pasantiasCanceladasFiltradas;
+                        break;
+                      case 'terminadas':
+                        pasantiasMostradas = pasantiasTerminadasFiltradas;
+                        break;
+                      default:
+                        pasantiasMostradas = pasantiasActivasFiltradas;
+                    }
+
+                    return pasantiasMostradas.map(p => (
+                      <MUI.TableRow 
+                        key={p.id_pas} 
+                        sx={tipoVista === 'canceladas' ? { bgcolor: '#fff3f3' } : 
+                           tipoVista === 'terminadas' ? { bgcolor: '#f0f7f0' } : undefined}
+                      >
+                        <MUI.TableCell>{p.estudiante_pas.nombre_est} {p.estudiante_pas.apellido_est}</MUI.TableCell>
+                        <MUI.TableCell>
+                          {(() => {
+                            if (!p.plaza_pas) return '-';
+                            const plazaId = typeof p.plaza_pas === 'object' ? p.plaza_pas.id_plaza : p.plaza_pas;
+                            const plaza = plazas.find(pl => pl.id_plaza === plazaId);
+                            return plaza?.taller_plaza?.nombre_taller || '-';
+                          })()}
+                        </MUI.TableCell>
+                        <MUI.TableCell>{p.centro_pas.nombre_centro}</MUI.TableCell>
+                        {tipoVista === 'terminadas' ? (
+                          <>
+                            <MUI.TableCell>
+                              {(() => {
+                                const estudiante = estudiantes.find(e => e.documento_id_est === p.estudiante_pas.documento_id_est);
+                                return estudiante?.fecha_inicio_pasantia ? 
+                                  new Date(estudiante.fecha_inicio_pasantia).toLocaleDateString() : 
+                                  'No definida';
+                              })()}
+                            </MUI.TableCell>
+                            <MUI.TableCell>
+                              {(() => {
+                                const estudiante = estudiantes.find(e => e.documento_id_est === p.estudiante_pas.documento_id_est);
+                                return estudiante?.fecha_fin_pasantia ? 
+                                  new Date(estudiante.fecha_fin_pasantia).toLocaleDateString() : 
+                                  'No definida';
+                              })()}
+                            </MUI.TableCell>
+                          </>
+                        ) : (
+                          <>
+                            <MUI.TableCell>{p.supervisor_pas?.nombre_sup || '-'}</MUI.TableCell>
+                            <MUI.TableCell>
+                              <MUI.Chip 
+                                label={p.estado_pas} 
+                                color={p.estado_pas === EstadoPasantia.CANCELADA ? 'error' : 'info'}
+                              />
+                            </MUI.TableCell>
+                            <MUI.TableCell align="center">
+                              <MUI.Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                                {tipoVista === 'canceladas' ? (
+                                  <MUI.Tooltip title="Restaurar pasantía">
+                                    <MUI.IconButton
+                                      size="small"
+                                      color="success"
+                                      onClick={() => {
+                                        setPasantiaToRestore(p);
+                                        setOpenRestoreDialog(true);
+                                      }}
+                                    >
+                                      <Icons.Restore />
+                                    </MUI.IconButton>
+                                  </MUI.Tooltip>
+                                ) : (
+                                  <>
+                                    <MUI.Tooltip title="Editar pasantía">
+                                      <MUI.IconButton
+                                        size="small"
+                                        color="primary"
+                                        onClick={() => handleEditClick(p)}
+                                      >
+                                        <Icons.Edit />
+                                      </MUI.IconButton>
+                                    </MUI.Tooltip>
+                                    <MUI.Tooltip title="Cancelar pasantía">
+                                      <MUI.IconButton
+                                        size="small"
+                                        color="error"
+                                        onClick={() => {
+                                          setPasantiaToDelete(p);
+                                          setOpenDeleteDialog(true);
+                                        }}
+                                      >
+                                        <Icons.Delete />
+                                      </MUI.IconButton>
+                                    </MUI.Tooltip>
+                                  </>
+                                )}
+                              </MUI.Box>
+                            </MUI.TableCell>
+                          </>
+                        )}
+                      </MUI.TableRow>
+                    ));
+                  })()}
+                </MUI.TableBody>
+              </MUI.Table>
+            </MUI.TableContainer>
+          </MUI.Paper>
+
+          {/* Nueva Sección de Pasantías Terminadas */}
+          <MUI.Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
+            Pasantías Terminadas
+          </MUI.Typography>
+          <MUI.Paper sx={{ width: '100%', mb: 2 }}>
+            <MUI.Box sx={{ p: 2 }}>
+              <MUI.Grid container spacing={2} alignItems="center">
+                <MUI.Grid item xs={12} sm={4}>
+                  <MUI.FormControl fullWidth size="small">
+                    <MUI.InputLabel>Filtrar por Taller</MUI.InputLabel>
+                    <MUI.Select
+                      value={searchTallerFiltroTerminadas}
+                      onChange={(e) => setSearchTallerFiltroTerminadas(e.target.value)}
+                      label="Filtrar por Taller"
+                    >
+                      <MUI.MenuItem value="">Todos los talleres</MUI.MenuItem>
+                      {talleres.map((taller) => (
+                        <MUI.MenuItem key={taller.id_taller} value={taller.id_taller.toString()}>
+                          {taller.nombre_taller}
+                        </MUI.MenuItem>
+                      ))}
+                    </MUI.Select>
+                  </MUI.FormControl>
+                </MUI.Grid>
+                <MUI.Grid item xs={12} sm={4}>
+                  <MUI.FormControl fullWidth size="small">
+                    <MUI.InputLabel>Filtrar por Centro</MUI.InputLabel>
+                    <MUI.Select
+                      value={searchCentroFiltroTerminadas}
+                      onChange={(e) => setSearchCentroFiltroTerminadas(e.target.value)}
+                      label="Filtrar por Centro"
+                    >
+                      <MUI.MenuItem value="">Todos los centros</MUI.MenuItem>
+                      {centros.map((centro) => (
+                        <MUI.MenuItem key={centro.id_centro} value={centro.id_centro.toString()}>
+                          {centro.nombre_centro}
+                        </MUI.MenuItem>
+                      ))}
+                    </MUI.Select>
+                  </MUI.FormControl>
+                </MUI.Grid>
+                <MUI.Grid item xs={12} sm={4}>
+                  <MUI.TextField
+                    fullWidth
+                    size="small"
+                    label="Buscar estudiante"
+                    variant="outlined"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    InputProps={{
+                      endAdornment: (
+                        <MUI.InputAdornment position="end">
+                          <Icons.Search />
+                        </MUI.InputAdornment>
+                      ),
+                    }}
+                  />
+                </MUI.Grid>
+              </MUI.Grid>
+            </MUI.Box>
+            <MUI.TableContainer>
+              <MUI.Table>
+                <MUI.TableHead>
+                  <MUI.TableRow>
+                    <MUI.TableCell>Estudiante</MUI.TableCell>
+                    <MUI.TableCell>Taller</MUI.TableCell>
+                    <MUI.TableCell>Centro de Trabajo</MUI.TableCell>
+                    <MUI.TableCell>Fecha Inicio</MUI.TableCell>
+                    <MUI.TableCell>Fecha Fin</MUI.TableCell>
+                    <MUI.TableCell>Estado</MUI.TableCell>
+                  </MUI.TableRow>
+                </MUI.TableHead>
+                <MUI.TableBody>
+                  {pasantiasTerminadasFiltradas.map((pasantia) => {
+                    const estudiante = estudiantes.find(e => e.documento_id_est === pasantia.estudiante_pas.documento_id_est);
+                    return (
+                      <MUI.TableRow key={pasantia.id_pas}>
+                        <MUI.TableCell>
+                          {`${pasantia.estudiante_pas.nombre_est} ${pasantia.estudiante_pas.apellido_est}`}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          {estudiante?.taller_est?.nombre_taller || 'No asignado'}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          {pasantia.centro_pas.nombre_centro}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          {estudiante?.fecha_inicio_pasantia ? new Date(estudiante.fecha_inicio_pasantia).toLocaleDateString() : 'No definida'}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          {estudiante?.fecha_fin_pasantia ? new Date(estudiante.fecha_fin_pasantia).toLocaleDateString() : 'No definida'}
+                        </MUI.TableCell>
+                        <MUI.TableCell>
+                          <MUI.Chip
+                            label="Terminada"
+                            color="success"
+                            size="small"
+                          />
+                        </MUI.TableCell>
+                      </MUI.TableRow>
+                    );
+                  })}
                 </MUI.TableBody>
               </MUI.Table>
             </MUI.TableContainer>
