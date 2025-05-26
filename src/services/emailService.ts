@@ -65,6 +65,39 @@ const emailTemplates = {
                 </div>
             </div>
         `
+    }),
+    documentosEstudiante: (nombreEstudiante: string, estado: string) => ({
+        subject: `Actualización del estado de tus documentos en CHECKINTIN`,
+        html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+                <h2 style="color: #1a237e;">Actualización de Documentos</h2>
+                
+                <p>Estimado/a ${nombreEstudiante},</p>
+
+                <p>Te informamos que el estado de tus documentos ha sido actualizado a: 
+                <strong style="color: ${
+                    estado === 'Aprobado' ? '#4caf50' : 
+                    estado === 'Rechazado' ? '#f44336' : 
+                    estado === 'Visto' ? '#2196f3' : '#ff9800'
+                };">${estado}</strong></p>
+
+                <p>Estado de los documentos:</p>
+                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                    <p style="margin: 5px 0;">• ${estado}</p>
+                </div>
+
+                <p>Por favor, ingresa a CHECKINTIN para ver más detalles sobre el estado de tus documentos.</p>
+
+                <div style="margin-top: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+                    <p style="margin: 0;">Si tienes alguna pregunta o necesitas asistencia, no dudes en contactar 
+                    a tu coordinador de pasantías.</p>
+                </div>
+
+                <p style="color: #666; font-size: 12px; margin-top: 20px;">
+                    Este es un correo automático, por favor no responder directamente a esta dirección.
+                </p>
+            </div>
+        `
     })
 };
 
@@ -77,6 +110,28 @@ export const sendValidacionEmail = async (
         const template = esAceptada 
             ? emailTemplates.empresaAceptada(nombreEmpresa)
             : emailTemplates.empresaRechazada(nombreEmpresa);
+
+        await transporter.sendMail({
+            from: '"CHECKINTIN - IPISA" <noreply@checkintin.com>',
+            to: emailDestino,
+            subject: template.subject,
+            html: template.html
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error('Error enviando email:', error);
+        return { success: false, error };
+    }
+}; 
+
+export const sendDocumentosEmail = async (
+    emailDestino: string,
+    nombreEstudiante: string,
+    estado: string
+) => {
+    try {
+        const template = emailTemplates.documentosEstudiante(nombreEstudiante, estado);
 
         await transporter.sendMail({
             from: '"CHECKINTIN - IPISA" <noreply@checkintin.com>',

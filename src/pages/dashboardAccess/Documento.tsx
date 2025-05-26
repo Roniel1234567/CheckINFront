@@ -144,11 +144,8 @@ function Documento() {
       if (!estudiante) throw new Error('Estudiante no encontrado');
 
       await documentoService.enviarComentario({
-        documento: selectedDocumento.documento,
-        tipo_documento: selectedDocumento.tipo,
-        comentario: comentario.trim(),
-        fecha_comentario: new Date(),
-        email_estudiante: estudiante.contacto_est.email_contacto
+        documento_id: selectedDocumento.documento,
+        comentario: comentario.trim()
       });
 
       setComentario('');
@@ -172,8 +169,12 @@ function Documento() {
   const handleEstadoChange = async (documento: string, nuevoEstado: EstadoDocumento) => {
     try {
       setLoading(true);
+      
+      // Actualizar estado
       await documentoService.actualizarEstadoDocumento(documento, nuevoEstado);
+      
       await cargarDocumentos(selectedEstudiante);
+
       setSnackbar({
         open: true,
         message: 'Estado de los documentos actualizado correctamente',

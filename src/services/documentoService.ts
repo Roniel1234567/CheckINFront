@@ -1,6 +1,6 @@
 import api from './api';
 import axios from 'axios';
-import { Estudiante } from './estudianteService';
+import type { Estudiante } from '../types/estudiante';
 
 export enum EstadoDocumento {
   VISTO = 'Visto',
@@ -23,12 +23,15 @@ export interface DocEstudiante {
 }
 
 export interface ComentarioDoc {
-  id_comentario?: number;
-  documento: string;
-  tipo_documento: string;
+  documento_id: string;
   comentario: string;
-  fecha_comentario: Date;
-  email_estudiante: string;
+}
+
+export interface EmailData {
+  correoEstudiante: string;
+  nombreEstudiante: string;
+  estado: 'aprobados' | 'rechazados' | 'vistos';
+  documentosAfectados: string[];
 }
 
 const documentoService = {
@@ -57,7 +60,7 @@ const documentoService = {
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/docs-estudiante/${documento}/archivo/${tipo}`, {
         responseType: 'blob'
       });
-      return response.data;
+      return new Blob([response.data], { type: 'application/pdf' });
     } catch (error) {
       console.error('Error al previsualizar documento:', error);
       throw error;
@@ -75,9 +78,21 @@ const documentoService = {
 
   actualizarEstadoDocumento: async (documento: string, estado: EstadoDocumento): Promise<void> => {
     try {
-      await api.put(`/docs-estudiante/${documento}`, { estado_doc_est: estado });
+      console.log('Enviando petición al backend:', {
+        documento,
+        estado
+      });
+
+      // Actualizar el estado
+      await api.put(`/docs-estudiante/${documento}`, { 
+        estado_doc_est: estado
+      });
+
     } catch (error) {
-      console.error('Error al actualizar estado del documento:', error);
+      console.error('Error completo al actualizar estado:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Detalles de la respuesta:', error.response?.data);
+      }
       throw error;
     }
   }
