@@ -66,29 +66,32 @@ const estilosBase = `
     }
     .encabezado {
       text-align: center;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
       border-bottom: 2px solid #1a237e;
     }
     .encabezado h1 {
       color: #1a237e;
       font-size: 24px;
-      margin-bottom: 10px;
+      margin: 0 0 5px 0;
+    }
+    .encabezado p {
+      margin: 5px 0;
     }
     .info-reporte {
-      margin-bottom: 20px;
-      padding: 15px;
+      margin-bottom: 10px;
+      padding: 10px;
       background-color: #f5f5f5;
       border-radius: 5px;
     }
     .info-reporte p {
-      margin: 5px 0;
+      margin: 3px 0;
       color: #333;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 20px;
+      margin-top: 10px;
       background-color: white;
     }
     th {
