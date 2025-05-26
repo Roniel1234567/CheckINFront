@@ -32,6 +32,7 @@ function Documento() {
   const [documentos, setDocumentos] = useState<DocEstudiante[]>([]);
   const [selectedEstudiante, setSelectedEstudiante] = useState<string>('');
   const [selectedTaller, setSelectedTaller] = useState<string>('');
+  const [selectedEstado, setSelectedEstado] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDocumento, setSelectedDocumento] = useState<{ documento: string; tipo: string } | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -229,7 +230,12 @@ function Documento() {
     
     const matchesTaller = !selectedTaller || estudiante.taller_est?.nombre_taller === selectedTaller;
     
-    return matchesSearch && matchesTaller;
+    const matchesEstado = !selectedEstado || (documentos.some(doc => 
+      doc.est_doc === estudiante.documento_id_est && 
+      doc.estado_doc_est === selectedEstado
+    ));
+    
+    return matchesSearch && matchesTaller && matchesEstado;
   });
 
   return (
@@ -298,6 +304,31 @@ function Documento() {
                       {talleres.map((taller) => (
                         <MUI.MenuItem key={taller} value={taller}>
                           {taller}
+                        </MUI.MenuItem>
+                      ))}
+                    </MUI.Select>
+                  </MUI.FormControl>
+                </MUI.Grid>
+                <MUI.Grid item xs={12} md={4}>
+                  <MUI.FormControl fullWidth>
+                    <MUI.InputLabel>Filtrar por Estado</MUI.InputLabel>
+                    <MUI.Select
+                      value={selectedEstado}
+                      onChange={(e) => setSelectedEstado(e.target.value)}
+                      label="Filtrar por Estado"
+                      sx={{ borderRadius: 2 }}
+                    >
+                      <MUI.MenuItem value="">Todos los estados</MUI.MenuItem>
+                      {Object.values(EstadoDocumento).map((estado) => (
+                        <MUI.MenuItem key={estado} value={estado}>
+                          <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <MUI.Chip
+                              label={estado}
+                              size="small"
+                              color={getEstadoColor(estado)}
+                              sx={{ minWidth: 80 }}
+                            />
+                          </MUI.Box>
                         </MUI.MenuItem>
                       ))}
                     </MUI.Select>
