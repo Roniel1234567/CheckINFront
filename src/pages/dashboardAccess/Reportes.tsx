@@ -136,6 +136,8 @@ function Reportes() {
   const [openDialog, setOpenDialog] = useState(false);
   const [currentReporte, setCurrentReporte] = useState<string>('');
   const notifications = 4;
+  const [selectedYear, setSelectedYear] = useState('');
+  const [availableYears, setAvailableYears] = useState<string[]>([]);
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -157,6 +159,24 @@ function Reportes() {
       }
     };
     cargarDatos();
+  }, []);
+
+  useEffect(() => {
+    const cargarAños = async () => {
+      try {
+        const estudiantes = await studentService.getAllStudents();
+        const years = estudiantes
+          .filter(e => e.fecha_fin_pasantia)
+          .map(e => new Date(e.fecha_fin_pasantia!).getFullYear())
+          .filter((year, index, self) => self.indexOf(year) === index)
+          .sort((a, b) => b - a);
+        
+        setAvailableYears(years.map(year => year.toString()));
+      } catch (error) {
+        console.error('Error al cargar años:', error);
+      }
+    };
+    cargarAños();
   }, []);
 
   const generarPDF = async (contenido: string, nombreArchivo: string) => {
@@ -204,9 +224,15 @@ function Reportes() {
         pasantiaService.getAllPasantias()
       ]);
 
-      const estudiantesFiltrados = selectedTaller 
-        ? estudiantes.filter(e => (e as EstudianteBase).taller_est?.id_taller.toString() === selectedTaller)
-        : estudiantes;
+      let estudiantesFiltrados = estudiantes;
+
+      // Filtrar por año si está seleccionado
+      if (selectedYear) {
+        estudiantesFiltrados = estudiantesFiltrados.filter(e => {
+          if (!e.fecha_fin_pasantia) return false;
+          return new Date(e.fecha_fin_pasantia).getFullYear().toString() === selectedYear;
+        });
+      }
 
       const contenido = `
         ${estilosBase}
@@ -217,7 +243,7 @@ function Reportes() {
           </div>
           
           <div class="info-reporte">
-            <p><strong>Taller:</strong> ${selectedTaller ? talleres.find(t => t.id_taller.toString() === selectedTaller)?.nombre_taller || 'No encontrado' : 'Todos los talleres'}</p>
+            <p><strong>Año:</strong> ${selectedYear || 'Todos los años'}</p>
             <p><strong>Fecha de generación:</strong> ${new Date().toLocaleDateString()}</p>
             <p><strong>Total de estudiantes:</strong> ${estudiantesFiltrados.length}</p>
           </div>
@@ -282,9 +308,15 @@ function Reportes() {
         api.get<EvaluacionEstudiante[]>('/evaluaciones-estudiante').then(res => res.data)
       ]);
 
-      const estudiantesFiltrados = selectedTaller 
-        ? estudiantes.filter(e => (e as EstudianteBase).taller_est?.id_taller.toString() === selectedTaller)
-        : estudiantes;
+      let estudiantesFiltrados = estudiantes;
+
+      // Filtrar por año si está seleccionado
+      if (selectedYear) {
+        estudiantesFiltrados = estudiantesFiltrados.filter(e => {
+          if (!e.fecha_fin_pasantia) return false;
+          return new Date(e.fecha_fin_pasantia).getFullYear().toString() === selectedYear;
+        });
+      }
 
       const evaluacionesPorEstudiante = new Map<string, EvaluacionEstudiante[]>();
       evaluaciones.forEach(evaluacion => {
@@ -304,7 +336,7 @@ function Reportes() {
           </div>
           
           <div class="info-reporte">
-            <p><strong>Taller:</strong> ${selectedTaller ? talleres.find(t => t.id_taller.toString() === selectedTaller)?.nombre_taller || 'No encontrado' : 'Todos los talleres'}</p>
+            <p><strong>Año:</strong> ${selectedYear || 'Todos los años'}</p>
             <p><strong>Fecha de generación:</strong> ${new Date().toLocaleDateString()}</p>
             <p><strong>Total de estudiantes:</strong> ${estudiantesFiltrados.length}</p>
           </div>
@@ -410,10 +442,12 @@ function Reportes() {
 
       let pasantiasFiltradas = [...pasantias];
       
-      if (selectedTaller) {
+      // Filtrar por año si está seleccionado
+      if (selectedYear) {
         pasantiasFiltradas = pasantiasFiltradas.filter(p => {
           const estudiante = estudiantesMap.get(p.estudiante_pas.documento_id_est);
-          return estudiante?.taller_est?.id_taller.toString() === selectedTaller;
+          if (!estudiante?.fecha_fin_pasantia) return false;
+          return new Date(estudiante.fecha_fin_pasantia).getFullYear().toString() === selectedYear;
         });
       }
       
@@ -456,8 +490,7 @@ function Reportes() {
           </div>
           
           <div class="info-reporte">
-            <p><strong>Taller:</strong> ${selectedTaller ? talleres.find(t => t.id_taller.toString() === selectedTaller)?.nombre_taller || 'No encontrado' : 'Todos los talleres'}</p>
-            <p><strong>Centro de Trabajo:</strong> ${selectedCentro ? centros.find(c => c.id_centro.toString() === selectedCentro)?.nombre_centro || 'No encontrado' : 'Todos los centros'}</p>
+            <p><strong>Año:</strong> ${selectedYear || 'Todos los años'}</p>
             <p><strong>Fecha de generación:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
             <p><strong>Total de asignaciones:</strong> ${pasantiasFiltradas.length}</p>
           </div>
@@ -612,6 +645,23 @@ function Reportes() {
           </MUI.DialogTitle>
           <MUI.DialogContent>
             <MUI.Grid container spacing={2}>
+              <MUI.Grid item xs={12}>
+                <MUI.FormControl fullWidth>
+                  <MUI.InputLabel>Año</MUI.InputLabel>
+                  <MUI.Select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    label="Año"
+                  >
+                    <MUI.MenuItem value="">Todos los años</MUI.MenuItem>
+                    {availableYears.map((year) => (
+                      <MUI.MenuItem key={year} value={year}>
+                        {year}
+                      </MUI.MenuItem>
+                    ))}
+                  </MUI.Select>
+                </MUI.FormControl>
+              </MUI.Grid>
               <MUI.Grid item xs={12}>
                 <MUI.FormControl fullWidth>
                   <MUI.InputLabel>Taller</MUI.InputLabel>
