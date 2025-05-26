@@ -30,6 +30,8 @@ interface EstudianteBase {
   nombre_est: string;
   apellido_est: string;
   taller_est?: TallerEstudiante;
+  fecha_inicio_pasantia?: string;
+  fecha_fin_pasantia?: string;
 }
 
 interface EvaluacionEstudiante {
@@ -53,6 +55,71 @@ interface CentroTrabajo {
   id_centro: number;
   nombre_centro: string;
 }
+
+const estilosBase = `
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .reporte-container {
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .encabezado {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #1a237e;
+    }
+    .encabezado h1 {
+      color: #1a237e;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .info-reporte {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f5f5f5;
+      border-radius: 5px;
+    }
+    .info-reporte p {
+      margin: 5px 0;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: white;
+    }
+    th {
+      background-color: #1a237e;
+      color: white;
+      padding: 12px;
+      font-weight: bold;
+      text-align: left;
+      font-size: 14px;
+    }
+    td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      font-size: 13px;
+    }
+    tr:nth-child(even) {
+      background-color: #f8f9fa;
+    }
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+      padding-top: 20px;
+      border-top: 1px solid #ddd;
+    }
+  </style>
+`;
 
 function Reportes() {
   const theme = useTheme();
@@ -94,16 +161,29 @@ function Reportes() {
     element.innerHTML = contenido;
     document.body.appendChild(element);
 
+      const opt = {
+    margin: 15,
+      filename: nombreArchivo,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      },
+      jsPDF: { 
+        unit: 'mm', 
+        format: 'a4', 
+        orientation: 'portrait',
+        compress: true
+      },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
     try {
-      const canvas = await import('html2canvas').then(module => module.default(element));
-      const jsPDF = (await import('jspdf')).default;
-      
-      const pdf = new jsPDF('p', 'pt', 'letter');
-      const width = pdf.internal.pageSize.getWidth();
-      const height = (canvas.height * width) / canvas.width;
-      
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, width, height);
-      pdf.save(nombreArchivo);
+      const html2pdf = (await import('html2pdf.js')).default;
+      await html2pdf().set(opt).from(element).save();
     } catch (error) {
       console.error('Error al generar PDF:', error);
       throw error;
@@ -116,36 +196,36 @@ function Reportes() {
     try {
       setLoading(true);
       
-      // Obtener datos
       const [estudiantes, pasantias] = await Promise.all([
         studentService.getAllStudents() as Promise<EstudianteBase[]>,
         pasantiaService.getAllPasantias()
       ]);
 
-      // Filtrar por taller si se seleccionó uno
       const estudiantesFiltrados = selectedTaller 
         ? estudiantes.filter(e => (e as EstudianteBase).taller_est?.id_taller.toString() === selectedTaller)
         : estudiantes;
 
-      // Crear contenido del reporte
       const contenido = `
-        <div style="padding: 20px; font-family: Arial, sans-serif;">
-          <h1 style="color: #1a237e; text-align: center; margin-bottom: 30px;">
-            Reporte de Estudiantes y Pasantías
-          </h1>
-          <p style="margin-bottom: 20px;">
-            <strong>Taller:</strong> ${selectedTaller ? talleres.find(t => t.id_taller.toString() === selectedTaller)?.nombre_taller || 'No encontrado' : 'Todos los talleres'}
-          </p>
-          <p style="margin-bottom: 20px;">
-            <strong>Fecha de generación:</strong> ${new Date().toLocaleDateString()}
-          </p>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        ${estilosBase}
+        <div class="reporte-container">
+          <div class="encabezado">
+            <h1>Reporte de Estudiantes y Pasantías</h1>
+            <p>Instituto Politécnico Industrial de Santiago (IPISA)</p>
+          </div>
+          
+          <div class="info-reporte">
+            <p><strong>Taller:</strong> ${selectedTaller ? talleres.find(t => t.id_taller.toString() === selectedTaller)?.nombre_taller || 'No encontrado' : 'Todos los talleres'}</p>
+            <p><strong>Fecha de generación:</strong> ${new Date().toLocaleDateString()}</p>
+            <p><strong>Total de estudiantes:</strong> ${estudiantesFiltrados.length}</p>
+          </div>
+
+          <table>
             <thead>
-              <tr style="background-color: #1a237e; color: white;">
-                <th style="padding: 10px; border: 1px solid #ddd;">Estudiante</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Taller</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Estado Pasantía</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Centro de Trabajo</th>
+              <tr>
+                <th>Estudiante</th>
+                <th>Taller</th>
+                <th>Estado Pasantía</th>
+                <th>Centro de Trabajo</th>
               </tr>
             </thead>
             <tbody>
@@ -155,23 +235,20 @@ function Reportes() {
                 );
                 return `
                   <tr>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${estudiante.nombre_est} ${estudiante.apellido_est}
-                    </td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${estudiante.taller_est?.nombre_taller || 'No asignado'}
-                    </td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${pasantia ? pasantia.estado_pas : 'Sin pasantía'}
-                    </td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${pasantia ? pasantia.centro_pas.nombre_centro : 'No asignado'}
-                    </td>
+                    <td>${estudiante.nombre_est} ${estudiante.apellido_est}</td>
+                    <td>${estudiante.taller_est?.nombre_taller || 'No asignado'}</td>
+                    <td>${pasantia ? pasantia.estado_pas : 'Sin pasantía'}</td>
+                    <td>${pasantia ? pasantia.centro_pas.nombre_centro : 'No asignado'}</td>
                   </tr>
                 `;
               }).join('')}
             </tbody>
           </table>
+
+          <div class="footer">
+            <p>Este es un documento generado automáticamente por el Sistema de Gestión de Pasantías</p>
+            <p>© ${new Date().getFullYear()} IPISA - Todos los derechos reservados</p>
+          </div>
         </div>
       `;
       
@@ -197,18 +274,15 @@ function Reportes() {
     try {
       setLoading(true);
 
-      // Obtener datos
       const [estudiantes, evaluaciones] = await Promise.all([
         studentService.getAllStudents() as Promise<EstudianteBase[]>,
         api.get<EvaluacionEstudiante[]>('/evaluaciones-estudiante').then(res => res.data)
       ]);
 
-      // Filtrar por taller si se seleccionó uno
       const estudiantesFiltrados = selectedTaller 
         ? estudiantes.filter(e => (e as EstudianteBase).taller_est?.id_taller.toString() === selectedTaller)
         : estudiantes;
 
-      // Procesar evaluaciones
       const evaluacionesPorEstudiante = new Map<string, EvaluacionEstudiante[]>();
       evaluaciones.forEach(evaluacion => {
         const docId = evaluacion.pasantia_eval.estudiante_pas.documento_id_est;
@@ -219,29 +293,32 @@ function Reportes() {
       });
 
       const contenido = `
-        <div style="padding: 20px; font-family: Arial, sans-serif;">
-          <h1 style="color: #1a237e; text-align: center; margin-bottom: 30px;">
-            Reporte de Calificaciones
-          </h1>
-          <p style="margin-bottom: 20px;">
-            <strong>Taller:</strong> ${selectedTaller ? talleres.find(t => t.id_taller.toString() === selectedTaller)?.nombre_taller || 'No encontrado' : 'Todos los talleres'}
-          </p>
-          <p style="margin-bottom: 20px;">
-            <strong>Fecha de generación:</strong> ${new Date().toLocaleDateString()}
-          </p>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        ${estilosBase}
+        <div class="reporte-container">
+          <div class="encabezado">
+            <h1>Reporte de Calificaciones</h1>
+            <p>Instituto Politécnico Industrial de Santiago (IPISA)</p>
+          </div>
+          
+          <div class="info-reporte">
+            <p><strong>Taller:</strong> ${selectedTaller ? talleres.find(t => t.id_taller.toString() === selectedTaller)?.nombre_taller || 'No encontrado' : 'Todos los talleres'}</p>
+            <p><strong>Fecha de generación:</strong> ${new Date().toLocaleDateString()}</p>
+            <p><strong>Total de estudiantes:</strong> ${estudiantesFiltrados.length}</p>
+          </div>
+
+          <table>
             <thead>
-              <tr style="background-color: #1a237e; color: white;">
-                <th style="padding: 10px; border: 1px solid #ddd;">Estudiante</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Taller</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">RA1</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">RA2</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">RA3</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">RA4</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">RA5</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">RA6</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">RA7</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Promedio</th>
+              <tr>
+                <th>Estudiante</th>
+                <th>Taller</th>
+                <th>RA1</th>
+                <th>RA2</th>
+                <th>RA3</th>
+                <th>RA4</th>
+                <th>RA5</th>
+                <th>RA6</th>
+                <th>RA7</th>
+                <th>Promedio</th>
               </tr>
             </thead>
             <tbody>
@@ -265,27 +342,37 @@ function Reportes() {
                   ? Math.round([...evaluacionesPorRA.values()].reduce((a, b) => a + b, 0) / evaluacionesPorRA.size)
                   : 0;
 
+                const getCalificacionEstilo = (nota: number) => {
+                  if (nota === 0) return 'color: #999;';
+                  if (nota >= 90) return 'color: #4CAF50; font-weight: bold;';
+                  if (nota >= 80) return 'color: #2196F3;';
+                  if (nota >= 70) return 'color: #FF9800;';
+                  return 'color: #f44336; font-weight: bold;';
+                };
+
                 return `
                   <tr>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${estudiante.nombre_est} ${estudiante.apellido_est}
-                    </td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${estudiante.taller_est?.nombre_taller || 'No asignado'}
-                    </td>
+                    <td>${estudiante.nombre_est} ${estudiante.apellido_est}</td>
+                    <td>${estudiante.taller_est?.nombre_taller || 'No asignado'}</td>
                     ${['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].map(ra => `
-                      <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                      <td style="${getCalificacionEstilo(evaluacionesPorRA.get(ra) || 0)}">
                         ${evaluacionesPorRA.get(ra) || '-'}
                       </td>
                     `).join('')}
-                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center; font-weight: bold;">
-                      ${promedioTotal || '-'}
+                    <td style="${getCalificacionEstilo(promedioTotal)}">
+                      <strong>${promedioTotal || '-'}</strong>
                     </td>
                   </tr>
                 `;
               }).join('')}
             </tbody>
           </table>
+
+          <div class="footer">
+            <p>Este es un documento generado automáticamente por el Sistema de Gestión de Pasantías</p>
+            <p>Escala de calificación: 90-100 (Excelente), 80-89 (Muy Bueno), 70-79 (Bueno), <70 (Necesita Mejorar)</p>
+            <p>© ${new Date().getFullYear()} IPISA - Todos los derechos reservados</p>
+          </div>
         </div>
       `;
       
@@ -311,16 +398,20 @@ function Reportes() {
     try {
       setLoading(true);
 
-      // Obtener datos
-      const pasantias = await pasantiaService.getAllPasantias();
+      const [estudiantes, pasantias] = await Promise.all([
+        studentService.getAllStudents() as Promise<EstudianteBase[]>,
+        pasantiaService.getAllPasantias()
+      ]);
 
-      // Filtrar por taller y/o centro si se seleccionaron
-      let pasantiasFiltradas = pasantias;
+      const estudiantesMap = new Map(estudiantes.map(est => [est.documento_id_est, est]));
+
+      let pasantiasFiltradas = [...pasantias];
       
       if (selectedTaller) {
-        pasantiasFiltradas = pasantiasFiltradas.filter(p => 
-          (p.estudiante_pas as EstudianteBase).taller_est?.id_taller.toString() === selectedTaller
-        );
+        pasantiasFiltradas = pasantiasFiltradas.filter(p => {
+          const estudiante = estudiantesMap.get(p.estudiante_pas.documento_id_est);
+          return estudiante?.taller_est?.id_taller.toString() === selectedTaller;
+        });
       }
       
       if (selectedCentro) {
@@ -329,59 +420,78 @@ function Reportes() {
         );
       }
 
+      const formatearFecha = (fecha: string | undefined) => {
+        if (!fecha) return 'No definida';
+        return new Date(fecha).toLocaleDateString('es-ES', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+      };
+
+      const getEstadoEstilo = (estado: string) => {
+        switch (estado.toLowerCase()) {
+          case 'en proceso':
+            return 'color: #2196F3; font-weight: bold;';
+          case 'terminada':
+            return 'color: #4CAF50; font-weight: bold;';
+          case 'pendiente':
+            return 'color: #FF9800; font-weight: bold;';
+          case 'cancelada':
+            return 'color: #f44336; font-weight: bold;';
+          default:
+            return '';
+        }
+      };
+
       const contenido = `
-        <div style="padding: 20px; font-family: Arial, sans-serif;">
-          <h1 style="color: #1a237e; text-align: center; margin-bottom: 30px;">
-            Reporte de Asignaciones
-          </h1>
-          <p style="margin-bottom: 20px;">
-            <strong>Taller:</strong> ${selectedTaller ? talleres.find(t => t.id_taller.toString() === selectedTaller)?.nombre_taller || 'No encontrado' : 'Todos los talleres'}
-          </p>
-          <p style="margin-bottom: 20px;">
-            <strong>Centro de Trabajo:</strong> ${selectedCentro ? centros.find(c => c.id_centro.toString() === selectedCentro)?.nombre_centro || 'No encontrado' : 'Todos los centros'}
-          </p>
-          <p style="margin-bottom: 20px;">
-            <strong>Fecha de generación:</strong> ${new Date().toLocaleDateString()}
-          </p>
-          <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
+        ${estilosBase}
+        <div class="reporte-container">
+          <div class="encabezado">
+            <h1>Reporte de Asignaciones de Pasantías</h1>
+            <p>Instituto Politécnico Industrial de Santiago (IPISA)</p>
+          </div>
+          
+          <div class="info-reporte">
+            <p><strong>Taller:</strong> ${selectedTaller ? talleres.find(t => t.id_taller.toString() === selectedTaller)?.nombre_taller || 'No encontrado' : 'Todos los talleres'}</p>
+            <p><strong>Centro de Trabajo:</strong> ${selectedCentro ? centros.find(c => c.id_centro.toString() === selectedCentro)?.nombre_centro || 'No encontrado' : 'Todos los centros'}</p>
+            <p><strong>Fecha de generación:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
+            <p><strong>Total de asignaciones:</strong> ${pasantiasFiltradas.length}</p>
+          </div>
+
+          <table>
             <thead>
-              <tr style="background-color: #1a237e; color: white;">
-                <th style="padding: 10px; border: 1px solid #ddd;">Estudiante</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Taller</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Centro de Trabajo</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Estado</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Fecha Inicio</th>
-                <th style="padding: 10px; border: 1px solid #ddd;">Fecha Fin</th>
+              <tr>
+                <th>Estudiante</th>
+                <th>Taller</th>
+                <th>Centro de Trabajo</th>
+                <th>Estado</th>
+                <th>Fecha Inicio</th>
+                <th>Fecha Fin</th>
               </tr>
             </thead>
             <tbody>
               ${pasantiasFiltradas.map(pasantia => {
-                const estudiante = pasantia.estudiante_pas as EstudianteBase;
+                const estudiante = estudiantesMap.get(pasantia.estudiante_pas.documento_id_est);
                 return `
                   <tr>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${estudiante.nombre_est} ${estudiante.apellido_est}
-                    </td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${estudiante.taller_est?.nombre_taller || 'No asignado'}
-                    </td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${pasantia.centro_pas.nombre_centro}
-                    </td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${pasantia.estado_pas}
-                    </td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${new Date(pasantia.inicio_pas).toLocaleDateString()}
-                    </td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                      ${pasantia.fin_pas ? new Date(pasantia.fin_pas).toLocaleDateString() : 'En curso'}
-                    </td>
+                    <td>${estudiante?.nombre_est || ''} ${estudiante?.apellido_est || ''}</td>
+                    <td>${estudiante?.taller_est?.nombre_taller || 'No asignado'}</td>
+                    <td>${pasantia.centro_pas.nombre_centro}</td>
+                    <td style="${getEstadoEstilo(pasantia.estado_pas)}">${pasantia.estado_pas}</td>
+                    <td>${formatearFecha(estudiante?.fecha_inicio_pasantia)}</td>
+                    <td>${pasantia.estado_pas.toLowerCase() === 'en proceso' ? 'En curso' : formatearFecha(estudiante?.fecha_fin_pasantia)}</td>
                   </tr>
                 `;
               }).join('')}
             </tbody>
           </table>
+
+          <div class="footer">
+            <p>Este es un documento generado automáticamente por el Sistema de Gestión de Pasantías</p>
+            <p>Estados: En Proceso (Azul), Terminada (Verde), Pendiente (Naranja), Cancelada (Rojo)</p>
+            <p>© ${new Date().getFullYear()} IPISA - Todos los derechos reservados</p>
+          </div>
         </div>
       `;
       
