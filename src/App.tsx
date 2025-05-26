@@ -31,6 +31,7 @@ import SupervisoresPage from './pages/dashboardAccess/Supervisores';
 import PasantiaPage from './pages/Pasantia';
 import Administradores from './pages/dashboardAccess/Administradores';
 import Documento from './pages/dashboardAccess/Documento';
+import Reportes from './pages/dashboardAccess/Reportes';
 
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -74,6 +75,7 @@ function App() {
           <Route path="supervisores" element={<SupervisoresPage />} />
           <Route path="administradores" element={<Administradores />} />
           <Route path="documentos" element={<Documento />} />
+          <Route path="reportes" element={<Reportes />} />
           {/* Ruta alternativa para gestión de talleres que apunta al mismo componente */}
           <Route path="gestion-talleres" element={<TallerConFamilias />} />
           <Route path="/dashboard/evaluaciones" element={<Evaluaciones />} />
