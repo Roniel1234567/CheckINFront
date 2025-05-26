@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import * as MUI from '@mui/material';
 import * as Icons from '@mui/icons-material';
-import documentoService, { type DocEstudiante } from '../../services/documentoService';
+import documentoService, { type DocEstudiante, EstadoDocumento } from '../../services/documentoService';
 import studentService, { type Estudiante } from '../../services/studentService';
 import SideBar from '../../components/SideBar';
 import DashboardAppBar from '../../components/DashboardAppBar';
@@ -99,7 +99,6 @@ function Documento() {
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
       setSelectedDocumento({ documento, tipo });
-      setPageNumber(1);
     } catch (error) {
       console.error('Error al previsualizar documento:', error);
       setSnackbar({
@@ -167,6 +166,41 @@ function Documento() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEstadoChange = async (documento: string, nuevoEstado: EstadoDocumento) => {
+    try {
+      setLoading(true);
+      await documentoService.actualizarEstadoDocumento(documento, nuevoEstado);
+      await cargarDocumentos(selectedEstudiante);
+      setSnackbar({
+        open: true,
+        message: 'Estado de los documentos actualizado correctamente',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error al actualizar estado de los documentos:', error);
+      setSnackbar({
+        open: true,
+        message: 'Error al actualizar estado de los documentos',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getEstadoColor = (estado: EstadoDocumento) => {
+    switch (estado) {
+      case EstadoDocumento.APROBADO:
+        return 'success';
+      case EstadoDocumento.RECHAZADO:
+        return 'error';
+      case EstadoDocumento.VISTO:
+        return 'info';
+      default:
+        return 'warning';
     }
   };
 
@@ -311,59 +345,84 @@ function Documento() {
           <MUI.Grid item xs={12} md={8}>
             <MUI.Paper elevation={3} sx={{ p: 2, borderRadius: 2, height: '70vh', overflow: 'auto' }}>
               {selectedEstudiante ? (
-                <MUI.Grid container spacing={2}>
-                  {documentosMeta.map((doc) => {
-                    const documento = documentos.find(d => d.est_doc === selectedEstudiante);
-                    const tieneDocumento = documento && documento[doc.campo];
-
-                    return (
-                      <MUI.Grid item xs={12} sm={6} md={4} key={doc.tipo}>
-                        <MUI.Card
-                          sx={{
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            transition: 'all 0.2s',
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: 4
-                            }
-                          }}
-                        >
-                          <MUI.CardContent sx={{ flexGrow: 1 }}>
-                            <MUI.Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                              {doc.icono}
-                              <MUI.Typography variant="h6" sx={{ ml: 1 }}>
-                                {doc.nombre}
-                              </MUI.Typography>
+                <>
+                  <MUI.Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <MUI.Typography variant="h6">Estado de Documentos:</MUI.Typography>
+                    <MUI.FormControl sx={{ minWidth: 200 }}>
+                      <MUI.Select
+                        value={documentos[0]?.estado_doc_est || EstadoDocumento.PENDIENTE}
+                        onChange={(e) => handleEstadoChange(selectedEstudiante, e.target.value as EstadoDocumento)}
+                        size="small"
+                      >
+                        {Object.values(EstadoDocumento).map((estado) => (
+                          <MUI.MenuItem key={estado} value={estado}>
+                            <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <MUI.Chip
+                                label={estado}
+                                size="small"
+                                color={getEstadoColor(estado)}
+                                sx={{ minWidth: 80 }}
+                              />
                             </MUI.Box>
-                            <MUI.Typography variant="body2" color="text.secondary">
-                              {tieneDocumento ? 'Documento disponible' : 'No disponible'}
-                            </MUI.Typography>
-                          </MUI.CardContent>
-                          <MUI.CardActions>
-                            <MUI.Button
-                              size="small"
-                              startIcon={<Icons.Visibility />}
-                              onClick={() => tieneDocumento && handlePreviewDocumento(selectedEstudiante, doc.tipo)}
-                              disabled={!tieneDocumento}
-                            >
-                              Ver
-                            </MUI.Button>
-                            <MUI.Button
-                              size="small"
-                              startIcon={<Icons.Download />}
-                              onClick={() => tieneDocumento && handleDownloadDocumento(selectedEstudiante, doc.tipo, doc.nombre)}
-                              disabled={!tieneDocumento}
-                            >
-                              Descargar
-                            </MUI.Button>
-                          </MUI.CardActions>
-                        </MUI.Card>
-                      </MUI.Grid>
-                    );
-                  })}
-                </MUI.Grid>
+                          </MUI.MenuItem>
+                        ))}
+                      </MUI.Select>
+                    </MUI.FormControl>
+                  </MUI.Box>
+                  <MUI.Grid container spacing={2}>
+                    {documentosMeta.map((doc) => {
+                      const documento = documentos.find(d => d.est_doc === selectedEstudiante);
+                      const tieneDocumento = documento && documento[doc.campo];
+
+                      return (
+                        <MUI.Grid item xs={12} sm={6} md={4} key={doc.tipo}>
+                          <MUI.Card
+                            sx={{
+                              height: '100%',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              transition: 'all 0.2s',
+                              '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow: 4
+                              }
+                            }}
+                          >
+                            <MUI.CardContent sx={{ flexGrow: 1 }}>
+                              <MUI.Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                {doc.icono}
+                                <MUI.Typography variant="h6" sx={{ ml: 1 }}>
+                                  {doc.nombre}
+                                </MUI.Typography>
+                              </MUI.Box>
+                              <MUI.Typography variant="body2" color="text.secondary">
+                                {tieneDocumento ? 'Documento disponible' : 'No disponible'}
+                              </MUI.Typography>
+                            </MUI.CardContent>
+                            <MUI.CardActions>
+                              <MUI.Button
+                                size="small"
+                                startIcon={<Icons.Visibility />}
+                                onClick={() => tieneDocumento && handlePreviewDocumento(selectedEstudiante, doc.tipo)}
+                                disabled={!tieneDocumento}
+                              >
+                                Ver
+                              </MUI.Button>
+                              <MUI.Button
+                                size="small"
+                                startIcon={<Icons.Download />}
+                                onClick={() => tieneDocumento && handleDownloadDocumento(selectedEstudiante, doc.tipo, doc.nombre)}
+                                disabled={!tieneDocumento}
+                              >
+                                Descargar
+                              </MUI.Button>
+                            </MUI.CardActions>
+                          </MUI.Card>
+                        </MUI.Grid>
+                      );
+                    })}
+                  </MUI.Grid>
+                </>
               ) : (
                 <MUI.Box
                   sx={{

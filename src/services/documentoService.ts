@@ -2,6 +2,13 @@ import api from './api';
 import axios from 'axios';
 import { Estudiante } from './estudianteService';
 
+export enum EstadoDocumento {
+  VISTO = 'Visto',
+  APROBADO = 'Aprobado',
+  RECHAZADO = 'Rechazado',
+  PENDIENTE = 'Pendiente'
+}
+
 export interface DocEstudiante {
   est_doc: string;
   estudiante: Estudiante;
@@ -12,6 +19,7 @@ export interface DocEstudiante {
   acta_nac_doc?: Buffer;
   ced_padres_doc?: Buffer;
   vac_covid_doc?: Buffer;
+  estado_doc_est: EstadoDocumento;
 }
 
 export interface ComentarioDoc {
@@ -61,6 +69,15 @@ const documentoService = {
       await api.post('/docs-estudiante/comentario', comentarioData);
     } catch (error) {
       console.error('Error al enviar comentario:', error);
+      throw error;
+    }
+  },
+
+  actualizarEstadoDocumento: async (documento: string, estado: EstadoDocumento): Promise<void> => {
+    try {
+      await api.put(`/docs-estudiante/${documento}`, { estado_doc_est: estado });
+    } catch (error) {
+      console.error('Error al actualizar estado del documento:', error);
       throw error;
     }
   }
