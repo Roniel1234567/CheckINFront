@@ -415,59 +415,59 @@ function Documento() {
                       </MUI.Select>
                     </MUI.FormControl>
                   </MUI.Box>
-                  <MUI.Grid container spacing={2}>
-                    {documentosMeta.map((doc) => {
-                      const documento = documentos.find(d => d.est_doc === selectedEstudiante);
-                      const tieneDocumento = documento && documento[doc.campo];
+                <MUI.Grid container spacing={2}>
+                  {documentosMeta.map((doc) => {
+                    const documento = documentos.find(d => d.est_doc === selectedEstudiante);
+                    const tieneDocumento = documento && documento[doc.campo];
 
-                      return (
-                        <MUI.Grid item xs={12} sm={6} md={4} key={doc.tipo}>
-                          <MUI.Card
-                            sx={{
-                              height: '100%',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              transition: 'all 0.2s',
-                              '&:hover': {
-                                transform: 'translateY(-4px)',
-                                boxShadow: 4
-                              }
-                            }}
-                          >
-                            <MUI.CardContent sx={{ flexGrow: 1 }}>
-                              <MUI.Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                {doc.icono}
-                                <MUI.Typography variant="h6" sx={{ ml: 1 }}>
-                                  {doc.nombre}
-                                </MUI.Typography>
-                              </MUI.Box>
-                              <MUI.Typography variant="body2" color="text.secondary">
-                                {tieneDocumento ? 'Documento disponible' : 'No disponible'}
+                    return (
+                      <MUI.Grid item xs={12} sm={6} md={4} key={doc.tipo}>
+                        <MUI.Card
+                          sx={{
+                            height: '100%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            transition: 'all 0.2s',
+                            '&:hover': {
+                              transform: 'translateY(-4px)',
+                              boxShadow: 4
+                            }
+                          }}
+                        >
+                          <MUI.CardContent sx={{ flexGrow: 1 }}>
+                            <MUI.Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                              {doc.icono}
+                              <MUI.Typography variant="h6" sx={{ ml: 1 }}>
+                                {doc.nombre}
                               </MUI.Typography>
-                            </MUI.CardContent>
-                            <MUI.CardActions>
-                              <MUI.Button
-                                size="small"
-                                startIcon={<Icons.Visibility />}
-                                onClick={() => tieneDocumento && handlePreviewDocumento(selectedEstudiante, doc.tipo)}
-                                disabled={!tieneDocumento}
-                              >
-                                Ver
-                              </MUI.Button>
-                              <MUI.Button
-                                size="small"
-                                startIcon={<Icons.Download />}
-                                onClick={() => tieneDocumento && handleDownloadDocumento(selectedEstudiante, doc.tipo, doc.nombre)}
-                                disabled={!tieneDocumento}
-                              >
-                                Descargar
-                              </MUI.Button>
-                            </MUI.CardActions>
-                          </MUI.Card>
-                        </MUI.Grid>
-                      );
-                    })}
-                  </MUI.Grid>
+                            </MUI.Box>
+                            <MUI.Typography variant="body2" color="text.secondary">
+                              {tieneDocumento ? 'Documento disponible' : 'No disponible'}
+                            </MUI.Typography>
+                          </MUI.CardContent>
+                          <MUI.CardActions>
+                            <MUI.Button
+                              size="small"
+                              startIcon={<Icons.Visibility />}
+                              onClick={() => tieneDocumento && handlePreviewDocumento(selectedEstudiante, doc.tipo)}
+                              disabled={!tieneDocumento}
+                            >
+                              Ver
+                            </MUI.Button>
+                            <MUI.Button
+                              size="small"
+                              startIcon={<Icons.Download />}
+                              onClick={() => tieneDocumento && handleDownloadDocumento(selectedEstudiante, doc.tipo, doc.nombre)}
+                              disabled={!tieneDocumento}
+                            >
+                              Descargar
+                            </MUI.Button>
+                          </MUI.CardActions>
+                        </MUI.Card>
+                      </MUI.Grid>
+                    );
+                  })}
+                </MUI.Grid>
                 </>
               ) : (
                 <MUI.Box

@@ -38,7 +38,8 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
     { id: 'evaluaciones', text: 'Evaluaciones', icon: <Icons.Assessment />, path: '/evaluaciones' },
     { id: 'calificacion', text: 'Calificaciones', icon: <Icons.Grade />, path: '/dashboard/calificacion' },
     { id: 'visits', text: 'Visitas', icon: <Icons.Explore />, path: '/Visitas' },
-    { id: 'reports', text: 'Reportes', icon: <Icons.Assessment />, path: '/Reportes' }
+    { id: 'reports', text: 'Reportes', icon: <Icons.Assessment />, path: '/Reportes' },
+    { id: 'cierre', text: 'Cierre de Pasantías', icon: <Icons.PowerSettingsNew />, path: '/cierre-pasantia' }
   ];
 
   const activeMenu = menuItems.find(item => location.pathname === item.path)?.id || '';

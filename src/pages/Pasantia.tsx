@@ -680,8 +680,8 @@ const PasantiaPage = () => {
                   switch (tipoVista) {
                     case 'canceladas':
                       return <>
-                        <Icons.History sx={{ fontSize: 28, color: theme.palette.error.main }} /> 
-                        Historial de Pasantías Canceladas
+                    <Icons.History sx={{ fontSize: 28, color: theme.palette.error.main }} /> 
+                    Historial de Pasantías Canceladas
                       </>;
                     case 'terminadas':
                       return <>
@@ -690,8 +690,8 @@ const PasantiaPage = () => {
                       </>;
                     default:
                       return <>
-                        <Icons.ListAlt sx={{ fontSize: 28, color: theme.palette.primary.main }} /> 
-                        Pasantías Activas
+                    <Icons.ListAlt sx={{ fontSize: 28, color: theme.palette.primary.main }} /> 
+                    Pasantías Activas
                       </>;
                   }
                 })()}
@@ -787,9 +787,9 @@ const PasantiaPage = () => {
                       </>
                     ) : (
                       <>
-                        <MUI.TableCell>Supervisor</MUI.TableCell>
-                        <MUI.TableCell>Estado</MUI.TableCell>
-                        <MUI.TableCell align="center">Acciones</MUI.TableCell>
+                    <MUI.TableCell>Supervisor</MUI.TableCell>
+                    <MUI.TableCell>Estado</MUI.TableCell>
+                    <MUI.TableCell align="center">Acciones</MUI.TableCell>
                       </>
                     )}
                   </MUI.TableRow>
@@ -814,16 +814,16 @@ const PasantiaPage = () => {
                         sx={tipoVista === 'canceladas' ? { bgcolor: '#fff3f3' } : 
                            tipoVista === 'terminadas' ? { bgcolor: '#f0f7f0' } : undefined}
                       >
-                        <MUI.TableCell>{p.estudiante_pas.nombre_est} {p.estudiante_pas.apellido_est}</MUI.TableCell>
-                        <MUI.TableCell>
-                          {(() => {
-                            if (!p.plaza_pas) return '-';
-                            const plazaId = typeof p.plaza_pas === 'object' ? p.plaza_pas.id_plaza : p.plaza_pas;
-                            const plaza = plazas.find(pl => pl.id_plaza === plazaId);
+                      <MUI.TableCell>{p.estudiante_pas.nombre_est} {p.estudiante_pas.apellido_est}</MUI.TableCell>
+                      <MUI.TableCell>
+                        {(() => {
+                          if (!p.plaza_pas) return '-';
+                          const plazaId = typeof p.plaza_pas === 'object' ? p.plaza_pas.id_plaza : p.plaza_pas;
+                          const plaza = plazas.find(pl => pl.id_plaza === plazaId);
                             return plaza?.taller_plaza?.nombre_taller || '-';
-                          })()}
-                        </MUI.TableCell>
-                        <MUI.TableCell>{p.centro_pas.nombre_centro}</MUI.TableCell>
+                        })()}
+                      </MUI.TableCell>
+                      <MUI.TableCell>{p.centro_pas.nombre_centro}</MUI.TableCell>
                         {tipoVista === 'terminadas' ? (
                           <>
                             <MUI.TableCell>
@@ -845,58 +845,58 @@ const PasantiaPage = () => {
                           </>
                         ) : (
                           <>
-                            <MUI.TableCell>{p.supervisor_pas?.nombre_sup || '-'}</MUI.TableCell>
-                            <MUI.TableCell>
-                              <MUI.Chip 
-                                label={p.estado_pas} 
-                                color={p.estado_pas === EstadoPasantia.CANCELADA ? 'error' : 'info'}
-                              />
-                            </MUI.TableCell>
-                            <MUI.TableCell align="center">
-                              <MUI.Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                      <MUI.TableCell>{p.supervisor_pas?.nombre_sup || '-'}</MUI.TableCell>
+                      <MUI.TableCell>
+                        <MUI.Chip 
+                          label={p.estado_pas} 
+                          color={p.estado_pas === EstadoPasantia.CANCELADA ? 'error' : 'info'}
+                        />
+                      </MUI.TableCell>
+                      <MUI.TableCell align="center">
+                        <MUI.Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                                 {tipoVista === 'canceladas' ? (
-                                  <MUI.Tooltip title="Restaurar pasantía">
-                                    <MUI.IconButton
-                                      size="small"
-                                      color="success"
-                                      onClick={() => {
-                                        setPasantiaToRestore(p);
-                                        setOpenRestoreDialog(true);
-                                      }}
-                                    >
-                                      <Icons.Restore />
-                                    </MUI.IconButton>
-                                  </MUI.Tooltip>
-                                ) : (
-                                  <>
-                                    <MUI.Tooltip title="Editar pasantía">
-                                      <MUI.IconButton
-                                        size="small"
-                                        color="primary"
-                                        onClick={() => handleEditClick(p)}
-                                      >
-                                        <Icons.Edit />
-                                      </MUI.IconButton>
-                                    </MUI.Tooltip>
-                                    <MUI.Tooltip title="Cancelar pasantía">
-                                      <MUI.IconButton
-                                        size="small"
-                                        color="error"
-                                        onClick={() => {
-                                          setPasantiaToDelete(p);
-                                          setOpenDeleteDialog(true);
-                                        }}
-                                      >
-                                        <Icons.Delete />
-                                      </MUI.IconButton>
-                                    </MUI.Tooltip>
-                                  </>
-                                )}
-                              </MUI.Box>
-                            </MUI.TableCell>
+                            <MUI.Tooltip title="Restaurar pasantía">
+                              <MUI.IconButton
+                                size="small"
+                                color="success"
+                                onClick={() => {
+                                  setPasantiaToRestore(p);
+                                  setOpenRestoreDialog(true);
+                                }}
+                              >
+                                <Icons.Restore />
+                              </MUI.IconButton>
+                            </MUI.Tooltip>
+                          ) : (
+                            <>
+                              <MUI.Tooltip title="Editar pasantía">
+                                <MUI.IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleEditClick(p)}
+                                >
+                                  <Icons.Edit />
+                                </MUI.IconButton>
+                              </MUI.Tooltip>
+                              <MUI.Tooltip title="Cancelar pasantía">
+                                <MUI.IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => {
+                                    setPasantiaToDelete(p);
+                                    setOpenDeleteDialog(true);
+                                  }}
+                                >
+                                  <Icons.Delete />
+                                </MUI.IconButton>
+                              </MUI.Tooltip>
+                            </>
+                          )}
+                        </MUI.Box>
+                      </MUI.TableCell>
                           </>
                         )}
-                      </MUI.TableRow>
+                    </MUI.TableRow>
                     ));
                   })()}
                 </MUI.TableBody>
