@@ -4,6 +4,8 @@ import api from '../services/api';
 import * as Icons from '@mui/icons-material';
 import SideBar from '../components/SideBar';
 import DashboardAppBar from '../components/DashboardAppBar';
+import { userService } from '../services/userService';
+import { EstadoPasantia } from '../services/pasantiaService';
 
 interface Plaza {
   id_plaza: number;
@@ -21,6 +23,16 @@ interface Estudiante {
   fecha_inicio_pasantia: string | null;
   fecha_fin_pasantia: string | null;
   horaspasrealizadas_est: number | null;
+  usuario_est?: {
+    id_usuario: number;
+  };
+}
+
+interface Pasantia {
+  estudiante_pas: {
+    documento_id_est: string;
+  };
+  estado_pas: EstadoPasantia;
 }
 
 function CierrePasantia() {
@@ -53,23 +65,34 @@ function CierrePasantia() {
         })
       ));
       
-      // 2. Actualizar estado de usuarios a Eliminado
-      // Primero obtenemos todos los usuarios activos relacionados con estudiantes
-      const usuariosResponse = await api.get<Usuario[]>('/usuarios');
-      const usuariosEstudiantes = usuariosResponse.data.filter((usuario: Usuario) => 
-        usuario.estado_usuario === 'Activo' && usuario.rol_usuario === 5 // Asumiendo que 5 es el rol de estudiante
+      // 2. Obtener todas las pasantías y estudiantes
+      const pasantiasResponse = await api.get<Pasantia[]>('/pasantias');
+      const estudiantesResponse = await api.get<Estudiante[]>('/estudiantes');
+      
+      // Identificar estudiantes con pasantías terminadas
+      const estudiantesConPasantiasTerminadas = new Set(
+        pasantiasResponse.data
+          .filter(pasantia => pasantia.estado_pas === EstadoPasantia.TERMINADA)
+          .map(pasantia => pasantia.estudiante_pas.documento_id_est)
       );
       
-      // Actualizamos cada usuario
-      await Promise.all(usuariosEstudiantes.map((usuario: Usuario) =>
-        api.put(`/usuarios/${usuario.id_usuario}`, {
+      // Filtrar estudiantes que tienen pasantías terminadas y obtener sus IDs de usuario
+      const usuariosAActualizar = estudiantesResponse.data
+        .filter(estudiante => 
+          estudiantesConPasantiasTerminadas.has(estudiante.documento_id_est) && 
+          estudiante.usuario_est?.id_usuario
+        )
+        .map(estudiante => estudiante.usuario_est!.id_usuario);
+      
+      // Actualizar estado de usuarios a Eliminado solo para aquellos con pasantías terminadas
+      await Promise.all(usuariosAActualizar.map(id_usuario =>
+        userService.updateUser(id_usuario, {
           estado_usuario: 'Eliminado'
         })
       ));
       
       // 3. Actualizar fecha_fin_pasantia para estudiantes que no la tengan
       const fechaActual = new Date().toISOString().split('T')[0];
-      const estudiantesResponse = await api.get<Estudiante[]>('/estudiantes');
       const estudiantesSinFecha = estudiantesResponse.data.filter((estudiante: Estudiante) => 
         !estudiante.fecha_fin_pasantia
       );
