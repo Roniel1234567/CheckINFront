@@ -631,21 +631,30 @@ function Reportes() {
               </MUI.Grid>
               {currentReporte === 'Reporte de Asignaciones' && (
                 <MUI.Grid item xs={12}>
-                  <MUI.FormControl fullWidth>
-                    <MUI.InputLabel>Centro de Trabajo</MUI.InputLabel>
-                    <MUI.Select
-                      value={selectedCentro}
-                      onChange={(e) => setSelectedCentro(e.target.value)}
-                      label="Centro de Trabajo"
-                    >
-                      <MUI.MenuItem value="">Todos los centros</MUI.MenuItem>
-                      {centros.map((centro) => (
-                        <MUI.MenuItem key={centro.id_centro} value={centro.id_centro.toString()}>
-                          {centro.nombre_centro}
-                        </MUI.MenuItem>
-                      ))}
-                    </MUI.Select>
-                  </MUI.FormControl>
+                  <MUI.Autocomplete
+                    options={centros}
+                    getOptionLabel={(centro) => centro.nombre_centro}
+                    value={centros.find(c => c.id_centro.toString() === selectedCentro) || null}
+                    onChange={(_, newValue) => setSelectedCentro(newValue ? newValue.id_centro.toString() : '')}
+                    renderInput={(params) => (
+                      <MUI.TextField
+                        {...params}
+                        label="Centro de Trabajo"
+                        placeholder="Buscar centro..."
+                        fullWidth
+                      />
+                    )}
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <MUI.Box component="li" key={key} {...otherProps}>
+                          <MUI.Typography>
+                            {option.nombre_centro}
+                          </MUI.Typography>
+                        </MUI.Box>
+                      );
+                    }}
+                  />
                 </MUI.Grid>
               )}
             </MUI.Grid>
