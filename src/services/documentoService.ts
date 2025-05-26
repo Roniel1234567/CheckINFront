@@ -34,6 +34,13 @@ export interface EmailData {
   documentosAfectados: string[];
 }
 
+export interface ComentarioEmailData {
+  correoEstudiante: string;
+  nombreEstudiante: string;
+  nombreDocumento: string;
+  comentario: string;
+}
+
 const documentoService = {
   getAllDocumentos: async (): Promise<DocEstudiante[]> => {
     try {
@@ -67,9 +74,9 @@ const documentoService = {
     }
   },
 
-  enviarComentario: async (comentarioData: ComentarioDoc): Promise<void> => {
+  enviarComentario: async (comentarioData: ComentarioEmailData): Promise<void> => {
     try {
-      await api.post('/docs-estudiante/comentario', comentarioData);
+      await api.post('/docs-estudiante/comentario-email', comentarioData);
     } catch (error) {
       console.error('Error al enviar comentario:', error);
       throw error;

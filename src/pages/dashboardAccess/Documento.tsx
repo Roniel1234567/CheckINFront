@@ -143,22 +143,36 @@ function Documento() {
       const estudiante = estudiantes.find(e => e.documento_id_est === selectedDocumento.documento);
       if (!estudiante) throw new Error('Estudiante no encontrado');
 
+      // Obtener el nombre del documento
+      const docMeta = documentosMeta.find(d => d.tipo === selectedDocumento.tipo);
+      if (!docMeta) throw new Error('Tipo de documento no encontrado');
+
+      // Verificar si el estudiante tiene email
+      if (!estudiante.contacto_est?.email_contacto) {
+        throw new Error('El estudiante no tiene email registrado');
+      }
+
       await documentoService.enviarComentario({
-        documento_id: selectedDocumento.documento,
+        correoEstudiante: estudiante.contacto_est.email_contacto,
+        nombreEstudiante: `${estudiante.nombre_est} ${estudiante.apellido_est}`,
+        nombreDocumento: docMeta.nombre,
         comentario: comentario.trim()
       });
 
       setComentario('');
+      setPdfUrl(null);
+      setSelectedDocumento(null);
+      
       setSnackbar({
         open: true,
-        message: 'Comentario enviado correctamente',
+        message: 'Comentario enviado correctamente por email',
         severity: 'success'
       });
     } catch (error) {
       console.error('Error al enviar comentario:', error);
       setSnackbar({
         open: true,
-        message: 'Error al enviar comentario',
+        message: error instanceof Error ? error.message : 'Error al enviar comentario',
         severity: 'error'
       });
     } finally {
