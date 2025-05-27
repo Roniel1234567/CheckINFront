@@ -169,10 +169,11 @@ const PasantiaPage = () => {
     });
   });
 
-  // Filtrar estudiantes por taller
+  // Filtrar estudiantes por taller y estado activo
   const estudiantesFiltrados = estudiantes.filter(e => {
     const tallerId = e.taller_est?.id_taller;
-    return !tallerFiltro || (tallerId && String(tallerId) === tallerFiltro);
+    const esActivo = e.usuario_est?.estado_usuario === 'Activo';
+    return (!tallerFiltro || (tallerId && String(tallerId) === tallerFiltro)) && esActivo;
   });
 
   // Filtrar plazas para el menú de plazas según centro y taller seleccionados
@@ -230,11 +231,15 @@ const PasantiaPage = () => {
     }
 
     // Validar sexo
-    if (plaza.genero && plaza.genero !== 'Ambos' && estudiante.sexo_est !== plaza.genero) {
-      return { 
-        valido: false, 
-        mensaje: `Esta plaza solo acepta estudiantes de sexo ${plaza.genero}` 
-      };
+    if (plaza.genero && plaza.genero !== 'Ambos') {
+      // Convertir el género de la plaza a un formato comparable con el sexo del estudiante
+      const generoNormalizado = plaza.genero === 'Masculino' ? 'M' : 'F';
+      if (!estudiante.sexo_est || estudiante.sexo_est !== generoNormalizado) {
+        return { 
+          valido: false, 
+          mensaje: `Esta plaza solo acepta estudiantes de sexo ${plaza.genero}` 
+        };
+      }
     }
 
     return { valido: true, mensaje: '' };
@@ -466,7 +471,7 @@ const PasantiaPage = () => {
   }, [isMobile]);
 
   // Modificar el onChange del Autocomplete de estudiantes
-  const handleEstudiantesChange = (_, value: Estudiante[]) => {
+  const handleEstudiantesChange = (_event: React.SyntheticEvent, value: Estudiante[]) => {
     if (plazaFormSeleccionada) {
       const disponibles = plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada);
       if (value.length > disponibles) {
