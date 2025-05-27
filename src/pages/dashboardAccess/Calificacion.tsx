@@ -21,6 +21,9 @@ interface Estudiante {
   documento_id_est: string;
   nombre_est: string;
   taller_est?: number; // Añadir campo de relación con taller
+  usuario_est?: {
+    estado_usuario: string;
+  };
 }
 
 interface Pasantia {
@@ -162,8 +165,13 @@ const Calificacion = () => {
         const todasLasEvaluaciones: Evaluacion[] = [];
         const estudiantesConEvaluaciones: EstudianteConEvaluaciones[] = [];
 
+        // Filtrar estudiantes eliminados
+        const estudiantesActivos = estudiantes.filter(estudiante => 
+          estudiante.usuario_est?.estado_usuario !== 'Eliminado'
+        );
+
         // Procesar cada estudiante
-        for (const estudiante of estudiantes) {
+        for (const estudiante of estudiantesActivos) {
           try {
             console.log(`Procesando estudiante: ${estudiante.nombre_est}`);
             // 1. Obtener la pasantía activa del estudiante
