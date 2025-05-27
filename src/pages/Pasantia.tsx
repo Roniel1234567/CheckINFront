@@ -904,123 +904,18 @@ const PasantiaPage = () => {
             </MUI.TableContainer>
           </MUI.Paper>
 
-          {/* Nueva Sección de Pasantías Terminadas */}
-          <MUI.Typography variant="h5" gutterBottom sx={{ mt: 4 }}>
-            Pasantías Terminadas
-          </MUI.Typography>
-          <MUI.Paper sx={{ width: '100%', mb: 2 }}>
-            <MUI.Box sx={{ p: 2 }}>
-              <MUI.Grid container spacing={2} alignItems="center">
-                <MUI.Grid item xs={12} sm={4}>
-                  <MUI.FormControl fullWidth size="small">
-                    <MUI.InputLabel>Filtrar por Taller</MUI.InputLabel>
-                    <MUI.Select
-                      value={searchTallerFiltroTerminadas}
-                      onChange={(e) => setSearchTallerFiltroTerminadas(e.target.value)}
-                      label="Filtrar por Taller"
-                    >
-                      <MUI.MenuItem value="">Todos los talleres</MUI.MenuItem>
-                      {talleres.map((taller) => (
-                        <MUI.MenuItem key={taller.id_taller} value={taller.id_taller.toString()}>
-                          {taller.nombre_taller}
-                        </MUI.MenuItem>
-                      ))}
-                    </MUI.Select>
-                  </MUI.FormControl>
-                </MUI.Grid>
-                <MUI.Grid item xs={12} sm={4}>
-                  <MUI.FormControl fullWidth size="small">
-                    <MUI.InputLabel>Filtrar por Centro</MUI.InputLabel>
-                    <MUI.Select
-                      value={searchCentroFiltroTerminadas}
-                      onChange={(e) => setSearchCentroFiltroTerminadas(e.target.value)}
-                      label="Filtrar por Centro"
-                    >
-                      <MUI.MenuItem value="">Todos los centros</MUI.MenuItem>
-                      {centros.map((centro) => (
-                        <MUI.MenuItem key={centro.id_centro} value={centro.id_centro.toString()}>
-                          {centro.nombre_centro}
-                        </MUI.MenuItem>
-                      ))}
-                    </MUI.Select>
-                  </MUI.FormControl>
-                </MUI.Grid>
-                <MUI.Grid item xs={12} sm={4}>
-                  <MUI.TextField
-                    fullWidth
-                    size="small"
-                    label="Buscar estudiante"
-                    variant="outlined"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                      endAdornment: (
-                        <MUI.InputAdornment position="end">
-                          <Icons.Search />
-                        </MUI.InputAdornment>
-                      ),
-                    }}
-                  />
-                </MUI.Grid>
-              </MUI.Grid>
-            </MUI.Box>
-            <MUI.TableContainer>
-              <MUI.Table>
-                <MUI.TableHead>
-                  <MUI.TableRow>
-                    <MUI.TableCell>Estudiante</MUI.TableCell>
-                    <MUI.TableCell>Taller</MUI.TableCell>
-                    <MUI.TableCell>Centro de Trabajo</MUI.TableCell>
-                    <MUI.TableCell>Fecha Inicio</MUI.TableCell>
-                    <MUI.TableCell>Fecha Fin</MUI.TableCell>
-                    <MUI.TableCell>Estado</MUI.TableCell>
-                  </MUI.TableRow>
-                </MUI.TableHead>
-                <MUI.TableBody>
-                  {pasantiasTerminadasFiltradas.map((pasantia) => {
-                    const estudiante = estudiantes.find(e => e.documento_id_est === pasantia.estudiante_pas.documento_id_est);
-                    return (
-                      <MUI.TableRow key={pasantia.id_pas}>
-                        <MUI.TableCell>
-                          {`${pasantia.estudiante_pas.nombre_est} ${pasantia.estudiante_pas.apellido_est}`}
-                        </MUI.TableCell>
-                        <MUI.TableCell>
-                          {estudiante?.taller_est?.nombre_taller || 'No asignado'}
-                        </MUI.TableCell>
-                        <MUI.TableCell>
-                          {pasantia.centro_pas.nombre_centro}
-                        </MUI.TableCell>
-                        <MUI.TableCell>
-                          {estudiante?.fecha_inicio_pasantia ? new Date(estudiante.fecha_inicio_pasantia).toLocaleDateString() : 'No definida'}
-                        </MUI.TableCell>
-                        <MUI.TableCell>
-                          {estudiante?.fecha_fin_pasantia ? new Date(estudiante.fecha_fin_pasantia).toLocaleDateString() : 'No definida'}
-                        </MUI.TableCell>
-                        <MUI.TableCell>
-                          <MUI.Chip
-                            label="Terminada"
-                            color="success"
-                            size="small"
-                          />
-                        </MUI.TableCell>
-                      </MUI.TableRow>
-                    );
-                  })}
-                </MUI.TableBody>
-              </MUI.Table>
-            </MUI.TableContainer>
-          </MUI.Paper>
-
-          {/* Diálogo para crear pasantía */}
-          <MUI.Dialog open={openDialog} onClose={() => {
-            setOpenDialog(false);
-            setError(null);
-            setSuccess(null);
-            setEstudiantesSeleccionados([]);
-            setSupervisorSeleccionado('');
-            setError(null);
-            setSuccess(null);
-          }} maxWidth="sm" fullWidth>
+          {/* Diálogos */}
+          <MUI.Dialog
+            open={openDialog}
+            onClose={() => {
+              setOpenDialog(false);
+              setEstudiantesSeleccionados([]);
+              setSupervisorSeleccionado('');
+              setPlazaFormSeleccionada(null);
+            }}
+            maxWidth="md"
+            fullWidth
+          >
             <MUI.DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Icons.AddCircleOutline sx={{ color: theme.palette.primary.main }} /> Nueva Pasantía
             </MUI.DialogTitle>
