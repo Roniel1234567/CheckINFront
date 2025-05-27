@@ -762,8 +762,8 @@ const PasantiaPage = () => {
                   switch (tipoVista) {
                     case 'canceladas':
                       return <>
-                    <Icons.History sx={{ fontSize: 28, color: theme.palette.error.main }} /> 
-                    Historial de Pasantías Canceladas
+                        <Icons.History sx={{ fontSize: 28, color: theme.palette.error.main }} /> 
+                        Historial de Pasantías Canceladas
                       </>;
                     case 'terminadas':
                       return <>
@@ -772,16 +772,16 @@ const PasantiaPage = () => {
                       </>;
                     default:
                       return <>
-                    <Icons.ListAlt sx={{ fontSize: 28, color: theme.palette.primary.main }} /> 
-                    Pasantías Activas
+                        <Icons.ListAlt sx={{ fontSize: 28, color: theme.palette.primary.main }} /> 
+                        Pasantías Activas
                       </>;
                   }
                 })()}
               </MUI.Typography>
-              
-              {/* Filtros */}
-              <MUI.Grid container spacing={2} sx={{ mb: 2 }}>
-                <MUI.Grid item xs={12} md={3}>
+
+              {/* Filtros de búsqueda */}
+              <MUI.Grid container spacing={2} sx={{ mb: 3 }}>
+                <MUI.Grid item xs={12} md={4}>
                   <MUI.TextField
                     fullWidth
                     label="Buscar estudiante"
@@ -797,7 +797,7 @@ const PasantiaPage = () => {
                     }}
                   />
                 </MUI.Grid>
-                <MUI.Grid item xs={12} md={3}>
+                <MUI.Grid item xs={12} md={4}>
                   <MUI.Autocomplete
                     options={talleres}
                     getOptionLabel={t => `${t.nombre_taller} - ${t.familia_taller.nombre_fam}`}
@@ -813,7 +813,7 @@ const PasantiaPage = () => {
                     )}
                   />
                 </MUI.Grid>
-                <MUI.Grid item xs={12} md={3}>
+                <MUI.Grid item xs={12} md={4}>
                   <MUI.Autocomplete
                     options={centros}
                     getOptionLabel={c => c.nombre_centro}
@@ -829,29 +829,34 @@ const PasantiaPage = () => {
                     )}
                   />
                 </MUI.Grid>
-                <MUI.Grid item xs={12} md={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <MUI.ButtonGroup variant="outlined" color="primary">
-                    <MUI.Button
-                      variant={tipoVista === 'activas' ? 'contained' : 'outlined'}
-                      onClick={() => setTipoVista('activas')}
-                    >
-                      Activas
-                    </MUI.Button>
-                    <MUI.Button
-                      variant={tipoVista === 'terminadas' ? 'contained' : 'outlined'}
-                      onClick={() => setTipoVista('terminadas')}
-                    >
-                      Terminadas
-                    </MUI.Button>
-                    <MUI.Button
-                      variant={tipoVista === 'canceladas' ? 'contained' : 'outlined'}
-                      onClick={() => setTipoVista('canceladas')}
-                    >
-                      Canceladas
-                    </MUI.Button>
-                  </MUI.ButtonGroup>
-                </MUI.Grid>
               </MUI.Grid>
+
+              {/* Botones de filtro centrados */}
+              <MUI.Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                <MUI.ButtonGroup variant="outlined" size="large">
+                  <MUI.Button
+                    variant={tipoVista === 'activas' ? 'contained' : 'outlined'}
+                    onClick={() => setTipoVista('activas')}
+                    sx={{ px: 4 }}
+                  >
+                    Activas
+                  </MUI.Button>
+                  <MUI.Button
+                    variant={tipoVista === 'terminadas' ? 'contained' : 'outlined'}
+                    onClick={() => setTipoVista('terminadas')}
+                    sx={{ px: 4 }}
+                  >
+                    Terminadas
+                  </MUI.Button>
+                  <MUI.Button
+                    variant={tipoVista === 'canceladas' ? 'contained' : 'outlined'}
+                    onClick={() => setTipoVista('canceladas')}
+                    sx={{ px: 4 }}
+                  >
+                    Canceladas
+                  </MUI.Button>
+                </MUI.ButtonGroup>
+              </MUI.Box>
             </MUI.Box>
 
             {/* Tabla */}
