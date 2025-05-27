@@ -46,9 +46,8 @@ const PasantiaPage = () => {
   // Nuevo estado para el término de búsqueda
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filtros separados para cada tipo de pasantía
-  const [searchTallerFiltroTerminadas, setSearchTallerFiltroTerminadas] = useState<string>('');
-  const [searchCentroFiltroTerminadas, setSearchCentroFiltroTerminadas] = useState<string>('');
+  // Estado para el término de búsqueda
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Función para calcular plazas ocupadas
   const plazasOcupadas = (plaza: PlazasCentro, pasantiaActual?: Pasantia | null) =>
@@ -154,16 +153,17 @@ const PasantiaPage = () => {
   };
 
   const pasantiasActivasFiltradas = filtrarPasantias(pasantiasActivas, tallerFiltro, centroFiltro);
-  const pasantiasCanceladasFiltradas = filtrarPasantias(pasantiasCanceladas, searchTallerFiltroTerminadas, searchCentroFiltroTerminadas);
-  const pasantiasTerminadasFiltradas = filtrarPasantias(pasantiasTerminadas, searchTallerFiltroTerminadas, searchCentroFiltroTerminadas);
+  const pasantiasCanceladasFiltradas = filtrarPasantias(pasantiasCanceladas, tallerFiltro, centroFiltro);
+  const pasantiasTerminadasFiltradas = filtrarPasantias(pasantiasTerminadas, tallerFiltro, centroFiltro);
 
   // Filtrar plazas por taller seleccionado
   const plazasFiltradas = plazas.filter(p => {
     const tallerId = p.taller_plaza?.id_taller;
-    return !tallerFiltro || (tallerId && String(tallerId) === tallerFiltro);
+    // Solo mostrar plazas activas
+    return (!tallerFiltro || (tallerId && String(tallerId) === tallerFiltro)) && p.estado === 'Activa';
   });
 
-  // Filtrar centros por taller (solo los que tienen plazas para ese taller)
+  // Filtrar centros por taller (solo los que tienen plazas activas para ese taller)
   const centrosFiltrados = centros.filter(c => {
     if (!c.id_centro) return false;
     return plazasFiltradas.some(p => {
@@ -183,7 +183,8 @@ const PasantiaPage = () => {
     const tallerId = p.taller_plaza?.id_taller;
     const centroId = p.centro_plaza?.id_centro;
     return (!tallerFiltro || (tallerId && String(tallerId) === tallerFiltro)) &&
-      (!centroFiltro || (centroId && String(centroId) === centroFiltro));
+      (!centroFiltro || (centroId && String(centroId) === centroFiltro)) &&
+      p.estado === 'Activa'; // Solo mostrar plazas activas
   });
 
   // Función para verificar si un estudiante ya tiene una pasantía activa
