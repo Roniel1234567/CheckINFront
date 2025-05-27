@@ -20,7 +20,10 @@ interface Taller {
 interface Estudiante {
   documento_id_est: string;
   nombre_est: string;
-  taller_est?: number; // Añadir campo de relación con taller
+  taller_est?: {
+    id_taller: number;
+    nombre_taller?: string;
+  };
   usuario_est?: {
     estado_usuario: string;
   };
@@ -81,37 +84,7 @@ const MOCK_TALLERES: Taller[] = [
   { id_taller: 5, nombre_tall: "Taller de Diseño Gráfico" },
 ];
 
-const MOCK_ESTUDIANTES: Estudiante[] = [
-  { documento_id_est: "12345", nombre_est: "Ana Martínez" },
-  { documento_id_est: "23456", nombre_est: "Carlos Rodríguez" },
-  { documento_id_est: "34567", nombre_est: "Laura Sánchez" },
-  { documento_id_est: "45678", nombre_est: "Miguel González" },
-  { documento_id_est: "56789", nombre_est: "Sofia Díaz" },
-];
-
-const generarEvaluacionesMock = (estudiante: Estudiante): EstudianteConEvaluaciones => {
-  const evaluaciones: { [key: string]: number | null } = {};
-  // Genera valores aleatorios entre 60 y 100 para cada RA
-  ['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].forEach(ra => {
-    // 20% de probabilidad de que sea null (no evaluado)
-    evaluaciones[ra] = Math.random() > 0.2 ? Math.floor(Math.random() * 41) + 60 : null;
-  });
-  
-  // Calcula el promedio
-  const raConValor = Object.values(evaluaciones).filter(v => v !== null) as number[];
-  const promedio = raConValor.length > 0 
-    ? Math.round(raConValor.reduce((sum, val) => sum + val, 0) / raConValor.length) 
-    : 0;
-  
-  return {
-    estudiante,
-    evaluaciones,
-    promedio,
-    centro: `Centro simulado ${Math.floor(Math.random() * 10) + 1}`,
-    pasantia_id: -(Math.floor(Math.random() * 1000) + 1), // ID negativo para pasantías simuladas
-    pasantia_real: false // Marcamos que es una pasantía simulada
-  };
-};
+// Datos mock removidos ya que no se utilizan
 
 const Calificacion = () => {
   const theme = MUI.useTheme();
@@ -165,10 +138,13 @@ const Calificacion = () => {
         const todasLasEvaluaciones: Evaluacion[] = [];
         const estudiantesConEvaluaciones: EstudianteConEvaluaciones[] = [];
 
-        // Filtrar estudiantes eliminados
+        // Filtrar estudiantes eliminados y por taller seleccionado
         const estudiantesActivos = estudiantes.filter(estudiante => 
-          estudiante.usuario_est?.estado_usuario !== 'Eliminado'
+          estudiante.usuario_est?.estado_usuario !== 'Eliminado' && 
+          estudiante.taller_est?.id_taller === selectedTaller
         );
+
+        console.log('Estudiantes filtrados por taller:', estudiantesActivos.length);
 
         // Procesar cada estudiante
         for (const estudiante of estudiantesActivos) {
@@ -244,7 +220,8 @@ const Calificacion = () => {
                 pasantia_real: false
               });
             }
-          } catch (err) {
+          } catch (error) {
+            console.error('Error al obtener la pasantía:', error);
             // Si hay error al obtener la pasantía, agregar estudiante con valores por defecto
             estudiantesConEvaluaciones.push({
               estudiante,
@@ -1442,16 +1419,15 @@ const Calificacion = () => {
                       color="primary"
                       startIcon={<Icons.ListAlt />}
                       size={isSmallScreen ? 'small' : 'medium'}
+                      onClick={() => {
+                        const tallerSelect = document.getElementById('taller-select');
+                        if (tallerSelect) {
+                          tallerSelect.click();
+                          tallerSelect.focus();
+                        }
+                      }}
                     >
                       Ver Talleres Disponibles
-                    </MUI.Button>
-                    <MUI.Button 
-                      variant="outlined" 
-                      color="primary" 
-                      startIcon={<Icons.Help />}
-                      size={isSmallScreen ? 'small' : 'medium'}
-                    >
-                      Guía de Evaluación
                     </MUI.Button>
                   </MUI.Box>
                 </MUI.Paper>
