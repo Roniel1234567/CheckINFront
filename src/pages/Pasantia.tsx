@@ -199,6 +199,47 @@ const PasantiaPage = () => {
     return estudiantesConPasantia;
   };
 
+  // Función para calcular la edad
+  const calcularEdad = (fechaNacimiento: string): number => {
+    const hoy = new Date();
+    const fechaNac = new Date(fechaNacimiento);
+    let edad = hoy.getFullYear() - fechaNac.getFullYear();
+    const mes = hoy.getMonth() - fechaNac.getMonth();
+    
+    if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
+      edad--;
+    }
+    
+    return edad;
+  };
+
+  // Función para validar restricciones de la plaza
+  const validarRestriccionesPlaza = (estudiante: Estudiante, plaza: PlazasCentro): { valido: boolean; mensaje: string } => {
+    if (!estudiante.fecha_nac_est) {
+      return { valido: false, mensaje: 'El estudiante no tiene fecha de nacimiento registrada' };
+    }
+
+    const edad = calcularEdad(estudiante.fecha_nac_est);
+    
+    // Validar edad mínima
+    if (plaza.edad_minima && edad < plaza.edad_minima) {
+      return { 
+        valido: false, 
+        mensaje: `El estudiante no cumple con la edad mínima requerida (${plaza.edad_minima} años)` 
+      };
+    }
+
+    // Validar sexo
+    if (plaza.genero && plaza.genero !== 'Ambos' && estudiante.sexo_est !== plaza.genero) {
+      return { 
+        valido: false, 
+        mensaje: `Esta plaza solo acepta estudiantes de sexo ${plaza.genero}` 
+      };
+    }
+
+    return { valido: true, mensaje: '' };
+  };
+
   // Mover cargarDatos fuera del useEffect
   const cargarDatos = async () => {
     setLoading(true);
@@ -423,6 +464,44 @@ const PasantiaPage = () => {
   useEffect(() => {
     setDrawerOpen(!isMobile);
   }, [isMobile]);
+
+  // Modificar el onChange del Autocomplete de estudiantes
+  const handleEstudiantesChange = (_, value: Estudiante[]) => {
+    if (plazaFormSeleccionada) {
+      const disponibles = plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada);
+      if (value.length > disponibles) {
+        setError('No puedes seleccionar más estudiantes que plazas disponibles');
+        return;
+      }
+
+      // Validar restricciones para cada estudiante
+      const estudiantesInvalidos = value.map(estudiante => {
+        const validacion = validarRestriccionesPlaza(estudiante, plazaFormSeleccionada);
+        if (!validacion.valido) {
+          return `${estudiante.nombre_est} ${estudiante.apellido_est}: ${validacion.mensaje}`;
+        }
+        return null;
+      }).filter(Boolean);
+
+      if (estudiantesInvalidos.length > 0) {
+        setError(`Los siguientes estudiantes no cumplen con las restricciones:\n${estudiantesInvalidos.join('\n')}`);
+        return;
+      }
+    }
+
+    const nuevosIds = value.map(e => e.documento_id_est);
+    const estudiantesConPasantia = verificarPasantiasActivas(nuevosIds);
+    
+    if (estudiantesConPasantia.length > 0) {
+      setError(`Los siguientes estudiantes ya tienen pasantías activas:\n${
+        estudiantesConPasantia.map(e => `- ${e.nombre}`).join('\n')
+      }`);
+    } else {
+      setError(null);
+    }
+    
+    setEstudiantesSeleccionados(nuevosIds);
+  };
 
   return (
     <MUI.Box sx={{ display: 'flex', width: '100vw', minHeight: '100vh', bgcolor: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.light} 100%)`, p: 0 }}>
@@ -919,32 +998,43 @@ const PasantiaPage = () => {
             </MUI.DialogTitle>
             <MUI.DialogContent>
               <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                {/* Mostrar restricciones de la plaza si hay una seleccionada */}
+                {plazaFormSeleccionada && (
+                  <MUI.Paper elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2, mb: 2 }}>
+                    <MUI.Typography variant="subtitle1" color="primary" gutterBottom>
+                      Restricciones de la Plaza:
+                    </MUI.Typography>
+                    <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      {plazaFormSeleccionada.edad_minima && (
+                        <MUI.Typography variant="body2">
+                          • Edad mínima requerida: {plazaFormSeleccionada.edad_minima} años
+                        </MUI.Typography>
+                      )}
+                      {plazaFormSeleccionada.genero && (
+                        <MUI.Typography variant="body2">
+                          • Sexo requerido: {plazaFormSeleccionada.genero}
+                        </MUI.Typography>
+                      )}
+                      {plazaFormSeleccionada.observacion && (
+                        <>
+                          <MUI.Typography variant="body2" color="error">
+                            • Observaciones importantes:
+                          </MUI.Typography>
+                          <MUI.Typography variant="body2" sx={{ pl: 2 }}>
+                            {plazaFormSeleccionada.observacion}
+                          </MUI.Typography>
+                        </>
+                      )}
+                    </MUI.Box>
+                  </MUI.Paper>
+                )}
+
                 <MUI.Autocomplete
                   multiple
                   options={estudiantesFiltrados}
                   getOptionLabel={e => `${e.nombre_est} ${e.apellido_est} - ${e.documento_id_est}`}
                   value={estudiantes.filter(e => estudiantesSeleccionados.includes(e.documento_id_est))}
-                  onChange={(_, value) => {
-                    if (plazaFormSeleccionada) {
-                      const disponibles = plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada);
-                      if (value.length > disponibles) {
-                        setError('No puedes seleccionar más estudiantes que plazas disponibles');
-                        return;
-                      }
-                    }
-                    const nuevosIds = value.map(e => e.documento_id_est);
-                    const estudiantesConPasantia = verificarPasantiasActivas(nuevosIds);
-                    
-                    if (estudiantesConPasantia.length > 0) {
-                      setError(`Los siguientes estudiantes ya tienen pasantías activas:\n${
-                        estudiantesConPasantia.map(e => `- ${e.nombre}`).join('\n')
-                      }`);
-                    } else {
-                      setError(null);
-                    }
-                    
-                    setEstudiantesSeleccionados(nuevosIds);
-                  }}
+                  onChange={handleEstudiantesChange}
                   renderInput={(params) => (
                     <MUI.TextField
                       {...params}
