@@ -153,149 +153,117 @@ const Calificacion = () => {
   // Cuando se selecciona un taller, cargar los estudiantes y sus evaluaciones
   useEffect(() => {
     const cargarEstudiantesYEvaluaciones = async () => {
-      if (!selectedTaller) return;
-      setLoading(true);
-      
       try {
-        // 1. Obtener todas las pasantías (contienen información de estudiantes)
-        const resPasantias = await api.get('/pasantias');
-        let pasantias: Pasantia[] = Array.isArray(resPasantias.data) ? resPasantias.data : [];
-        
-        // 2. Filtramos las pasantías por el taller seleccionado usando el campo taller_est del estudiante
-        pasantias = pasantias.filter(pasantia => {
-          return pasantia.estudiante_pas && 
-                 pasantia.estudiante_pas.taller_est === selectedTaller;
-        });
-        
-        console.log(`Filtrando pasantías para taller ${selectedTaller}, encontradas ${pasantias.length}`);
-        
-        // Si no hay pasantías para este taller, intentamos buscar directamente estudiantes del taller
-        if (pasantias.length === 0) {
-          console.log("No hay pasantías para este taller, buscando estudiantes directamente");
-          try {
-            // Esto asume que existe un endpoint para buscar estudiantes
-            const resEstudiantes = await api.get(`/estudiantes`);
-            const todosEstudiantes = Array.isArray(resEstudiantes.data) ? resEstudiantes.data : [];
-            
-            // Filtramos los estudiantes por taller
-            const estudiantesPorTaller = todosEstudiantes.filter(
-              est => est.taller_est.id_taller === selectedTaller
-            );
-            
-            console.log(`Encontrados ${estudiantesPorTaller.length} estudiantes del taller ${selectedTaller}`);
-            
-            // Creamos pasantías simuladas para estos estudiantes
-            estudiantesPorTaller.forEach(estudiante => {
-              pasantias.push({
-                id_pas: -Math.floor(Math.random() * 1000), // Generamos IDs negativos para marcar que son ficticios
-                estudiante_pas: estudiante,
-                centro_pas: { id_centro: 1, nombre_centro: "Centro pendiente de asignación" },
-                supervisor_pas: { id_sup: 1, nombre_sup: "Supervisor por asignar" },
-                inicio_pas: new Date().toISOString().split('T')[0],
-                fin_pas: null,
-                estado_pas: "Pendiente",
-                es_simulada: true // Marcamos que es una pasantía simulada
-              });
-            });
-          } catch (err) {
-            console.error("Error buscando estudiantes por taller:", err);
-          }
-        }
-
-        const estudiantesConEvaluaciones: EstudianteConEvaluaciones[] = [];
+        setLoading(true);
+        console.log('Iniciando carga de estudiantes y evaluaciones');
+        const resEstudiantes = await api.get('/estudiantes');
+        const estudiantes = resEstudiantes.data as Estudiante[];
+        console.log('Estudiantes cargados:', estudiantes.length);
         const todasLasEvaluaciones: Evaluacion[] = [];
-        
-        // Procesamos cada pasantía
-        for (const pasantia of pasantias) {
-          // Extraemos el estudiante de la pasantía
-          const estudiante = pasantia.estudiante_pas;
-          
-          // Verificamos que el estudiante tenga su información completa
-          if (!estudiante || !estudiante.documento_id_est) {
-            console.log('Estudiante no válido en la pasantía:', pasantia.id_pas);
-            continue;
-          }
-          
+        const estudiantesConEvaluaciones: EstudianteConEvaluaciones[] = [];
+
+        // Procesar cada estudiante
+        for (const estudiante of estudiantes) {
           try {
-            // 3. Obtener evaluaciones para este estudiante
-            const resEvaluaciones = await api.get(`/evaluaciones-estudiante/porEstudiante/${estudiante.documento_id_est}`);
-            const evaluacionesEstudiante: Evaluacion[] = Array.isArray(resEvaluaciones.data) ? resEvaluaciones.data : [];
-            
-            if (evaluacionesEstudiante.length === 0) {
-              console.log(`No se encontraron evaluaciones para el estudiante ${estudiante.nombre_est}`);
-              continue; // Saltamos este estudiante si no tiene evaluaciones
-            }
-            
-            console.log(`Estudiante ${estudiante.nombre_est} tiene ${evaluacionesEstudiante.length} evaluaciones`);
-            todasLasEvaluaciones.push(...evaluacionesEstudiante);
-            
-            const evaluacionesMap: { [key: string]: number | null } = {
-              RA1: null,
-              RA2: null,
-              RA3: null,
-              RA4: null,
-              RA5: null,
-              RA6: null,
-              RA7: null
-            };
-            
-            for (const evaluacion of evaluacionesEstudiante) {
-              const promedioCriterios = Math.round(
-                (evaluacion.asistencia_eval +
+            console.log(`Procesando estudiante: ${estudiante.nombre_est}`);
+            // 1. Obtener la pasantía activa del estudiante
+            const resPasantia = await api.get(`/pasantias/estudiante/${estudiante.documento_id_est}`);
+            const pasantia = resPasantia.data as Pasantia;
+            console.log(`Pasantía encontrada para ${estudiante.nombre_est}:`, pasantia ? `ID: ${pasantia.id_pas}` : 'No tiene pasantía');
+
+            if (pasantia) {
+              // 2. Obtener las evaluaciones de la pasantía
+              let evaluacionesEstudiante: Evaluacion[] = [];
+              try {
+                console.log(`Obteniendo evaluaciones para pasantía ${pasantia.id_pas}`);
+                const resEvaluaciones = await api.get(`/evaluaciones-estudiante/porPasantia/${pasantia.id_pas}`);
+                evaluacionesEstudiante = resEvaluaciones.data as Evaluacion[];
+                console.log(`Evaluaciones encontradas: ${evaluacionesEstudiante.length}`);
+              } catch (err) {
+                console.error(`Error al obtener evaluaciones para ${estudiante.nombre_est}:`, err);
+              }
+
+              // 3. Procesar las evaluaciones
+              const evaluacionesPorRA: { [key: string]: number | null } = {
+                'RA1': null, 'RA2': null, 'RA3': null,
+                'RA4': null, 'RA5': null, 'RA6': null, 'RA7': null
+              };
+
+              let sumaTotal = 0;
+              let contadorNotas = 0;
+
+              evaluacionesEstudiante.forEach(evaluacion => {
+                console.log(`Procesando evaluación RA${evaluacion.ra_eval} para estudiante ${estudiante.nombre_est}`);
+                const promedio = (
+                  evaluacion.asistencia_eval +
                   evaluacion.desempeño_eval +
                   evaluacion.disponibilidad_eval +
                   evaluacion.responsabilidad_eval +
                   evaluacion.limpieza_eval +
                   evaluacion.trabajo_equipo_eval +
-                  evaluacion.resolucion_problemas_eval) / 7
-              );
-              
-              evaluacionesMap[evaluacion.ra_eval] = promedioCriterios;
+                  evaluacion.resolucion_problemas_eval
+                ) / 7;
+
+                evaluacionesPorRA[evaluacion.ra_eval] = Math.round(promedio);
+                sumaTotal += promedio;
+                contadorNotas++;
+                todasLasEvaluaciones.push(evaluacion);
+                console.log(`RA${evaluacion.ra_eval} procesado. Promedio: ${Math.round(promedio)}`);
+              });
+
+              const promedioFinal = contadorNotas > 0 ? Math.round(sumaTotal / contadorNotas) : 0;
+              console.log(`Promedio final para ${estudiante.nombre_est}: ${promedioFinal}`);
+
+              estudiantesConEvaluaciones.push({
+                estudiante,
+                evaluaciones: evaluacionesPorRA,
+                promedio: promedioFinal,
+                centro: pasantia.centro_pas.nombre_centro,
+                pasantia_id: pasantia.id_pas,
+                pasantia_real: true
+              });
+            } else {
+              // Si no tiene pasantía, agregar estudiante con valores por defecto
+              estudiantesConEvaluaciones.push({
+                estudiante,
+                evaluaciones: {
+                  'RA1': null, 'RA2': null, 'RA3': null,
+                  'RA4': null, 'RA5': null, 'RA6': null, 'RA7': null
+                },
+                promedio: 0,
+                centro: 'Sin asignar',
+                pasantia_id: 0,
+                pasantia_real: false
+              });
             }
-            
-            const raConValor = Object.values(evaluacionesMap).filter(v => v !== null) as number[];
-            const promedio = raConValor.length > 0 
-              ? Math.round(raConValor.reduce((sum, val) => sum + val, 0) / raConValor.length) 
-              : 0;
-            
+          } catch (err) {
+            // Si hay error al obtener la pasantía, agregar estudiante con valores por defecto
             estudiantesConEvaluaciones.push({
               estudiante,
-              evaluaciones: evaluacionesMap,
-              promedio,
-              centro: pasantia.centro_pas.nombre_centro,
-                pasantia_id: pasantia.id_pas,
-  pasantia_real: pasantia.id_pas > 0 && !pasantia.es_simulada // true para pasantías reales (ID positivo), false para simuladas
+              evaluaciones: {
+                'RA1': null, 'RA2': null, 'RA3': null,
+                'RA4': null, 'RA5': null, 'RA6': null, 'RA7': null
+              },
+              promedio: 0,
+              centro: 'Sin asignar',
+              pasantia_id: 0,
+              pasantia_real: false
             });
-          } catch (err) {
-            console.error(`Error al cargar evaluaciones para ${estudiante.nombre_est}:`, err);
           }
         }
-        
-        estudiantesConEvaluaciones.sort((a, b) => 
-          a.estudiante.nombre_est.localeCompare(b.estudiante.nombre_est)
-        );
-        
+
         setEstudiantesData(estudiantesConEvaluaciones);
         setEvaluacionesOriginales(todasLasEvaluaciones);
-        
-        console.log(`Cargados ${estudiantesConEvaluaciones.length} estudiantes con evaluaciones para el taller ${selectedTaller}`);
-        
-      } catch (err) {
-        console.error('Error al cargar pasantías o estudiantes:', err);
-        toast.error('Error al cargar las pasantías. Usando datos de demostración.');
-        
-        // Usar datos mock si la API falla
-        // Filtramos también los datos mock para simular consistencia con el filtrado real
-        const estudiantesFiltrados = MOCK_ESTUDIANTES.filter((_, index) => index % 5 === (selectedTaller as number % 5));
-        const estudiantesMock = estudiantesFiltrados.map(estudiante => generarEvaluacionesMock(estudiante));
-        setEstudiantesData(estudiantesMock);
-        setEvaluacionesOriginales([]);
-      } finally {
+        setLoading(false);
+      } catch (error) {
+        console.error('Error al cargar estudiantes y evaluaciones:', error);
         setLoading(false);
       }
     };
-    
-    cargarEstudiantesYEvaluaciones();
+
+    if (selectedTaller) {
+      cargarEstudiantesYEvaluaciones();
+    }
   }, [selectedTaller]);
   
   const toggleDrawer = () => {
@@ -1157,306 +1125,177 @@ const Calificacion = () => {
                       <MUI.Table stickyHeader>
                         <MUI.TableHead>
                           <MUI.TableRow>
-                            {/* Celdas de encabezado más estrechas para estudiantes */}
-                            <MUI.TableCell 
+                            <MUI.TableCell
                               sx={{
-                                background: 'linear-gradient(120deg, #4a148c, #880e4f, #ff5722)',
-                                color: 'white',
                                 fontWeight: 'bold',
+                                fontSize: { xs: '0.9rem', md: '1.1rem' },
+                                whiteSpace: 'nowrap',
+                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                borderBottom: `2px solid ${theme.palette.primary.main}`,
                                 position: 'sticky',
                                 left: 0,
-                                zIndex: 3,
-                                whiteSpace: 'nowrap',
-                                borderBottom: `2px solid ${theme.palette.primary.dark}`,
-                                minWidth: '180px',
-                                maxWidth: '280px',
-                                width: '18%',
-                                fontSize: { xs: '1.08rem', md: '1.18rem' },
+                                zIndex: 2,
                               }}
                             >
-                              <MUI.Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <Icons.Person sx={{ mr: 1 }} />
-                                Estudiante
-                              </MUI.Box>
+                              <Icons.Person sx={{ mr: 1, verticalAlign: 'middle' }} />
+                              Estudiante
                             </MUI.TableCell>
                             
-                            {/* Celdas de resultados con ancho fijo más pequeño */}
-                            {['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].map((ra, index) => (
-                              <MUI.TableCell 
-                                key={ra} 
-                                align="center"
-                                sx={{
-                                  background: 'linear-gradient(120deg, #4a148c, #880e4f, #ff5722)',
-                                  color: 'white',
-                                  fontWeight: 'bold',
-                                  borderBottom: `2px solid ${theme.palette.primary.dark}`,
-                                  p: 1,
-                                  minWidth: '45px',
-                                  maxWidth: '60px',
-                                  width: '4.5%',
-                                  fontSize: { xs: '1.02rem', md: '1.12rem' },
-                                }}
-                              >
-                                <MUI.Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                  {ra}
-                                  <MUI.Tooltip title={`Resultado de Aprendizaje ${index + 1}`}>
-                                    <Icons.Stars fontSize="small" sx={{ mt: 0.5, opacity: 0.7 }} />
-                                  </MUI.Tooltip>
-                                </MUI.Box>
-                              </MUI.TableCell>
-                            ))}
-                            
-                            {/* Celda de promedio también más estrecha */}
-                            <MUI.TableCell 
-                              align="center"
+                            <MUI.TableCell
                               sx={{
-                                background: 'linear-gradient(135deg, #ff5722, #ff9a00)',
-                                color: 'white',
                                 fontWeight: 'bold',
-                                borderBottom: `2px solid ${theme.palette.secondary.dark}`,
-                                p: 1,
-                                minWidth: '60px',
-                                maxWidth: '80px',
-                                width: '5.5%',
-                                fontSize: { xs: '1.08rem', md: '1.18rem' },
+                                fontSize: { xs: '0.9rem', md: '1.1rem' },
+                                whiteSpace: 'nowrap',
+                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                borderBottom: `2px solid ${theme.palette.primary.main}`,
                               }}
                             >
-                              <MUI.Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                <Icons.Calculate fontSize="small" sx={{ mb: 0.5 }} />
-                                Promedio
-                              </MUI.Box>
+                              <Icons.Business sx={{ mr: 1, verticalAlign: 'middle' }} />
+                              Centro de Trabajo
+                            </MUI.TableCell>
+
+                            {['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].map((ra) => (
+                              <MUI.TableCell
+                                key={ra}
+                                align="center"
+                                sx={{
+                                  fontWeight: 'bold',
+                                  fontSize: { xs: '0.9rem', md: '1.1rem' },
+                                  whiteSpace: 'nowrap',
+                                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                  borderBottom: `2px solid ${theme.palette.primary.main}`,
+                                }}
+                              >
+                                <Icons.Assessment sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                {ra}
+                              </MUI.TableCell>
+                            ))}
+
+                            <MUI.TableCell
+                              align="center"
+                              sx={{
+                                fontWeight: 'bold',
+                                fontSize: { xs: '0.9rem', md: '1.1rem' },
+                                whiteSpace: 'nowrap',
+                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                borderBottom: `2px solid ${theme.palette.primary.main}`,
+                              }}
+                            >
+                              <Icons.Stars sx={{ mr: 1, verticalAlign: 'middle' }} />
+                              Promedio
                             </MUI.TableCell>
                           </MUI.TableRow>
                         </MUI.TableHead>
                         
                         <MUI.TableBody>
-                          {estudiantesData.map((row, idx) => (
-                            <MUI.Tooltip 
-                              key={row.estudiante.documento_id_est}
-                              title={
-                                <MUI.Box sx={{ p: 1 }}>
-                                  <MUI.Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                                    {row.pasantia_real ? (
-                                      `Información de Pasantía #${row.pasantia_id}`
-                                    ) : row.pasantia_id > 0 ? (
-                                      <span style={{ color: theme.palette.info.main }}>
-                                        <Icons.Info fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                                        Pasantía #{row.pasantia_id} (pendiente de validación)
-                                      </span>
-                                    ) : (
-                                      <span style={{ color: theme.palette.warning.main }}>
-                                        <Icons.Warning fontSize="small" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
-                                        Estudiante sin pasantía asignada
-                                      </span>
-                                    )}
-                                  </MUI.Typography>
-                                  <MUI.Typography variant="body2">
-                                    <strong>Estudiante:</strong> {row.estudiante.nombre_est}
-                                  </MUI.Typography>
-                                  <MUI.Typography variant="body2">
-                                    <strong>Centro:</strong> {row.centro || 'Sin asignar'}
-                                  </MUI.Typography>
-                                  <MUI.Typography variant="body2">
-                                    <strong>Documento ID:</strong> {row.estudiante.documento_id_est}
-                                  </MUI.Typography>
-                                  <MUI.Typography variant="body2">
-                                    <strong>Promedio:</strong> {row.promedio}/100
-                                  </MUI.Typography>
-                                  {!row.pasantia_real && (
-                                    <MUI.Typography variant="body2" sx={{ mt: 1, color: theme.palette.warning.main }}>
-                                      <Icons.Info fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />
-                                      Las calificaciones se guardarán localmente hasta que se asigne una pasantía válida
-                                    </MUI.Typography>
-                                  )}
-                                </MUI.Box>
-                              }
-                              arrow
-                              placement="right-start"
+                          {estudiantesData.map((estudianteData) => (
+                            <MUI.TableRow
+                              key={estudianteData.estudiante.documento_id_est}
+                              sx={{
+                                '&:nth-of-type(odd)': {
+                                  bgcolor: alpha(theme.palette.background.paper, 0.6),
+                                },
+                                '&:hover': {
+                                  bgcolor: alpha(theme.palette.primary.light, 0.1),
+                                },
+                              }}
                             >
-                              <MUI.TableRow 
+                              <MUI.TableCell
+                                component="th"
+                                scope="row"
                                 sx={{
-                                  '&:nth-of-type(odd)': {
-                                    backgroundColor: alpha(theme.palette.primary.light, 0.03),
-                                  },
-                                  '&:hover': {
-                                    backgroundColor: alpha(theme.palette.primary.light, 0.08),
-                                  },
-                                  transition: 'background-color 0.2s ease'
+                                  position: 'sticky',
+                                  left: 0,
+                                  bgcolor: 'inherit',
+                                  fontWeight: 'bold',
+                                  borderRight: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+                                  zIndex: 1,
                                 }}
                               >
-                                <MUI.TableCell 
-                                  component="th" 
-                                  scope="row"
-                                  sx={{
-                                    position: 'sticky',
-                                    left: 0,
-                                    backgroundColor: idx % 2 === 0 ? 'white' : alpha(theme.palette.primary.light, 0.03),
-                                    zIndex: 1,
-                                    borderRight: `1px solid ${theme.palette.divider}`,
-                                    whiteSpace: 'normal',
-                                    py: 1.2,
-                                    '&:hover': {
-                                      backgroundColor: alpha(theme.palette.primary.light, 0.08),
-                                    },
-                                    boxShadow: '2px 0 4px rgba(0,0,0,0.05)'
-                                  }}
-                                >
-                                  <MUI.Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <MUI.Avatar 
-                                      sx={{ 
-                                        width: 28, 
-                                        height: 28, 
-                                        mr: 1,
-                                        bgcolor: theme.palette.primary.main,
-                                        fontSize: '1.1rem'
-                                      }}
-                                    >
-                                      {row.estudiante.nombre_est.charAt(0)}
-                                    </MUI.Avatar>
-                                    <MUI.Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                      {row.estudiante.nombre_est}
-                                      <MUI.Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.9rem' }}>
-                                        <MUI.Tooltip title="Centro de trabajo">
-                                          <span>
-                                            <Icons.Business sx={{ fontSize: '0.9rem', mr: 0.5, verticalAlign: 'text-bottom' }} />
-                                            {row.centro || 'Sin asignar'}
-                                          </span>
-                                        </MUI.Tooltip>
-                                        {' • '}
-                                        <MUI.Tooltip title={row.pasantia_real ? "ID Pasantía" : (row.pasantia_id > 0 ? "Pasantía pendiente de validación" : "Pasantía pendiente de asignación")}>
-                                          <span>
-                                            {row.pasantia_real ? (
-                                              <Icons.Badge sx={{ fontSize: '0.9rem', mr: 0.5, verticalAlign: 'text-bottom' }} />
-                                            ) : row.pasantia_id > 0 ? (
-                                              <Icons.HelpOutline sx={{ fontSize: '0.9rem', mr: 0.5, verticalAlign: 'text-bottom', color: theme.palette.info.main }} />
-                                            ) : (
-                                              <Icons.ErrorOutline sx={{ fontSize: '0.9rem', mr: 0.5, verticalAlign: 'text-bottom', color: theme.palette.warning.main }} />
-                                            )}
-                                            {row.pasantia_id > 0 ? `#${row.pasantia_id}` : "Sin asignar"}
-                                          </span>
-                                        </MUI.Tooltip>
-                                      </MUI.Typography>
-                                    </MUI.Box>
-                                  </MUI.Box>
-                                </MUI.TableCell>
-                                
-                                {['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].map((ra) => {
-                                  const valor = row.evaluaciones[ra];
-                                  const isAprobado = valor !== null && valor >= 70;
-                                  const color = valor === null ? '#f9f9f9' : isAprobado ? '#e8f5e9' : '#ffebee';
-                                  const textColor = valor === null ? theme.palette.text.secondary : 
-                                                   isAprobado ? '#2e7d32' : '#c62828';
-                                  
-                                  return (
-                                    <MUI.TableCell
-                                      key={ra}
-                                      align="center"
-                                      onClick={() => handleCellClick(row.estudiante.documento_id_est, ra, valor)}
-                                      sx={{
-                                        cursor: 'pointer',
-                                        backgroundColor: color,
-                                        color: textColor,
-                                        fontWeight: valor !== null ? 'bold' : 'normal',
-                                        transition: 'all 0.3s ease',
-                                        '&:hover': {
-                                          backgroundColor: alpha(theme.palette.primary.light, 0.15),
-                                          transform: 'scale(1.05)',
-                                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                                        },
-                                        border: editCell && 
-                                          editCell.estudiante === row.estudiante.documento_id_est &&
-                                          editCell.ra === ra
-                                            ? `2px solid ${theme.palette.primary.main}`
-                                            : `1px solid ${alpha(theme.palette.divider, 0.5)}`,
-                                        borderRadius: '4px',
-                                        m: 0.2,
-                                        p: 1,
-                                        fontSize: { xs: '1.02rem', md: '1.12rem' },
-                                      }}
-                                    >
-                                      {editCell && 
-                                       editCell.estudiante === row.estudiante.documento_id_est &&
-                                       editCell.ra === ra ? (
-                                        <MUI.TextField
-                                          type="number"
-                                          value={editCell.valor}
-                                          onChange={handleCellChange}
-                                          onBlur={handleCellBlur}
-                                          onKeyDown={handleKeyPress}
-                                          autoFocus
-                                          inputProps={{
-                                            min: 0,
-                                            max: 100,
-                                            style: { textAlign: 'center', fontWeight: 'bold', fontSize: '1.2rem' }
-                                          }}
-                                          variant="standard"
-                                          sx={{
-                                            width: 44,
-                                            fontSize: { xs: '1.03rem', md: '1.12rem' },
-                                            '.MuiInputBase-root': {
-                                              height: 28,
-                                              fontSize: { xs: '1.03rem', md: '1.12rem' },
-                                            }
-                                          }}
-                                        />
-                                      ) : (
-                                        <MUI.Box 
-                                          sx={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'center',
-                                            minWidth: '60px',
-                                            fontSize: { xs: '1.1rem', md: '1.3rem' },
-                                          }}
-                                        >
-                                          {valor !== null && (
-                                            <MUI.Tooltip title={isAprobado ? 'Aprobado' : 'Reprobado'}>
-                                              <Icons.Circle sx={{ 
-                                                fontSize: '10px', 
-                                                mr: 0.5, 
-                                                color: isAprobado ? '#2e7d32' : '#c62828' 
-                                              }} />
-                                            </MUI.Tooltip>
-                                          )}
-                                          {valor !== null ? valor : '-'}
-                                        </MUI.Box>
-                                      )}
-                                    </MUI.TableCell>
-                                  );
-                                })}
-                                
+                                {estudianteData.estudiante.nombre_est}
+                              </MUI.TableCell>
+
+                              <MUI.TableCell
+                                sx={{
+                                  borderRight: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+                                }}
+                              >
+                                {estudianteData.centro}
+                              </MUI.TableCell>
+
+                              {['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].map((ra) => (
                                 <MUI.TableCell
+                                  key={ra}
                                   align="center"
+                                  onClick={() => handleCellClick(estudianteData.estudiante.documento_id_est, ra, estudianteData.evaluaciones[ra])}
                                   sx={{
-                                    fontWeight: 'bold',
-                                    backgroundColor: row.promedio >= 70 ? alpha('#e8f5e9', 0.7) : alpha('#ffebee', 0.7),
-                                    color: row.promedio >= 70 ? '#2e7d32' : '#c62828',
-                                    borderRadius: '4px',
-                                    border: `1px solid ${row.promedio >= 70 ? alpha('#2e7d32', 0.3) : alpha('#c62828', 0.3)}`,
-                                    boxShadow: 'inset 0 0 4px rgba(0,0,0,0.05)',
-                                    p: 1,
-                                    m: 0.2,
-                                    fontSize: { xs: '1.08rem', md: '1.18rem' },
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                    '&:hover': {
+                                      bgcolor: alpha(theme.palette.primary.light, 0.2),
+                                    },
                                   }}
                                 >
-                                  <MUI.Box 
-                                    sx={{ 
-                                      display: 'flex', 
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      gap: 1
-                                    }}
-                                  >
-                                    {row.promedio >= 70 ? (
-                                      <Icons.CheckCircle fontSize="small" color="success" />
-                                    ) : (
-                                      <Icons.Cancel fontSize="small" color="error" />
-                                    )}
-                                    {row.promedio}
-                                  </MUI.Box>
-                                                              </MUI.TableCell>
-                                </MUI.TableRow>
-                             </MUI.Tooltip>
+                                  {editCell?.estudiante === estudianteData.estudiante.documento_id_est && editCell?.ra === ra ? (
+                                    <MUI.TextField
+                                      type="number"
+                                      value={editCell.valor}
+                                      onChange={handleCellChange}
+                                      onBlur={handleCellBlur}
+                                      onKeyPress={handleKeyPress}
+                                      autoFocus
+                                      inputProps={{
+                                        min: 0,
+                                        max: 100,
+                                        style: { textAlign: 'center' }
+                                      }}
+                                      sx={{
+                                        width: '80px',
+                                        '& input': {
+                                          padding: '8px',
+                                          textAlign: 'center',
+                                        }
+                                      }}
+                                    />
+                                  ) : (
+                                    <MUI.Box
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 0.5,
+                                      }}
+                                    >
+                                      {estudianteData.evaluaciones[ra] !== null ? (
+                                        <>
+                                          {estudianteData.evaluaciones[ra] >= 70 ? (
+                                            <Icons.CheckCircle sx={{ fontSize: 16, color: '#2e7d32' }} />
+                                          ) : (
+                                            <Icons.Cancel sx={{ fontSize: 16, color: '#c62828' }} />
+                                          )}
+                                          {estudianteData.evaluaciones[ra]}
+                                        </>
+                                      ) : (
+                                        <MUI.Typography variant="body2" color="textSecondary">
+                                          N/A
+                                        </MUI.Typography>
+                                      )}
+                                    </MUI.Box>
+                                  )}
+                                </MUI.TableCell>
+                              ))}
+
+                              <MUI.TableCell
+                                align="center"
+                                sx={{
+                                  fontWeight: 'bold',
+                                  color: estudianteData.promedio >= 70 ? '#2e7d32' : '#c62828',
+                                  borderLeft: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+                                }}
+                              >
+                                {estudianteData.promedio}
+                              </MUI.TableCell>
+                            </MUI.TableRow>
                           ))}
                         </MUI.TableBody>
                       </MUI.Table>
