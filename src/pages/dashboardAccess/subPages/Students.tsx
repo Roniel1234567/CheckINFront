@@ -921,10 +921,9 @@ const Students = () => {
       ]);
 
       // Filtrar estudiantes eliminados
-      const estudiantesActivos = estudiantesData.filter(e => {
-        // Verificar si el estudiante tiene un usuario asociado y si su estado no es 'Eliminado'
-        return e.usuario_est?.estado_usu !== 'Eliminado';
-      });
+      const estudiantesActivos = estudiantesData.filter(e => 
+        e.usuario_est?.estado_usuario !== 'Eliminado'
+      );
 
       // Crear un mapa de pasantías activas por estudiante
       const pasantiasActivas = pasantiasData.reduce((acc, pasantia) => {
