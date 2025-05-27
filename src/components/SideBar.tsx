@@ -25,16 +25,21 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
 
   const menuItems = [
     { id: 'Dashboard', text: 'Dashboard', icon: <Icons.Dashboard />, path: '/Dashboard' },
+    { id: 'pasantias', text: 'Gestión de Pasantías', icon: <Icons.AssignmentTurnedIn />, path: '/pasantias' },
     { id: 'estudiante', text: 'Estudiantes', icon: <Icons.School />, path: '/estudiantes' },
     { id: 'users', text: 'Usuarios', icon: <Icons.Person />, path: '/Usuarios' },
     { id: 'talleres', text: 'Gestión de Talleres', icon: <Icons.Build />, path: '/talleres' },
     { id: 'tutores', text: 'Gestión de Tutores', icon: <Icons.SupervisorAccount />, path: '/tutores' },
+    { id: 'supervisores', text: 'Gestión de Supervisores', icon: <Icons.SupervisorAccount />, path: '/supervisores' },
+    { id: 'administradores', text: 'Gestión de Administradores', icon: <Icons.AdminPanelSettings />, path: '/administradores' },
     { id: 'companies', text: 'Centros de Trabajo', icon: <Icons.Business />, path: '/Centros-Trabajo' },
     { id: 'plazas', text: 'Plazas', icon: <Icons.BusinessCenter />, path: '/plazas' },
-    { id: 'internships', text: 'Pasantías', icon: <Icons.Work />, path: '/pasantias' },
+    { id: 'documentos', text: 'Documentos', icon: <Icons.Description />, path: '/documentos' },
     { id: 'evaluaciones', text: 'Evaluaciones', icon: <Icons.Assessment />, path: '/evaluaciones' },
+    { id: 'calificacion', text: 'Calificaciones', icon: <Icons.Grade />, path: '/dashboard/calificacion' },
     { id: 'visits', text: 'Visitas', icon: <Icons.Explore />, path: '/Visitas' },
-    { id: 'reports', text: 'Reportes', icon: <Icons.Assessment />, path: '/Reportes' }
+    { id: 'reports', text: 'Reportes', icon: <Icons.Assessment />, path: '/Reportes' },
+    { id: 'cierre', text: 'Cierre de Pasantías', icon: <Icons.PowerSettingsNew />, path: '/cierre-pasantia' }
   ];
 
   const activeMenu = menuItems.find(item => location.pathname === item.path)?.id || '';

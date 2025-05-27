@@ -12,7 +12,6 @@ import Companies from './pages/dashboardAccess/Companies';
 import AboutUs from './pages/About_us';
 import UserManual from './pages/User_manual';
 import Users from './pages/dashboardAccess/Users';
-import Internships from './pages/dashboardAccess/Internships';
 import Features from './pages/Features';
 import Visits from './pages/dashboardAccess/Visits';
 import Students from './pages/dashboardAccess/subPages/Students';
@@ -26,6 +25,14 @@ import TallerConFamilias from './pages/dashboardAccess/TallerConFamilias';
 import TutoresPage from './pages/dashboardAccess/Tutores';
 import RecuperarContrasena from './pages/RecuperarContrasena';
 import { authService } from './services/authService';
+import Taller from './pages/dashboardAccess/Taller';
+import Calificacion from './pages/dashboardAccess/Calificacion';
+import SupervisoresPage from './pages/dashboardAccess/Supervisores';
+import PasantiaPage from './pages/Pasantia';
+import Administradores from './pages/dashboardAccess/Administradores';
+import Documento from './pages/dashboardAccess/Documento';
+import Reportes from './pages/dashboardAccess/Reportes';
+import CierrePasantia from './pages/CierrePasantia';
 
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -60,14 +67,22 @@ function App() {
           <Route path="usuarios/administradores" element={<Administrators />} />
           <Route path="usuarios/observadores" element={<Observers />} />
           <Route path="visitas" element={<Visits />} />
-          <Route path="pasantias" element={<Internships />} />
+          <Route path="pasantias" element={<PasantiaPage />} />
           <Route path="centros-trabajo" element={<Companies />} />
           <Route path="plazas" element={<PlazasCentro />} />
           <Route path="evaluaciones" element={<Evaluaciones />} />
           <Route path="talleres" element={<TallerConFamilias />} />
           <Route path="tutores" element={<TutoresPage />} />
+          <Route path="supervisores" element={<SupervisoresPage />} />
+          <Route path="administradores" element={<Administradores />} />
+          <Route path="documentos" element={<Documento />} />
+          <Route path="reportes" element={<Reportes />} />
+          <Route path="/cierre-pasantia" element={<CierrePasantia />} />
           {/* Ruta alternativa para gestión de talleres que apunta al mismo componente */}
           <Route path="gestion-talleres" element={<TallerConFamilias />} />
+          <Route path="/dashboard/evaluaciones" element={<Evaluaciones />} />
+          <Route path="/dashboard/taller" element={<Taller />} />
+          <Route path="/dashboard/calificacion" element={<Calificacion />} />
 
           {/* Rutas protegidas */}
           <Route path="/" element={

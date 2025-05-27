@@ -20,6 +20,11 @@ const personaContactoEstudianteService = {
     const response = await api.get<PersonaContactoEstudiante>(`/persona-contacto-estudiante/estudiante/${documento}`);
     return response.data;
   },
+
+  updatePersonaContactoEst: async (documento: string, data: Partial<PersonaContactoEstudiante>): Promise<PersonaContactoEstudiante> => {
+    const response = await api.put(`/persona-contacto-estudiante/${documento}`, data);
+    return response.data;
+  }
 };
 
 export default personaContactoEstudianteService; 

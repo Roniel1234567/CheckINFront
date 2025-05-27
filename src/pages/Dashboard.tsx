@@ -37,10 +37,6 @@ function Dashboard() {
     setDrawerOpen(!drawerOpen);
   };
 
-  const navigateTo = (path: string) => {
-    navigate(path);
-  };
-
   // Definir las tarjetas del dashboard
   const dashboardCards = [
     { 
@@ -74,6 +70,14 @@ function Dashboard() {
       color: theme.palette.primary.light, 
       path: '/Documentacion',
       description: 'Documentos por revisar y aprobar'
+    },
+    {
+      title: 'Pasantías',
+      value: '',
+      icon: <Icons.AssignmentTurnedIn fontSize="large" />,
+      color: theme.palette.success.main,
+      description: 'Gestiona las pasantías de los estudiantes',
+      path: '/pasantias',
     },
   ];
 
@@ -139,66 +143,53 @@ function Dashboard() {
           <MUI.Grid container spacing={3} sx={{ mb: 4 }}>
             {dashboardCards.map((card, index) => (
               <MUI.Grid item xs={12} sm={6} md={3} key={index}>
-                <MUI.Zoom in={!loading} style={{ transitionDelay: `${index * 100}ms` }}>
-                  <MUI.Card 
-                    sx={{ 
-                      height: '100%', 
-                      borderRadius: 4,
-                      boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-                      transition: 'transform 0.3s, box-shadow 0.3s',
-                      '&:hover': {
-                        transform: 'translateY(-5px)',
-                        boxShadow: '0 12px 20px rgba(0,0,0,0.15)',
-                        cursor: 'pointer'
-                      },
-                      position: 'relative',
-                      overflow: 'hidden'
+                <MUI.Card
+                  sx={{
+                    height: '100%',
+                    borderRadius: 4,
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+                    transition: 'transform 0.3s, box-shadow 0.3s',
+                    '&:hover': {
+                      transform: 'translateY(-5px)',
+                      boxShadow: '0 12px 20px rgba(0,0,0,0.15)',
+                      cursor: 'pointer',
+                    },
+                    position: 'relative',
+                    overflow: 'hidden',
+                    border: card.title === 'Pasantías' ? `2px solid ${theme.palette.success.main}` : undefined,
+                  }}
+                  onClick={() => card.path && navigate(card.path)}
+                >
+                  <MUI.Box
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: 80,
+                      height: 80,
+                      background: MUI.alpha(card.color, 0.1),
+                      borderRadius: '0 0 0 100%',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'flex-end',
+                      p: 1,
+                      color: card.color,
                     }}
-                    onClick={() => navigateTo(card.path)}
                   >
-                    <MUI.Box 
-                      sx={{ 
-                        position: 'absolute', 
-                        top: 0, 
-                        right: 0, 
-                        width: 80, 
-                        height: 80, 
-                        background: MUI.alpha(theme.palette.secondary.main, 0.3),
-                        borderRadius: '0 0 0 100%',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        justifyContent: 'flex-end',
-                        p: 1,
-                        color: card.color
-                      }}
-                    >
-                      {card.icon}
-                    </MUI.Box>
-                    <MUI.CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
-                      <MUI.Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1, color: card.color }}>
-                        {card.value}
-                      </MUI.Typography>
-                      <MUI.Typography variant="h6" sx={{ fontWeight: 'medium', mb: 1 }}>
-                        {card.title}
-                      </MUI.Typography>
-                      <MUI.Typography variant="body2" color="text.secondary">
-                        {card.description}
-                      </MUI.Typography>
-                      <MUI.Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        mt: 2,
-                        color: card.color, 
-                        '&:hover': { textDecoration: 'underline' } 
-                      }}>
-                        <MUI.Typography variant="button" sx={{ mr: 0.5 }}>
-                          Ver detalles
-                        </MUI.Typography>
-                        <Icons.ChevronRight fontSize="small" />
-                      </MUI.Box>
-                    </MUI.CardContent>
-                  </MUI.Card>
-                </MUI.Zoom>
+                    {card.icon}
+                  </MUI.Box>
+                  <MUI.CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
+                    <MUI.Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1, color: card.color }}>
+                      {card.value}
+                    </MUI.Typography>
+                    <MUI.Typography variant="h6" sx={{ fontWeight: 'medium', mb: 1 }}>
+                      {card.title}
+                    </MUI.Typography>
+                    <MUI.Typography variant="body2" color="text.secondary">
+                      {card.description}
+                    </MUI.Typography>
+                  </MUI.CardContent>
+                </MUI.Card>
               </MUI.Grid>
             ))}
           </MUI.Grid>

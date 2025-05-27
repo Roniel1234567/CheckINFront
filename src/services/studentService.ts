@@ -1,4 +1,5 @@
 import api from './api';
+import axios from 'axios';
 
 export interface Estudiante {
   tipo_documento_est: string;
@@ -159,12 +160,20 @@ const studentService = {
     }
   },
 
-  async updateFechasPasantia(id: string, data: { fecha_inicio_pasantia: string; fecha_fin_pasantia: string; horaspasrealizadas_est: number }): Promise<Estudiante> {
+  updateFechasPasantia: async (documento_id_est: string, data: {
+    fecha_inicio_pasantia: string | null;
+    fecha_fin_pasantia: string | null;
+    horaspasrealizadas_est: number;
+  }): Promise<Estudiante> => {
     try {
-      const response = await api.put<Estudiante>(`/estudiantes/${id}/fechas`, data);
+      const response = await api.put<Estudiante>(`/estudiantes/${documento_id_est}/fechas`, {
+        fecha_inicio_pasantia: data.fecha_inicio_pasantia || null,
+        fecha_fin_pasantia: data.fecha_fin_pasantia || null,
+        horaspasrealizadas_est: Number(data.horaspasrealizadas_est) || 0
+      });
       return response.data;
     } catch (error) {
-      console.error('Error al actualizar fechas de pasantía:', error);
+      console.error('Error al actualizar fechas:', error);
       throw error;
     }
   },
