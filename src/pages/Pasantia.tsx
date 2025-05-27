@@ -43,9 +43,6 @@ const PasantiaPage = () => {
   const [pasantiaToDelete, setPasantiaToDelete] = useState<Pasantia | null>(null);
   const [pasantiaToRestore, setPasantiaToRestore] = useState<Pasantia | null>(null);
 
-  // Nuevo estado para el término de búsqueda
-  const [searchTerm, setSearchTerm] = useState('');
-
   // Estado para el término de búsqueda
   const [searchTerm, setSearchTerm] = useState('');
 
