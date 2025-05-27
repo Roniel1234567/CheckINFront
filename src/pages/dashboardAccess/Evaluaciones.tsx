@@ -9,16 +9,25 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 
 // Interfaces
+interface Usuario {
+  id_usuario: number;
+  estado_usuario: string;
+}
+
+interface Estudiante {
+  documento_id_est: string;
+  nombre_est: string;
+  usuario_est: Usuario;
+}
+
 interface Pasantia {
   id_pas: number;
-  estudiante_pas: {
-    documento_id_est: string;
-    nombre_est: string;
-  };
+  estudiante_pas: Estudiante;
   centro_pas: {
     id_centro: number;
     nombre_centro: string;
   };
+  estado_pas: string;
 }
 
 interface PasantiaDetallada {
@@ -168,7 +177,37 @@ function Evaluaciones() {
         
         // Obtener pasantías pendientes para evaluación
         const resPasantias = await api.get('/pasantias/pendientesEvaluacion');
-        setPasantias(resPasantias.data as Pasantia[]);
+        console.log('Pasantías recibidas del backend:', resPasantias.data);
+        
+        // Filtrar estudiantes eliminados y pasantías canceladas
+        const pasantiasFiltradas = (resPasantias.data as Pasantia[]).filter(pasantia => {
+          if (!pasantia.estudiante_pas) {
+            console.log(`Pasantía ${pasantia.id_pas} - No tiene estudiante asociado`);
+            return false;
+          }
+
+          // Filtrar por estado de pasantía
+          if (pasantia.estado_pas === 'Cancelada') {
+            console.log(`Pasantía ${pasantia.id_pas} - Estado de pasantía: Cancelada (excluida)`);
+            return false;
+          }
+
+          const estudiante = pasantia.estudiante_pas;
+          console.log('Datos completos del estudiante:', estudiante);
+          
+          // Verificar si el estudiante tiene usuario y estado
+          if (!estudiante.usuario_est) {
+            console.log(`Pasantía ${pasantia.id_pas} - Estudiante ${estudiante.nombre_est} - No tiene usuario asociado`);
+            return true; // Incluir estudiantes sin usuario por ahora
+          }
+
+          const estadoUsuario = estudiante.usuario_est.estado_usuario;
+          console.log(`Pasantía ${pasantia.id_pas} - Estudiante ${estudiante.nombre_est} - Estado Usuario: ${estadoUsuario}`);
+          return estadoUsuario !== 'Eliminado';
+        });
+        
+        console.log('Pasantías después del filtro:', pasantiasFiltradas);
+        setPasantias(pasantiasFiltradas);
         
       } catch (error) {
         console.error('Error al cargar datos:', error);
