@@ -24,7 +24,6 @@ import Evaluaciones from './pages/dashboardAccess/Evaluaciones';
 import TallerConFamilias from './pages/dashboardAccess/TallerConFamilias';
 import TutoresPage from './pages/dashboardAccess/Tutores';
 import RecuperarContrasena from './pages/RecuperarContrasena';
-import { authService } from './services/authService';
 import Taller from './pages/dashboardAccess/Taller';
 import Calificacion from './pages/dashboardAccess/Calificacion';
 import SupervisoresPage from './pages/dashboardAccess/Supervisores';
@@ -35,13 +34,15 @@ import Reportes from './pages/dashboardAccess/Reportes';
 import CierrePasantia from './pages/CierrePasantia';
 import RegistroCentro from './pages/RegistroCentro';
 import SubirDoc from './pages/dashboardAccess/subPages/SubirDoc';
+import AccesoDenegado from './pages/AccesoDenegado';
+import ProtectedRoute from './components/ProtectedRoute';
 
-// Componente para rutas protegidas
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  if (!authService.isAuthenticated()) {
-    return <Navigate to="/login" />;
-  }
-  return <>{children}</>;
+// Roles
+const ROLES = {
+  ESTUDIANTE: 1,
+  EMPRESA: 2,
+  TUTOR: 3,
+  ADMINISTRADOR: 4
 };
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
           <Route path="/registro-centro" element={<RegistroCentro />} />
           <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
           <Route path="/reset-password/:token" element={<RecuperarContrasena />} />
+          <Route path="/acceso-denegado" element={<AccesoDenegado />} />
 
           {/* Rutas del dashboard directas, sin layout */}
           <Route path='/dashboard' element={<Dashboard />} />
@@ -100,8 +102,42 @@ function App() {
             </ProtectedRoute>
           } />
 
-          {/* Redirección por defecto */}
-          <Route path="*" element={<Navigate to="/" />} />
+          {/* Rutas protegidas para administradores */}
+          <Route
+            path="/dashboard/companies"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
+                <Companies />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/students"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
+                <Students />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/documentos"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
+                <Documento />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/subir-documentos"
+            element={
+              <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
+                <SubirDoc />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Ruta por defecto - redirige a login */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
       {/* Configuración del ToastContainer para mostrar notificaciones */}

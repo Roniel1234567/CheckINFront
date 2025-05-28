@@ -1,11 +1,17 @@
 import api from './api';
+import { jwtDecode } from 'jwt-decode';
+
+// Tipos que coinciden con el backend
+export type EstadoUsuarioType = 'Activo' | 'Inactivo' | 'Eliminado';
 
 interface LoginCredentials {
   dato_usuario: string;
   contrasena_usuario: string;
 }
 
-interface RegisterData extends LoginCredentials {
+interface RegisterData {
+  dato_usuario: string;
+  contrasena_usuario: string;
   rol_usuario: number;
   email_usuario?: string;
 }
@@ -21,62 +27,138 @@ interface ResetPasswordData {
 }
 
 interface AuthResponse {
-  message: string;
+  message?: string;
   token: string;
   user: {
-    id: number;
+    id_usuario: number;
     dato_usuario: string;
     rol: number;
-    estado: string;
+    estado_usuario: EstadoUsuarioType;
   };
 }
 
-export const authService = {
-  login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
+interface DecodedToken {
+  id: number;
+  rol: number;
+  estado: EstadoUsuarioType;
+  iat: number;
+  exp: number;
+}
+
+class AuthService {
+  private tokenKey = 'token';
+
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
     // Determinar si el usuario está intentando iniciar sesión con un correo electrónico
     const isEmail = credentials.dato_usuario.includes('@');
     
-    // Si parece ser un correo, pasarlo en un campo adicional para que el backend lo maneje
-    const payload = isEmail ? 
-      { email: credentials.dato_usuario, contrasena_usuario: credentials.contrasena_usuario } : 
-      credentials;
-    
-    const response = await api.post('/auth/login', payload);
-    return response.data as AuthResponse;
-  },
+    // Crear el payload según el tipo de dato
+    const payload = {
+      contrasena_usuario: credentials.contrasena_usuario,
+      // Si es email, enviar solo el email, sino el dato_usuario
+      ...(isEmail ? { email: credentials.dato_usuario } : { dato_usuario: credentials.dato_usuario })
+    };
 
-  register: async (data: RegisterData): Promise<AuthResponse> => {
-    const response = await api.post('/auth/register', data);
-    return response.data as AuthResponse;
-  },
+    try {
+      console.log('Enviando payload:', payload);
+      const response = await api.post<AuthResponse>('/auth/login', payload);
+      
+      // Verificar el estado del usuario
+      if (response.data.user.estado_usuario !== 'Activo') {
+        throw new Error(response.data.user.estado_usuario === 'Eliminado' 
+          ? 'Usuario no disponible' 
+          : 'Usuario inactivo');
+      }
+      
+      this.setToken(response.data.token);
+      return response.data;
+    } catch (error) {
+      // Manejar errores específicos
+      if (error && typeof error === 'object' && 'response' in error) {
+        const response = (error as any).response;
+        if (response) {
+          const status = response.status;
+          const message = response.data?.message;
 
-  forgotPassword: async (data: ForgotPasswordData): Promise<{ message: string }> => {
-    const response = await api.post('/auth/forgot-password', data);
-    return response.data as { message: string };
-  },
-
-  resetPassword: async (data: ResetPasswordData): Promise<{ message: string }> => {
-    const response = await api.post('/auth/reset-password', data);
-    return response.data as { message: string };
-  },
-
-  // Guardar token en localStorage
-  setToken: (token: string) => {
-    localStorage.setItem('token', token);
-  },
-
-  // Obtener token de localStorage
-  getToken: (): string | null => {
-    return localStorage.getItem('token');
-  },
-
-  // Eliminar token de localStorage (logout)
-  removeToken: () => {
-    localStorage.removeItem('token');
-  },
-
-  // Verificar si hay un token (usuario autenticado)
-  isAuthenticated: (): boolean => {
-    return !!localStorage.getItem('token');
+          switch (status) {
+            case 400:
+              throw new Error(message || 'Credenciales inválidas');
+            case 403:
+              throw new Error('Usuario inactivo o eliminado');
+            case 404:
+              throw new Error('Usuario no encontrado');
+            default:
+              throw new Error('Error en el inicio de sesión');
+          }
+        }
+      }
+      throw new Error('Error de conexión');
+    }
   }
-}; 
+
+  async register(data: RegisterData): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>('/auth/register', data);
+    this.setToken(response.data.token);
+    return response.data;
+  }
+
+  async forgotPassword(data: ForgotPasswordData): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>('/auth/forgot-password', data);
+    return response.data;
+  }
+
+  async resetPassword(data: ResetPasswordData): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>('/auth/reset-password', data);
+    return response.data;
+  }
+
+  logout(): void {
+    localStorage.removeItem(this.tokenKey);
+  }
+
+  setToken(token: string): void {
+    localStorage.setItem(this.tokenKey, token);
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem(this.tokenKey);
+  }
+
+  isAuthenticated(): boolean {
+    const token = this.getToken();
+    if (!token) return false;
+
+    try {
+      const decoded = jwtDecode<DecodedToken>(token);
+      // Verificar que el token no haya expirado y que el usuario esté activo
+      return decoded.exp * 1000 > Date.now() && decoded.estado === 'Activo';
+    } catch {
+      return false;
+    }
+  }
+
+  getCurrentUser(): { id_usuario: number; dato_usuario: string; rol: number } | null {
+    const token = this.getToken();
+    if (!token) return null;
+
+    try {
+      const decoded = jwtDecode<DecodedToken>(token);
+      
+      // Verificar si el usuario no está activo
+      if (decoded.estado !== 'Activo') {
+        this.logout(); // Eliminar el token
+        return null;
+      }
+
+      return {
+        id_usuario: decoded.id,
+        dato_usuario: '', // El token no incluye dato_usuario
+        rol: decoded.rol
+      };
+    } catch {
+      return null;
+    }
+  }
+}
+
+export const authService = new AuthService(); 

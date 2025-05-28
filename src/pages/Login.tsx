@@ -63,8 +63,16 @@ function Login() {
 
     try {
       const response = await authService.login(formData);
-      authService.setToken(response.token);
       
+      // Verificar el estado del usuario
+      if (response.user.estado_usuario === 'Inactivo') {
+        toast.error('Tu cuenta está inactiva. Por favor, contacta al administrador.', {
+          position: "top-center",
+          autoClose: false
+        });
+        return;
+      }
+
       toast.success('¡Inicio de sesión exitoso!', {
         position: "top-center",
         autoClose: 2000
@@ -72,29 +80,42 @@ function Login() {
 
       // Redirigir según el rol del usuario
       switch(response.user.rol) {
-        case 1: // Admin
-          navigate('/dashboard');
+        case 4: // Administrador
+          navigate('/dashboard/companies');
           break;
-        case 2: // Estudiante
+        case 1: // Estudiante
           navigate('/dashboard-estudiante');
           break;
-        case 3: // Centro
+        case 2: // Empresa
           navigate('/dashboard-centro');
           break;
-        case 4: // Supervisor
+        case 3: // Tutor
           navigate('/dashboard-supervisor');
           break;
         default:
-          navigate('/Principal');
+          navigate('/acceso-denegado');
       }
     } catch (error: unknown) {
       console.error('Error en login:', error);
-      // Verificar si es un error de axios
-      const axiosError = error as { response?: { data?: { message?: string } } };
-      toast.error(axiosError.response?.data?.message || 'Error al iniciar sesión', {
-        position: "top-center",
-        autoClose: false
-      });
+      
+      // Manejar diferentes tipos de errores
+      if (error instanceof Error) {
+        if (error.message === 'Usuario no disponible') {
+          toast.error('Esta cuenta no está disponible.', {
+            position: "top-center",
+            autoClose: false
+          });
+        } else {
+          // Verificar si es un error de axios
+          const axiosError = error as { response?: { data?: { message?: string } } };
+          const errorMessage = axiosError.response?.data?.message || 'Error al iniciar sesión';
+          
+          toast.error(errorMessage, {
+            position: "top-center",
+            autoClose: false
+          });
+        }
+      }
     } finally {
       setLoading(false);
     }
