@@ -33,11 +33,22 @@ interface Pasantia {
   estado_pas: string;
 }
 
+interface Supervisor {
+  id_supervisor: number;
+  nombre_supervisor: string;
+  // Agrega más campos si son necesarios
+}
+
+interface Centro {
+  id_centro: number;
+  nombre_centro: string;
+}
+
 interface PasantiaDetallada {
   id_pas: number;
-  estudiante_pas: any;
-  centro_pas: any;
-  supervisor_pas: any;
+  estudiante_pas: Estudiante;
+  centro_pas: Centro;
+  supervisor_pas: Supervisor;
   inicio_pas: string;
   fin_pas: string;
   estado_pas: string;
@@ -131,7 +142,7 @@ function Evaluaciones() {
   const esEstudiante = user && user.rol === 1;
 
   // Si es estudiante, solo mostrar el tab de evaluar empresa y solo su pasantía
-  const tabsToShow = esEstudiante ? [0] : [0, 1];
+  const tabsToShow = esEstudiante ? [0] : [0, 1, 2];
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -885,11 +896,13 @@ function Evaluaciones() {
                     iconPosition="start"
                   />
                 )}
-                <MUI.Tab 
-                  icon={<Icons.History />} 
-                  label="Historial" 
-                  iconPosition="start"
-                />
+                {!esEstudiante && (
+                  <MUI.Tab 
+                    icon={<Icons.History />} 
+                    label="Historial" 
+                    iconPosition="start"
+                  />
+                )}
               </MUI.Tabs>
             </MUI.Box>
 
@@ -1178,7 +1191,7 @@ function Evaluaciones() {
               </MUI.Box>
             )}
 
-            {activeTab === 2 && (
+            {!esEstudiante && activeTab === 2 && (
               <MUI.Box>
                 <MUI.Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Icons.History sx={{ color: theme.palette.primary.main }} />
