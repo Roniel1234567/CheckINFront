@@ -34,6 +34,7 @@ import Documento from './pages/dashboardAccess/Documento';
 import Reportes from './pages/dashboardAccess/Reportes';
 import CierrePasantia from './pages/CierrePasantia';
 import RegistroCentro from './pages/RegistroCentro';
+import SubirDoc from './pages/dashboardAccess/subPages/SubirDoc';
 
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -78,6 +79,7 @@ function App() {
           <Route path="supervisores" element={<SupervisoresPage />} />
           <Route path="administradores" element={<Administradores />} />
           <Route path="documentos" element={<Documento />} />
+          <Route path="subir-documentos" element={<SubirDoc />} />
           <Route path="reportes" element={<Reportes />} />
           <Route path="/cierre-pasantia" element={<CierrePasantia />} />
           {/* Ruta alternativa para gestión de talleres que apunta al mismo componente */}

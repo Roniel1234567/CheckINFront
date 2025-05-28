@@ -18,6 +18,18 @@ export const uploadDocsEstudiante = async (documento: string, files: {
   if (files.ced_padres_doc_file) data.append('ced_padres_doc_file', files.ced_padres_doc_file);
   if (files.vac_covid_doc_file) data.append('vac_covid_doc_file', files.vac_covid_doc_file);
 
+  try {
+    // Primero intentamos obtener el documento
+    await getDocsEstudianteByDocumento(documento);
+  } catch (error) {
+    // Si no existe, lo creamos
+    await axios.post(`${import.meta.env.VITE_API_URL}/docs-estudiante`, {
+      est_doc: documento,
+      estudiante: documento
+    });
+  }
+
+  // Ahora actualizamos el documento con los archivos
   const response = await axios.put(`${import.meta.env.VITE_API_URL}/docs-estudiante/${documento}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });
