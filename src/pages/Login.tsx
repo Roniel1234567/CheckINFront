@@ -105,25 +105,31 @@ function Login() {
   };
 
   return (
-    <div className="login-container">
-      <MUI.Container maxWidth="lg" sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center',
-        minHeight: '100vh',
-        py: 4
-      }}>
+    <div className="login-container" style={{ maxWidth: '100vw', overflow: 'hidden' }}>
+      <MUI.Container 
+        maxWidth="lg" 
+        sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          minHeight: '100vh',
+          py: 6,
+          px: { xs: 2, sm: 3, md: 4 },
+          maxWidth: '100%',
+          boxSizing: 'border-box'
+        }}
+      >
         {/* Header con Logo */}
         <MUI.Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
           gap: 2, 
-          mb: 4,
+          mb: 5,
           textAlign: 'center'
         }}>
           <MUI.Avatar
             src="https://storage.googleapis.com/educoco2020/82/foto_empresa/logo_821663703399_1663703399V19BCd9KY1u6alR.png"
-            sx={{ width: 60, height: 60 }}
+            sx={{ width: 80, height: 80 }}
           />
           <MUI.Box>
             <MUI.Typography variant="h4" sx={{ color: '#1a237e', fontWeight: 600 }}>
@@ -145,7 +151,7 @@ function Login() {
             textAlign: 'center'
           }}
         >
-          Bienvenido a IPISA
+          Bienvenido
         </MUI.Typography>
         <MUI.Typography 
           variant="body1" 
@@ -163,11 +169,12 @@ function Login() {
         <MUI.Paper 
           elevation={3} 
           sx={{ 
-            p: 4, 
+            p: 5, 
             borderRadius: 4, 
             width: '100%', 
-            maxWidth: '400px',
-            mb: 6
+            maxWidth: '500px',
+            mb: 8,
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
           }}
         >
           <MUI.Box component="form" onSubmit={handleSubmit}>
@@ -249,9 +256,10 @@ function Login() {
                 variant="contained"
                 disabled={loading}
                 sx={{
-                  mt: 2,
+                  mt: 3,
                   mb: 2,
-                  py: 1.5,
+                  py: 2,
+                  fontSize: '1.1rem',
                   position: 'relative'
                 }}
               >
@@ -275,7 +283,17 @@ function Login() {
         </MUI.Paper>
 
         {/* Sección de Imágenes */}
-        <MUI.Grid container spacing={3} sx={{ mb: 6 }}>
+        <MUI.Grid 
+          container 
+          spacing={{ xs: 2, md: 4 }} 
+          sx={{ 
+            mb: 8,
+            width: '100%',
+            maxWidth: '100%',
+            margin: 0,
+            boxSizing: 'border-box'
+          }}
+        >
           <MUI.Grid item xs={12} md={4}>
             <MUI.Paper 
               elevation={2} 
@@ -432,7 +450,17 @@ function Login() {
         </MUI.Grid>
 
         {/* Estadísticas */}
-        <MUI.Grid container spacing={3} sx={{ mb: 6 }}>
+        <MUI.Grid 
+          container 
+          spacing={{ xs: 2, md: 4 }} 
+          sx={{ 
+            mb: 8,
+            width: '100%',
+            maxWidth: '100%',
+            margin: 0,
+            boxSizing: 'border-box'
+          }}
+        >
           <MUI.Grid item xs={12} sm={4}>
             <MUI.Paper 
               elevation={2} 
@@ -487,7 +515,17 @@ function Login() {
         </MUI.Grid>
 
         {/* Características */}
-        <MUI.Grid container spacing={3} sx={{ mb: 6 }}>
+        <MUI.Grid 
+          container 
+          spacing={{ xs: 2, md: 4 }} 
+          sx={{ 
+            mb: 8,
+            width: '100%',
+            maxWidth: '100%',
+            margin: 0,
+            boxSizing: 'border-box'
+          }}
+        >
           {features.map((feature, index) => (
             <MUI.Grid item xs={12} md={4} key={index}>
               <MUI.Paper 

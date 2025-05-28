@@ -21,14 +21,33 @@ $white: #ffffff;
   }
 }
 
-// Estilos principales
+html, body {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  height: 100%;
+}
+
 .login-container {
+  width: 100%;
   min-height: 100vh;
+  overflow-y: visible;
+  overflow-x: hidden;
   background: $white;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  
+  img {
+    max-width: 100%;
+    height: auto;
+  }
 }
 
 .login-header {
