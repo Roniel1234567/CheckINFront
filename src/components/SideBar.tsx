@@ -95,6 +95,7 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
   else if (userInfo.rol === 'Tutor') {
     filteredMenuItems = menuItems.filter(item => [
       'pasantias',
+      'estudiante',
       'calificacion',
       'reports'
     ].includes(item.id));

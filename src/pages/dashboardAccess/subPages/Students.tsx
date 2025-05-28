@@ -3,7 +3,7 @@ import '../../../styles/index.scss';
 import * as MUI from '@mui/material';
 import { Add as AddIcon, Search as SearchIcon, Edit as EditIcon, Delete as DeleteIcon, DateRange as DateRangeIcon, FilterList as FilterListIcon, Shield as ShieldIcon, History as HistoryIcon, Restore as RestoreIcon } from '@mui/icons-material';
 import { SelectChangeEvent } from '@mui/material';
-import studentService, { Estudiante, NuevoEstudiante } from '../../../services/studentService';
+import studentService, { Estudiante } from '../../../services/studentService';
 import tallerService, { Taller } from '../../../services/tallerService';
 import direccionService, { Sector } from '../../../services/direccionService';
 import cicloEscolarService from '../../../services/cicloEscolarService';
@@ -14,14 +14,15 @@ import { userService } from '../../../../services/userService';
 import contactService from '../../../services/contactService';
 import axios from 'axios';
 import personaContactoEstudianteService from '../../../services/personaContactoEstudianteService';
-import { uploadDocsEstudiante, downloadDocEstudiante, getDocsEstudianteByDocumento } from '../../../services/docEstudianteService';
+import { downloadDocEstudiante, getDocsEstudianteByDocumento } from '../../../services/docEstudianteService';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import DownloadIcon from '@mui/icons-material/Download';
 import polizaService from '../../../services/polizaService';
 import * as Icons from '@mui/icons-material';
-import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
+import { authService } from '../../../services/authService';
+import api from '../../../services/api';
 
 // Define el tipo para la dirección completa
 interface DireccionCompleta {
@@ -69,16 +70,10 @@ interface FechasPasantiaRow {
   pasaporte_codigo_pais?: string;
 }
 
-interface User {
-  id_usu: number;
-  usuario: string;
-  contrasena_usu: string;
-  rol_usu: number;
-  estado_usu: string;
-  creacion_usu: string;
-  email_usu: string;
-  reset_token?: string;
-  reset_token_expiry?: Date;
+// Definir tipo mínimo para Tutor solo para este uso
+interface TutorMin {
+  usuario_tutor: number | { id_usuario: number };
+  taller_tutor: number | { id_taller: number };
 }
 
 const Students = () => {
@@ -101,7 +96,6 @@ const Students = () => {
   const [selectedTalleres, setSelectedTalleres] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<{start: string, end: string}>({start: '', end: ''});
   const [editMode, setEditMode] = useState(false);
-  const [editingEstudiante, setEditingEstudiante] = useState<Estudiante | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [estudianteToDelete, setEstudianteToDelete] = useState<Estudiante | null>(null);
   const [docsEstudiante, setDocsEstudiante] = useState<DocsEstudiante | null>(null);
@@ -121,6 +115,10 @@ const Students = () => {
   const [showHistorial, setShowHistorial] = useState(false);
   const [restaurando, setRestaurando] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Filtros para la tabla de fechas (diálogo de fechas)
+  const [fechasSearchTerm, setFechasSearchTerm] = useState('');
+  const [fechasTallerFiltro, setFechasTallerFiltro] = useState('');
+  const [fechasCentroFiltro, setFechasCentroFiltro] = useState('');
 
   // Estado del formulario
   const [formData, setFormData] = useState({
@@ -168,14 +166,37 @@ const Students = () => {
     fechaFinPasantia: ''
   });
 
-  // Agregar estados para filtros
-  const [tallerFiltro, setTallerFiltro] = useState<string>('');
-  const [centroFiltro, setCentroFiltro] = useState<string>('');
+  // Lógica de usuario y rol
+  const user = authService.getCurrentUser();
+  const esTutor = user && user.rol === 3;
+  const [tallerTutor, setTallerTutor] = useState<number | null>(null);
 
-  // Agregar estados para los filtros de fechas
-  const [fechasTallerFiltro, setFechasTallerFiltro] = useState<string>('');
-  const [fechasCentroFiltro, setFechasCentroFiltro] = useState<string>('');
-  const [fechasSearchTerm, setFechasSearchTerm] = useState<string>('');
+  // Obtener el taller del tutor al cargar
+  useEffect(() => {
+    const fetchTallerTutor = async () => {
+      if (esTutor && user) {
+        try {
+          const { data } = await api.get<TutorMin[] | { tutores: TutorMin[] }>('/tutores');
+          const tutores: TutorMin[] = Array.isArray(data) ? data : (data as any).tutores;
+          const tutor = tutores.find((t) => {
+            if (typeof t.usuario_tutor === 'object' && t.usuario_tutor !== null) {
+              return t.usuario_tutor.id_usuario === user.id_usuario;
+            }
+            return t.usuario_tutor === user.id_usuario;
+          });
+          if (tutor && tutor.taller_tutor) {
+            const idTaller = typeof tutor.taller_tutor === 'object' && tutor.taller_tutor !== null
+              ? tutor.taller_tutor.id_taller
+              : tutor.taller_tutor;
+            setTallerTutor(Number(idTaller));
+          }
+        } catch (error) {
+          console.error('Error al obtener el taller del tutor:', error);
+        }
+      }
+    };
+    fetchTallerTutor();
+  }, [esTutor, user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -479,30 +500,30 @@ const Students = () => {
       estudiante.documento_id_est.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Filtro por taller
-    const tallerMatch = selectedTalleres.length === 0 ||
+    let tallerMatch = selectedTalleres.length === 0 ||
       (estudiante.taller_est && selectedTalleres.includes(String(estudiante.taller_est.id_taller)));
+    // Si es tutor, solo los de su taller
+    if (esTutor && tallerTutor) {
+      tallerMatch = estudiante.taller_est && estudiante.taller_est.id_taller === tallerTutor;
+    }
 
     // Filtro por fechas
     let fechaMatch = true;
     if (dateRange.start || dateRange.end) {
       const fechaInicio = estudiante.fecha_inicio_pasantia ? new Date(estudiante.fecha_inicio_pasantia) : null;
       const fechaFin = estudiante.fecha_fin_pasantia ? new Date(estudiante.fecha_fin_pasantia) : null;
-      
       if (dateRange.start && fechaInicio) {
         fechaMatch = fechaMatch && fechaInicio >= new Date(dateRange.start);
       }
       if (dateRange.end && fechaFin) {
         fechaMatch = fechaMatch && fechaFin <= new Date(dateRange.end);
       }
-      // Si hay filtro de fechas pero el estudiante no tiene fechas, no lo incluimos
       if (!fechaInicio || !fechaFin) {
         fechaMatch = false;
       }
     }
-
     // Solo mostrar estudiantes activos
     const estadoMatch = estudiante.usuario_est?.estado_usuario === 'Activo';
-
     return searchMatch && tallerMatch && fechaMatch && estadoMatch;
   });
 
@@ -580,7 +601,6 @@ const Students = () => {
 
   const handleEditClick = async (estudiante: Estudiante) => {
     setEditMode(true);
-    setEditingEstudiante(estudiante);
     setOpenForm(true);
 
     // Obtener dirección completa
@@ -722,7 +742,6 @@ const Students = () => {
   const handleOpenNewForm = () => {
     console.log('handleOpenNewForm ejecutado'); // DEBUG
     setEditMode(false);
-    setEditingEstudiante(null);
     setDocsEstudiante(null);
     setFormData({
       nacionalidad: 'Dominicana',
@@ -737,7 +756,7 @@ const Students = () => {
       sexo_est: '',
       telefono: '',
       email: '',
-      taller: '',
+      taller: esTutor && tallerTutor ? String(tallerTutor) : '',
       provincia: '',
       ciudad: '',
       sector: '',
@@ -775,7 +794,6 @@ const Students = () => {
   const handleCloseForm = () => {
     setOpenForm(false);
     setEditMode(false);
-    setEditingEstudiante(null);
     setDocsEstudiante(null);
     setFormData({
       nacionalidad: 'Dominicana',
@@ -919,11 +937,13 @@ const Students = () => {
         studentService.getAllStudents(),
         internshipService.getAllPasantias()
       ]);
-
-      // Filtrar estudiantes eliminados
-      const estudiantesActivos = estudiantesData.filter(e => 
+      // Filtrar estudiantes activos
+      let estudiantesActivos = estudiantesData.filter(e => 
         e.usuario_est?.estado_usuario !== 'Eliminado'
       );
+      if (esTutor && tallerTutor) {
+        estudiantesActivos = estudiantesActivos.filter(e => e.taller_est?.id_taller === tallerTutor);
+      }
 
       // Crear un mapa de pasantías activas por estudiante
       const pasantiasActivas = pasantiasData.reduce((acc, pasantia) => {
@@ -1094,186 +1114,6 @@ const Students = () => {
     });
   };
 
-  // Modificar el diálogo de fechas para incluir los filtros
-  const FechasDialog = () => (
-    <MUI.Dialog
-      open={openFechasDialog}
-      onClose={() => setOpenFechasDialog(false)}
-      maxWidth="lg"
-      fullWidth
-    >
-      <MUI.DialogTitle>
-        <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Icons.CalendarToday />
-          Actualizar Fechas y Horas de Pasantía
-        </MUI.Box>
-      </MUI.DialogTitle>
-      <MUI.DialogContent>
-        {/* Filtros */}
-        <MUI.Grid container spacing={2} sx={{ mb: 3, mt: 1 }}>
-          <MUI.Grid item xs={12} md={4}>
-            <MUI.TextField
-              fullWidth
-              label="Buscar estudiante"
-              placeholder="Nombre o documento..."
-              value={fechasSearchTerm}
-              onChange={(e) => setFechasSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <MUI.InputAdornment position="start">
-                    <Icons.Search />
-                  </MUI.InputAdornment>
-                ),
-              }}
-            />
-          </MUI.Grid>
-          <MUI.Grid item xs={12} md={4}>
-            <MUI.FormControl fullWidth>
-              <MUI.InputLabel>Taller</MUI.InputLabel>
-              <MUI.Select
-                value={fechasTallerFiltro}
-                onChange={(e) => setFechasTallerFiltro(e.target.value)}
-                label="Taller"
-              >
-                <MUI.MenuItem value="">Todos</MUI.MenuItem>
-                {talleres.map((taller) => (
-                  <MUI.MenuItem key={taller.id_taller} value={taller.id_taller}>
-                    {taller.nombre_taller}
-                  </MUI.MenuItem>
-                ))}
-              </MUI.Select>
-            </MUI.FormControl>
-          </MUI.Grid>
-          <MUI.Grid item xs={12} md={4}>
-            <MUI.FormControl fullWidth>
-              <MUI.InputLabel>Centro</MUI.InputLabel>
-              <MUI.Select
-                value={fechasCentroFiltro}
-                onChange={(e) => setFechasCentroFiltro(e.target.value)}
-                label="Centro"
-              >
-                <MUI.MenuItem value="">Todos</MUI.MenuItem>
-                {Array.from(new Set(fechasRows.map(row => row.centro)))
-                  .filter(centro => centro !== '-')
-                  .sort()
-                  .map((centro) => (
-                    <MUI.MenuItem key={centro} value={centro}>
-                      {centro}
-                    </MUI.MenuItem>
-                ))}
-              </MUI.Select>
-            </MUI.FormControl>
-          </MUI.Grid>
-        </MUI.Grid>
-
-        {/* Tabla de fechas */}
-        <MUI.TableContainer component={MUI.Paper} sx={{ mt: 2 }}>
-          <MUI.Table>
-            <MUI.TableHead>
-              <MUI.TableRow>
-                <MUI.TableCell>Documento - Nombre</MUI.TableCell>
-                <MUI.TableCell>Centro</MUI.TableCell>
-                <MUI.TableCell>Fecha Inicio</MUI.TableCell>
-                <MUI.TableCell>Fecha Fin</MUI.TableCell>
-                <MUI.TableCell>Horas Realizadas</MUI.TableCell>
-              </MUI.TableRow>
-            </MUI.TableHead>
-            <MUI.TableBody>
-              {filtrarDatosFechas(fechasRows).map((row) => (
-                <MUI.TableRow key={row.documento_id_est}>
-                  <MUI.TableCell>
-                    {row.tipo_documento_est === 'Pasaporte' ? 
-                      `${row.pasaporte_codigo_pais || ''}-${row.documento_id_est}` : 
-                      row.documento_id_est
-                    } - {row.nombre_completo}
-                  </MUI.TableCell>
-                  <MUI.TableCell>{row.centro}</MUI.TableCell>
-                  <MUI.TableCell>
-                    <MUI.TextField
-                      type="date"
-                      value={row.fecha_inicio || ''}
-                      onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_inicio', e.target.value)}
-                      fullWidth
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </MUI.TableCell>
-                  <MUI.TableCell>
-                    <MUI.TextField
-                      type="date"
-                      value={row.fecha_fin || ''}
-                      onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_fin', e.target.value)}
-                      fullWidth
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </MUI.TableCell>
-                  <MUI.TableCell>
-                    <MUI.TextField
-                      type="number"
-                      value={row.horas_realizadas}
-                      onChange={(e) => handleFechaCellChange(row.documento_id_est, 'horas_realizadas', e.target.value)}
-                      fullWidth
-                      size="small"
-                      inputProps={{
-                        min: 0,
-                        style: { 
-                          textAlign: 'right',
-                          paddingRight: '40px'
-                        }
-                      }}
-                      InputProps={{
-                        endAdornment: (
-                          <MUI.InputAdornment position="end" sx={{ position: 'absolute', right: 8 }}>
-                            hrs
-                          </MUI.InputAdornment>
-                        ),
-                        sx: { 
-                          minWidth: '120px',
-                          '& input': {
-                            width: '100%'
-                          }
-                        }
-                      }}
-                    />
-                  </MUI.TableCell>
-                </MUI.TableRow>
-              ))}
-            </MUI.TableBody>
-          </MUI.Table>
-        </MUI.TableContainer>
-      </MUI.DialogContent>
-      <MUI.DialogActions sx={{ p: 2, gap: 1 }}>
-        <MUI.Tooltip 
-          title={!fechasTallerFiltro ? "Selecciona un taller antes de exportar" : ""}
-          arrow
-        >
-          <span>
-            <MUI.Button
-              variant="outlined"
-              startIcon={<Icons.FileDownload />}
-              onClick={exportarFechasExcel}
-              disabled={!fechasTallerFiltro || loading}
-            >
-              Exportar Excel
-            </MUI.Button>
-          </span>
-        </MUI.Tooltip>
-        <MUI.Button onClick={() => setOpenFechasDialog(false)}>
-          Cancelar
-        </MUI.Button>
-        <MUI.Button
-          variant="contained"
-          onClick={handleGuardarFechas}
-          disabled={loading}
-          startIcon={loading ? <MUI.CircularProgress size={20} /> : <Icons.Save />}
-        >
-          Guardar Cambios
-        </MUI.Button>
-      </MUI.DialogActions>
-    </MUI.Dialog>
-  );
-
   if (error) {
     return (
       <MUI.Box sx={{ p: 2 }}>
@@ -1313,9 +1153,12 @@ const Students = () => {
               {showHistorial && (
                 <MUI.Button onClick={() => setShowHistorial(false)} color="primary" variant="outlined">Volver</MUI.Button>
               )}
-              <MUI.IconButton onClick={() => setOpenPolizaDialog(true)} color="primary">
-                <ShieldIcon />
-              </MUI.IconButton>
+              {/* Solo mostrar la opción de póliza si NO es tutor */}
+              {!esTutor && (
+                <MUI.IconButton onClick={() => setOpenPolizaDialog(true)} color="primary">
+                  <ShieldIcon />
+                </MUI.IconButton>
+              )}
               <MUI.IconButton 
                 onClick={handleFechasClick} 
                 color="primary"
@@ -2009,8 +1852,19 @@ const Students = () => {
                         value={formData.taller}
                         onChange={handleSelectChange}
                         required
+                        disabled={esTutor}
                       >
-                        {talleres.map((taller) => (
+                        {esTutor && tallerTutor && (
+                          // Solo el taller del tutor
+                          talleres
+                            .filter((t) => t.id_taller === tallerTutor)
+                            .map((taller) => (
+                              <MUI.MenuItem key={taller.id_taller} value={taller.id_taller}>
+                                {taller.nombre_taller}
+                              </MUI.MenuItem>
+                            ))
+                        )}
+                        {!esTutor && talleres.map((taller) => (
                           <MUI.MenuItem key={taller.id_taller} value={taller.id_taller}>
                             {taller.nombre_taller}
                           </MUI.MenuItem>
