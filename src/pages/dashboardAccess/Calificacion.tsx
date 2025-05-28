@@ -7,7 +7,6 @@ import api from '../../services/api';
 import { toast } from 'react-toastify';
 import { alpha } from '@mui/material/styles';
 import * as XLSX from 'xlsx'; // Importación para exportar a Excel
-import studentService from '../../services/studentService';
 import { authService } from '../../services/authService';
 import { useLocation } from 'react-router-dom';
 
@@ -89,6 +88,12 @@ const MOCK_TALLERES: Taller[] = [
 
 // Datos mock removidos ya que no se utilizan
 
+// Definir tipo mínimo para Tutor solo para este uso
+interface TutorMin {
+  usuario_tutor: number | { id_usuario: number };
+  taller_tutor: number | { id_taller: number };
+}
+
 const Calificacion = () => {
   const theme = MUI.useTheme();
   const isMobile = MUI.useMediaQuery(theme.breakpoints.down('md'));
@@ -113,6 +118,8 @@ const Calificacion = () => {
 
   const user = authService.getCurrentUser();
   const esEstudiante = user && user.rol === 1;
+  const esTutor = user && user.rol === 3;
+  const [tallerTutor, setTallerTutor] = useState<number | null>(null);
 
   // Obtener lista de talleres al cargar el componente
   useEffect(() => {
@@ -133,6 +140,38 @@ const Calificacion = () => {
     cargarTalleres();
   }, []);
 
+  // Obtener el taller del tutor al cargar
+  useEffect(() => {
+    const fetchTallerTutor = async () => {
+      if (esTutor && user) {
+        try {
+          // Usar axios para asegurar baseURL y headers correctos
+          const { data: tutores } = await api.get<TutorMin[]>('/tutores');
+          const tutor = tutores.find((t) => {
+            if (typeof t.usuario_tutor === 'object' && t.usuario_tutor !== null) {
+              return t.usuario_tutor.id_usuario === user.id_usuario;
+            }
+            return t.usuario_tutor === user.id_usuario;
+          });
+          if (tutor && tutor.taller_tutor) {
+            const idTaller = typeof tutor.taller_tutor === 'object' && tutor.taller_tutor !== null
+              ? tutor.taller_tutor.id_taller
+              : tutor.taller_tutor;
+            setTallerTutor(Number(idTaller));
+            setSelectedTaller(Number(idTaller));
+          }
+        } catch (error: any) {
+          if (error.response && error.response.data && typeof error.response.data === 'string' && error.response.data.startsWith('<!DOCTYPE')) {
+            console.error('Error: El backend respondió HTML en vez de JSON. Revisa la URL base y el proxy.');
+          } else {
+            console.error('Error al obtener el taller del tutor:', error);
+          }
+        }
+      }
+    };
+    fetchTallerTutor();
+  }, [esTutor, user]);
+
   // Cuando se selecciona un taller, cargar los estudiantes y sus evaluaciones
   useEffect(() => {
     const cargarEstudiantesYEvaluaciones = async () => {
@@ -146,10 +185,14 @@ const Calificacion = () => {
         let estudiantesConEvaluaciones: EstudianteConEvaluaciones[] = [];
 
         // Filtrar estudiantes eliminados y por taller seleccionado
-        let estudiantesActivos = estudiantes.filter(estudiante => 
-          estudiante.usuario_est?.estado_usuario !== 'Eliminado' && 
-          estudiante.taller_est?.id_taller === selectedTaller
-        );
+        let estudiantesActivos = estudiantes.filter(estudiante => {
+          const tallerId = estudiante.taller_est?.id_taller;
+          const esActivo = estudiante.usuario_est?.estado_usuario !== 'Eliminado';
+          if (esTutor && tallerTutor) {
+            return esActivo && tallerId === tallerTutor;
+          }
+          return esActivo && tallerId === selectedTaller;
+        });
 
         // Si es estudiante, solo dejar el suyo
         if (esEstudiante && user) {
@@ -262,7 +305,7 @@ const Calificacion = () => {
     if (selectedTaller) {
       cargarEstudiantesYEvaluaciones();
     }
-  }, [selectedTaller, location]);
+  }, [selectedTaller, location, esTutor, tallerTutor]);
   
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
@@ -377,6 +420,17 @@ const Calificacion = () => {
             await api.post('/calificaciones-estudiante', { promedio: estudianteData.promedio, evaluacion_estudiante: { id_eval_est: evaluacionExistente.id_eval_est } });
           }
           // --- FIN BLOQUE NUEVO ---
+          
+          // --- NUEVO: Recargar evaluaciones del estudiante ---
+          const resEvaluaciones = await api.get(`/evaluaciones-estudiante/porEstudiante/${editCell.estudiante}`);
+          const nuevasEvaluaciones = Array.isArray(resEvaluaciones.data) ? resEvaluaciones.data : [];
+          setEvaluacionesOriginales(prev =>
+            [
+              ...prev.filter(ev => ev.pasantia_eval.estudiante_pas.documento_id_est !== editCell.estudiante),
+              ...nuevasEvaluaciones
+            ]
+          );
+          // --- FIN NUEVO ---
           
           // Calificación actualizada con éxito (solo actualizamos la evaluación)
           console.log(`Evaluación ${evaluacionExistente.id_eval_est} actualizada correctamente`);

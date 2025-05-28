@@ -90,7 +90,7 @@ function Login() {
           navigate('/dashboard-centro');
           break;
         case 3: // Tutor
-          navigate('/dashboard-supervisor');
+          navigate('/pasantias');
           break;
         default:
           navigate('/acceso-denegado');

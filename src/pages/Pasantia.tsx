@@ -11,6 +11,13 @@ import DashboardAppBar from '../components/DashboardAppBar';
 import { authService } from '../services/authService';
 import studentService from '../services/studentService';
 import { useLocation } from 'react-router-dom';
+import api from '../services/api';
+
+// Definir tipo mínimo para Tutor solo para este uso
+interface TutorMin {
+  usuario_tutor: number | { id_usuario: number };
+  taller_tutor: number | { id_taller: number };
+}
 
 const PasantiaPage = () => {
   const theme = MUI.useTheme();
@@ -52,6 +59,8 @@ const PasantiaPage = () => {
   // Obtener usuario actual
   const user = authService.getCurrentUser();
   const esEstudiante = user && user.rol === 1;
+  const esTutor = user && user.rol === 3;
+  const [tallerTutor, setTallerTutor] = useState<string>('');
 
   const location = useLocation();
 
@@ -182,6 +191,9 @@ const PasantiaPage = () => {
   const estudiantesFiltrados = estudiantes.filter(e => {
     const tallerId = e.taller_est?.id_taller;
     const esActivo = e.usuario_est?.estado_usuario === 'Activo';
+    if (esTutor && tallerTutor) {
+      return tallerId && String(tallerId) === tallerTutor && esActivo;
+    }
     return (!tallerFiltro || (tallerId && String(tallerId) === tallerFiltro)) && esActivo;
   });
 
@@ -307,6 +319,38 @@ const PasantiaPage = () => {
     filtrarPasantiaEstudiante();
     return () => { cancelado = true; };
   }, [esEstudiante, user, location]);
+
+  // Obtener el taller del tutor al cargar
+  useEffect(() => {
+    const fetchTallerTutor = async () => {
+      if (esTutor && user) {
+        try {
+          // Usar axios para asegurar baseURL y headers correctos
+          const { data: tutores } = await api.get<TutorMin[]>('/tutores');
+          const tutor = tutores.find((t) => {
+            if (typeof t.usuario_tutor === 'object' && t.usuario_tutor !== null) {
+              return t.usuario_tutor.id_usuario === user.id_usuario;
+            }
+            return t.usuario_tutor === user.id_usuario;
+          });
+          if (tutor && tutor.taller_tutor) {
+            const idTaller = typeof tutor.taller_tutor === 'object' && tutor.taller_tutor !== null
+              ? tutor.taller_tutor.id_taller
+              : tutor.taller_tutor;
+            setTallerTutor(String(idTaller));
+            setTallerFiltro(String(idTaller));
+          }
+        } catch (error: any) {
+          if (error.response && error.response.data && typeof error.response.data === 'string' && error.response.data.startsWith('<!DOCTYPE')) {
+            console.error('Error: El backend respondió HTML en vez de JSON. Revisa la URL base y el proxy.');
+          } else {
+            console.error('Error al obtener el taller del tutor:', error);
+          }
+        }
+      }
+    };
+    fetchTallerTutor();
+  }, [esTutor, user]);
 
   // Diálogo de edición
   const handleEditClick = (pasantia: Pasantia) => {

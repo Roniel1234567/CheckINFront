@@ -9,6 +9,7 @@ import pasantiaService from '../../services/pasantiaService';
 import { internshipService } from '../../services/internshipService';
 import api from '../../services/api';
 import React from 'react';
+import { authService } from '../../services/authService';
 
 interface ReporteProps {
   titulo: string;
@@ -54,6 +55,12 @@ interface EvaluacionEstudiante {
 interface CentroTrabajo {
   id_centro: number;
   nombre_centro: string;
+}
+
+// Definir tipo mínimo para Tutor solo para este uso
+interface TutorMin {
+  usuario_tutor: number | { id_usuario: number };
+  taller_tutor: number | { id_taller: number };
 }
 
 const estilosBase = `
@@ -145,6 +152,10 @@ function Reportes() {
     severity: 'success' as 'success' | 'error' | 'info' | 'warning'
   });
 
+  const user = authService.getCurrentUser();
+  const esTutor = user && user.rol === 3;
+  const [tallerTutor, setTallerTutor] = useState<number | null>(null);
+
   useEffect(() => {
     const cargarDatos = async () => {
       try {
@@ -178,6 +189,33 @@ function Reportes() {
     };
     cargarAños();
   }, []);
+
+  // Obtener el taller del tutor al cargar
+  useEffect(() => {
+    const fetchTallerTutor = async () => {
+      if (esTutor && user) {
+        try {
+          const { data: tutores } = await api.get<TutorMin[]>('/tutores');
+          const tutor = tutores.find((t) => {
+            if (typeof t.usuario_tutor === 'object' && t.usuario_tutor !== null) {
+              return t.usuario_tutor.id_usuario === user.id_usuario;
+            }
+            return t.usuario_tutor === user.id_usuario;
+          });
+          if (tutor && tutor.taller_tutor) {
+            const idTaller = typeof tutor.taller_tutor === 'object' && tutor.taller_tutor !== null
+              ? tutor.taller_tutor.id_taller
+              : tutor.taller_tutor;
+            setTallerTutor(Number(idTaller));
+            setSelectedTaller(String(idTaller));
+          }
+        } catch (error) {
+          console.error('Error al obtener el taller del tutor:', error);
+        }
+      }
+    };
+    fetchTallerTutor();
+  }, [esTutor, user]);
 
   const generarPDF = async (contenido: string, nombreArchivo: string) => {
     const element = document.createElement('div');
@@ -225,6 +263,10 @@ function Reportes() {
       ]);
 
       let estudiantesFiltrados = estudiantes;
+
+      if (esTutor && tallerTutor) {
+        estudiantesFiltrados = estudiantesFiltrados.filter(e => e.taller_est?.id_taller === tallerTutor);
+      }
 
       // Filtrar por año si está seleccionado
       if (selectedYear) {
@@ -309,6 +351,10 @@ function Reportes() {
       ]);
 
       let estudiantesFiltrados = estudiantes;
+
+      if (esTutor && tallerTutor) {
+        estudiantesFiltrados = estudiantesFiltrados.filter(e => e.taller_est?.id_taller === tallerTutor);
+      }
 
       // Filtrar por año si está seleccionado
       if (selectedYear) {
@@ -442,13 +488,8 @@ function Reportes() {
 
       let pasantiasFiltradas = [...pasantias];
       
-      // Filtrar por año si está seleccionado
-      if (selectedYear) {
-        pasantiasFiltradas = pasantiasFiltradas.filter(p => {
-          const estudiante = estudiantesMap.get(p.estudiante_pas.documento_id_est);
-          if (!estudiante?.fecha_fin_pasantia) return false;
-          return new Date(estudiante.fecha_fin_pasantia).getFullYear().toString() === selectedYear;
-        });
+      if (esTutor && tallerTutor) {
+        pasantiasFiltradas = pasantiasFiltradas.filter(p => p.estudiante_pas.taller_est?.id_taller === tallerTutor);
       }
       
       if (selectedCentro) {
@@ -578,7 +619,7 @@ function Reportes() {
       <SideBar drawerOpen={drawerOpen} toggleDrawer={() => setDrawerOpen(!drawerOpen)} />
 
       <MUI.Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        <DashboardAppBar notifications={notifications} toggleDrawer={() => setDrawerOpen(!drawerOpen)} />
+        <DashboardAppBar toggleDrawer={() => setDrawerOpen(!drawerOpen)} />
 
         <MUI.Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
           <MUI.Typography variant="h4" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>

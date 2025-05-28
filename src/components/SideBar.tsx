@@ -50,10 +50,15 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
   }, []);
 
   useEffect(() => {
-    // Redirección solo para estudiantes
+    // Redirección solo para estudiantes y tutores
     const currentUser = authService.getCurrentUser();
-    if (currentUser && currentUser.rol === 1 && location.pathname === '/dashboard') {
-      navigate('/dashboard/subir-documentos', { replace: true });
+    if (currentUser) {
+      if (currentUser.rol === 1 && location.pathname === '/dashboard') {
+        navigate('/dashboard/subir-documentos', { replace: true });
+      }
+      else if (currentUser.rol === 3 && (location.pathname === '/dashboard' || location.pathname === '/')) {
+        navigate('/pasantias', { replace: true });
+      }
     }
   }, [location, navigate]);
 
@@ -85,6 +90,13 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
       'pasantias',
       'evaluaciones',
       'subirdoc'
+    ].includes(item.id));
+  }
+  else if (userInfo.rol === 'Tutor') {
+    filteredMenuItems = menuItems.filter(item => [
+      'pasantias',
+      'calificacion',
+      'reports'
     ].includes(item.id));
   }
 
