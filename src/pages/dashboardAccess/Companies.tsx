@@ -19,6 +19,7 @@ import contactService from '../../services/contactService';
 import { userService } from '../../services/userService';
 import direccionService from '../../services/direccionService';
 import axios from 'axios';
+import { authService } from '../../services/authService';
 
 // Estado inicial del formulario
 interface FormData {
@@ -114,6 +115,10 @@ function Companies() {
   const direccionInvalida =
     formData.calle_dir.length > MAX_CALLE ||
     formData.num_res_dir.length > MAX_NUM_RES;
+
+  // Obtener usuario actual
+  const user = authService.getCurrentUser();
+  const esEmpresa = user && user.rol === 2;
 
   // 2. Función para chequear usuario de empresa
   const checkUsuarioEmpresa = async (usuario: string) => {
@@ -389,9 +394,12 @@ function Companies() {
   };
 
   // Filtrar solo empresas con usuario activo (igual que en Students.tsx)
-  const empresasFiltradas = centrosTrabajo.filter(
+  let empresasFiltradas = centrosTrabajo.filter(
     centro => (centro as any).usuario?.estado_usuario === 'Activo'
   );
+  if (esEmpresa && user) {
+    empresasFiltradas = empresasFiltradas.filter(centro => centro.usuario?.id_usuario === user.id_usuario);
+  }
 
   // Manejar cambios en el formulario
   const handleFormChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -644,62 +652,66 @@ function Companies() {
         <MUI.Box sx={{ p: { xs: 2, md: 4 } }}>
         {/* Botones de acción principales */}
         <MUI.Grid container spacing={2} sx={{ mb: 4 }}>
-          <MUI.Grid item>
-            <MUI.Button
-              variant="contained"
-              startIcon={<Icons.Add />}
-              sx={{
-                bgcolor: '#1a237e',
-                '&:hover': { bgcolor: '#0d1b60' }
-              }}
-              onClick={() => {
-                setOpenDialog(true);
-                setEditMode(false);
-                setEditingCentro(null);
-                setFormData({
-                  nombre_centro: '',
-                  telefono_contacto: '',
-                  email_contacto: '',
-                  calle_dir: '',
-                  num_res_dir: '',
-                  sector_dir: 0,
-                  estado_centro: 'Activo',
-                  nombre_persona_contacto: '',
-                  apellido_persona_contacto: '',
-                  telefono_persona_contacto: '',
-                  extension_persona_contacto: '',
-                  departamento_persona_contacto: '',
-                  usuario_empresa: '',
-                  contrasena_empresa: '',
-                });
-                setSelectedProvincia('');
-                setSelectedCiudad('');
-                setSelectedSector('');
-              }}
-            >
-              Registrar Nuevo Centro de Trabajo
-            </MUI.Button>
-          </MUI.Grid>
-          <MUI.Grid item>
-            <MUI.Button
-              variant="outlined"
-              startIcon={<Icons.History />}
-              sx={{ color: '#1a237e', borderColor: '#1a237e' }}
-              onClick={() => setShowHistorial(!showHistorial)}
-            >
-              {showHistorial ? 'Volver' : 'Historial'}
-            </MUI.Button>
-          </MUI.Grid>
-          <MUI.Grid item>
-            <MUI.Button
-              variant="contained"
-              color="warning"
-              onClick={() => setOpenValidarEmpresas(true)}
-              sx={{ mb: 2 }}
-            >
-              Validar empresas
-            </MUI.Button>
-          </MUI.Grid>
+          {!esEmpresa && (
+            <>
+              <MUI.Grid item>
+                <MUI.Button
+                  variant="contained"
+                  startIcon={<Icons.Add />}
+                  sx={{
+                    bgcolor: '#1a237e',
+                    '&:hover': { bgcolor: '#0d1b60' }
+                  }}
+                  onClick={() => {
+                    setOpenDialog(true);
+                    setEditMode(false);
+                    setEditingCentro(null);
+                    setFormData({
+                      nombre_centro: '',
+                      telefono_contacto: '',
+                      email_contacto: '',
+                      calle_dir: '',
+                      num_res_dir: '',
+                      sector_dir: 0,
+                      estado_centro: 'Activo',
+                      nombre_persona_contacto: '',
+                      apellido_persona_contacto: '',
+                      telefono_persona_contacto: '',
+                      extension_persona_contacto: '',
+                      departamento_persona_contacto: '',
+                      usuario_empresa: '',
+                      contrasena_empresa: '',
+                    });
+                    setSelectedProvincia('');
+                    setSelectedCiudad('');
+                    setSelectedSector('');
+                  }}
+                >
+                  Registrar Nuevo Centro de Trabajo
+                </MUI.Button>
+              </MUI.Grid>
+              <MUI.Grid item>
+                <MUI.Button
+                  variant="outlined"
+                  startIcon={<Icons.History />}
+                  sx={{ color: '#1a237e', borderColor: '#1a237e' }}
+                  onClick={() => setShowHistorial(!showHistorial)}
+                >
+                  {showHistorial ? 'Volver' : 'Historial'}
+                </MUI.Button>
+              </MUI.Grid>
+              <MUI.Grid item>
+                <MUI.Button
+                  variant="contained"
+                  color="warning"
+                  onClick={() => setOpenValidarEmpresas(true)}
+                  sx={{ mb: 2 }}
+                >
+                  Validar empresas
+                </MUI.Button>
+              </MUI.Grid>
+            </>
+          )}
         </MUI.Grid>
 
         {/* Tarjetas de estadísticas */}

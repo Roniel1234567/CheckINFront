@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import '../../styles/index.scss';
 import * as MUI from "@mui/material";
 import * as Icons from "@mui/icons-material";
 import SideBar from '../../components/SideBar';
 import DashboardAppBar from '../../components/DashboardAppBar';
-import { CompaniesCRUD, CentroTrabajo, Taller } from '../../../services/CompaniesCRUD';
+import { CentroTrabajo } from '../../../services/CompaniesCRUD';
+import { Taller as TallerIS } from '../../services/internshipService';
 import api from '../../services/api';
+import { authService } from '../../services/authService';
+import { internshipService } from '../../services/internshipService';
 // Importar íconos explícitamente
 
 
@@ -14,7 +17,7 @@ interface Plaza {
   id?: number;
   id_plaza: number;
   centro: CentroTrabajo;
-  taller: Taller;
+  taller: TallerIS;
   plazas: number;
   plazas_centro: number;
   fechaCreacion?: string;
@@ -31,7 +34,7 @@ interface CentroTrabajoExtendido extends CentroTrabajo {
 }
 
 // Tipo auxiliar para el mapeo de plazas desde la API
-type PlazaApi = Omit<Plaza, 'centro' | 'taller'> & { centro_plaza: CentroTrabajo; taller_plaza: Taller };
+type PlazaApi = Omit<Plaza, 'centro' | 'taller'> & { centro_plaza: CentroTrabajo; taller_plaza: TallerIS };
 
 function PlazasCentro() {
   const theme = MUI.useTheme();
@@ -39,7 +42,7 @@ function PlazasCentro() {
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
   const [centros, setCentros] = useState<CentroTrabajoExtendido[]>([]);
-  const [talleres, setTalleres] = useState<Taller[]>([]);
+  const [talleres, setTalleres] = useState<TallerIS[]>([]);
   const [plazas, setPlazas] = useState<Plaza[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
@@ -53,86 +56,41 @@ function PlazasCentro() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [plazaToDelete, setPlazaToDelete] = useState<Plaza | null>(null);
   const [showInactive, setShowInactive] = useState(false);
-  const notifications = 4;
+  const user = authService.getCurrentUser();
+  const esEmpresa = user && user.rol === 2;
 
-  // Simulación de datos
+  // useEffect para cargar datos iniciales SOLO una vez
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // PRIMER INTENTO: CompaniesCRUD
-        console.log('Intentando cargar con CompaniesCRUD...');
-        let centrosData: CentroTrabajo[] = [];
-        let talleresData: Taller[] = [];
-        
+        let centrosData: CentroTrabajoExtendido[] = [];
+        let talleresData: TallerIS[] = [];
         try {
-          centrosData = await CompaniesCRUD.getAllCompanies();
-          console.log('Respuesta de centros:', centrosData);
-        } catch (error) {
-          console.error('Error al cargar centros con CompaniesCRUD:', error);
-          centrosData = [];
-        }
-        
+          const centrosRaw = await internshipService.getAllCentrosTrabajo();
+          centrosData = (centrosRaw as unknown as CentroTrabajoExtendido[]).map((c) => ({
+            ...c,
+            validacion: c.validacion ?? undefined
+          }));
+        } catch { centrosData = []; }
         try {
-          talleresData = await CompaniesCRUD.getAllTalleres();
-          console.log('Respuesta de talleres:', talleresData);
-        } catch (error) {
-          console.error('Error al cargar talleres con CompaniesCRUD:', error);
-          talleresData = [];
-        }
-        
-        // Si están vacíos, hago fetch directo
-        if (!centrosData || centrosData.length === 0) {
-          console.log('Intentando cargar centros con fetch directo...');
-          try {
-          const res = await fetch('/api/centros-trabajo');
-          centrosData = await res.json();
-            console.log('Centros cargados con fetch directo:', centrosData);
-          } catch (error) {
-            console.error('Error al cargar centros con fetch directo:', error);
-            centrosData = [];
-          }
-        }
-        
-        if (!talleresData || talleresData.length === 0) {
-          console.log('Intentando cargar talleres con fetch directo...');
-          try {
-          const res = await fetch('/api/talleres');
-          talleresData = await res.json();
-            console.log('Talleres cargados con fetch directo:', talleresData);
-          } catch (error) {
-            console.error('Error al cargar talleres con fetch directo:', error);
-            talleresData = [];
-          }
-        }
-        
-        console.log('Centros finales:', centrosData);
-        console.log('Talleres finales:', talleresData);
-        
-        setCentros(centrosData as CentroTrabajoExtendido[]);
+          const talleresIS: TallerIS[] = await internshipService.getAllTalleres();
+          talleresData = talleresIS as unknown as TallerIS[];
+        } catch { talleresData = []; }
+        setCentros(centrosData);
         setTalleres(talleresData);
-        
         // Cargar plazas
-        try {
-          const { data: plazasData } = await api.get('/plazas');
-          console.log('Plazas cargadas:', plazasData);
-        const plazasAdaptadas: Plaza[] = (plazasData as PlazaApi[]).map((plaza) => {
-          return {
-            ...plaza,
-              id: plaza.id_plaza, // Asegurar que id también está disponible
-            centro: plaza.centro_plaza,
-            taller: plaza.taller_plaza,
-              plazas: plaza.plazas_centro, // Mapear el campo correcto
-              fechaCreacion: plaza.creacion_plaza // Mapear el campo correcto
-          };
-        });
+        const { data: plazasData } = await api.get('/plazas');
+        const plazasAdaptadas: Plaza[] = (plazasData as PlazaApi[]).map((plaza) => ({
+          ...plaza,
+          id: plaza.id_plaza,
+          centro: plaza.centro_plaza,
+          taller: plaza.taller_plaza,
+          plazas: plaza.plazas_centro,
+          fechaCreacion: plaza.creacion_plaza
+        }));
         setPlazas(plazasAdaptadas);
-        } catch (error) {
-          console.error('Error al cargar plazas:', error);
-          setPlazas([]);
-        }
-      } catch (error) {
-        console.error('Error general en fetchData:', error);
+      } catch {
         setCentros([]);
         setTalleres([]);
         setPlazas([]);
@@ -142,6 +100,24 @@ function PlazasCentro() {
     };
     fetchData();
   }, []);
+
+  // useMemo para filtrar plazas de la empresa
+  const plazasEmpresa = useMemo(() => {
+    if (esEmpresa && user) {
+      // Buscar los id_centro de la empresa
+      const idsCentro = (centros as CentroTrabajoExtendido[])
+        .filter((centroRaw) => {
+          const centro = centroRaw as { usuario?: { id_usuario: number } | number; id_centro: number };
+          if (typeof centro.usuario === 'object' && centro.usuario !== null) {
+            return (centro.usuario as { id_usuario: number }).id_usuario === user.id_usuario;
+          }
+          return centro.usuario === user.id_usuario;
+        })
+        .map((centro) => centro.id_centro);
+      return plazas.filter(p => idsCentro.includes(p.centro.id_centro));
+    }
+    return plazas;
+  }, [esEmpresa, user, centros, plazas]);
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
@@ -297,7 +273,7 @@ function PlazasCentro() {
     }
   };
 
-  const filteredPlazas = plazas.filter(plaza => 
+  const filteredPlazas = plazasEmpresa.filter(plaza => 
     ((plaza.estado === 'Activa') === !showInactive) && // Filtrar por estado
     ((plaza.centro?.nombre_centro?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
     (plaza.taller?.nombre_taller?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
@@ -311,7 +287,7 @@ function PlazasCentro() {
       {/* Main content */}
       <MUI.Box component="main" sx={{ flexGrow: 1, overflow: 'auto' }}>
         {/* App bar */}
-        <DashboardAppBar notifications={notifications} toggleDrawer={toggleDrawer} />
+        <DashboardAppBar toggleDrawer={toggleDrawer} />
 
         {/* Loading overlay */}
         {loading && (
@@ -565,7 +541,18 @@ function PlazasCentro() {
             <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <MUI.Autocomplete
                 fullWidth
-                options={centros.filter(centro => centro.validacion === 'Aceptada')}
+                options={(() => {
+                  if (esEmpresa && user) {
+                    return centros.filter(centroRaw => {
+                      const centro = centroRaw as { usuario?: { id_usuario: number } | number; validacion?: string };
+                      return centro.validacion === 'Aceptada' && (
+                        (typeof centro.usuario === 'object' && centro.usuario !== null && (centro.usuario as { id_usuario: number }).id_usuario === user.id_usuario) ||
+                        centro.usuario === user.id_usuario
+                      );
+                    });
+                  }
+                  return centros.filter(centro => centro.validacion === 'Aceptada');
+                })()}
                 getOptionLabel={(option) => option.nombre_centro}
                 isOptionEqualToValue={(option, value) => option.id_centro === value.id_centro}
                 value={centros.find(centro => centro.id_centro === Number(formCentro)) || null}
@@ -575,7 +562,7 @@ function PlazasCentro() {
                 renderInput={(params) => (
                   <MUI.TextField
                     {...params}
-                  label="Centro de Trabajo"
+                    label="Centro de Trabajo"
                     variant="outlined"
                     placeholder="Buscar centro de trabajo..."
                   />

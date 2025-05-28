@@ -100,6 +100,14 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
       'reports'
     ].includes(item.id));
   }
+  else if (userInfo.rol === 'Centro de Trabajo') {
+    filteredMenuItems = menuItems.filter(item => [
+      'companies', // Centro de Trabajo
+      'plazas',    // Plazas
+      'evaluaciones', // Evaluaciones
+      'pasantias'  // Pasantías
+    ].includes(item.id));
+  }
 
   const activeMenu = menuItems.find(item => location.pathname === item.path)?.id || '';
 

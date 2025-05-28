@@ -140,9 +140,12 @@ function Evaluaciones() {
   // Obtener usuario actual
   const user = authService.getCurrentUser();
   const esEstudiante = user && user.rol === 1;
+  const esEmpresa = user && user.rol === 2;
 
-  // Si es estudiante, solo mostrar el tab de evaluar empresa y solo su pasantía
-  const tabsToShow = esEstudiante ? [0] : [0, 1, 2];
+  // Tabs visibles según rol
+  let tabsToShow = [0, 1, 2];
+  if (esEstudiante) tabsToShow = [0];
+  else if (esEmpresa) tabsToShow = [1];
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -279,6 +282,19 @@ function Evaluaciones() {
     filtrarEvaluacionesEstudiante();
     return () => { cancelado = true; };
   }, [esEstudiante, user, location]);
+
+  // Filtrar pasantías y evaluaciones para empresa
+  useEffect(() => {
+    if (esEmpresa && user) {
+      setPasantias(prev => prev.filter(p => p.centro_pas && p.centro_pas.usuario?.id_usuario === user.id_usuario));
+      setEvaluacionesEstudiante(prev => prev.filter(e => {
+        // Buscar la pasantía y ver si pertenece a la empresa
+        if (!e.pasantia_eval) return false;
+        const pas = Array.isArray(pasantias) ? pasantias.find(p => p.id_pas === (typeof e.pasantia_eval === 'object' ? e.pasantia_eval.id_pas : e.pasantia_eval)) : null;
+        return pas && pas.centro_pas && pas.centro_pas.usuario?.id_usuario === user.id_usuario;
+      }));
+    }
+  }, [esEmpresa, user, pasantias]);
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
@@ -882,7 +898,7 @@ function Evaluaciones() {
                   }
                 }}
               >
-                {tabsToShow.includes(0) && (
+                {!esEmpresa && tabsToShow.includes(0) && (
                   <MUI.Tab 
                     icon={<Icons.Business />} 
                     label="Evaluación Centro" 
@@ -896,7 +912,7 @@ function Evaluaciones() {
                     iconPosition="start"
                   />
                 )}
-                {!esEstudiante && (
+                {!esEstudiante && !esEmpresa && (
                   <MUI.Tab 
                     icon={<Icons.History />} 
                     label="Historial" 
@@ -926,9 +942,19 @@ function Evaluaciones() {
                         required
                         disabled={isEditMode} // Deshabilitar cambio de pasantía en modo edición
                       >
-                        {pasantias.map((pasantia) => (
+                        {(esEmpresa
+                          ? pasantias.filter(p => {
+                              // Solo pasantías cuyo centro_pas está relacionado al usuario logueado
+                              const centro = p.centro_pas as any;
+                              if (typeof centro.usuario === 'object' && centro.usuario !== null) {
+                                return centro.usuario.id_usuario === user.id_usuario;
+                              }
+                              return centro.usuario === user.id_usuario;
+                            })
+                          : pasantias
+                        ).map((pasantia) => (
                           <MUI.MenuItem key={pasantia.id_pas} value={String(pasantia.id_pas)}>
-                            {pasantia.centro_pas.nombre_centro} - {pasantia.estudiante_pas.nombre_est}
+                            {pasantia.estudiante_pas.nombre_est} - {pasantia.centro_pas.nombre_centro}
                           </MUI.MenuItem>
                         ))}
                       </MUI.Select>
@@ -1067,7 +1093,17 @@ function Evaluaciones() {
                         required
                         disabled={isEditModeEstudiante} // Deshabilitar cambio de pasantía en modo edición
                       >
-                        {pasantias.map((pasantia) => (
+                        {(esEmpresa
+                          ? pasantias.filter(p => {
+                              // Solo pasantías cuyo centro_pas está relacionado al usuario logueado
+                              const centro = p.centro_pas as any;
+                              if (typeof centro.usuario === 'object' && centro.usuario !== null) {
+                                return centro.usuario.id_usuario === user.id_usuario;
+                              }
+                              return centro.usuario === user.id_usuario;
+                            })
+                          : pasantias
+                        ).map((pasantia) => (
                           <MUI.MenuItem key={pasantia.id_pas} value={String(pasantia.id_pas)}>
                             {pasantia.estudiante_pas.nombre_est} - {pasantia.centro_pas.nombre_centro}
                           </MUI.MenuItem>

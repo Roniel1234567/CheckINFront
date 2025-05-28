@@ -87,7 +87,7 @@ function Login() {
           navigate('/subir-documentos');
           break;
         case 2: // Empresa
-          navigate('/dashboard-centro');
+          navigate('/plazas');
           break;
         case 3: // Tutor
           navigate('/pasantias');

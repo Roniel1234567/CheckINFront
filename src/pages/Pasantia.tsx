@@ -60,6 +60,7 @@ const PasantiaPage = () => {
   const user = authService.getCurrentUser();
   const esEstudiante = user && user.rol === 1;
   const esTutor = user && user.rol === 3;
+  const esEmpresa = user && user.rol === 2;
   const [tallerTutor, setTallerTutor] = useState<string>('');
 
   const location = useLocation();
@@ -97,48 +98,6 @@ const PasantiaPage = () => {
     },
     [[], [], []] // [activas, canceladas, terminadas]
   );
-
-  // Efecto para actualizar el estado de las pasantías cuando se detectan fechas completas
-  useEffect(() => {
-    const actualizarEstadoPasantias = async () => {
-      let actualizacionesRealizadas = false;
-
-      // Convertir pasantias a array si no lo es
-      const pasantiasArray = Array.isArray(pasantias) ? pasantias : [];
-
-      for (const pasantia of pasantiasArray) {
-        if (!pasantia.id_pas) continue; // Saltar si no hay ID
-
-        const estudiante = estudiantes.find(e => e.documento_id_est === pasantia.estudiante_pas.documento_id_est);
-        const tieneFechaInicio = estudiante?.fecha_inicio_pasantia;
-        const tieneFechaFin = estudiante?.fecha_fin_pasantia;
-
-        if (tieneFechaInicio && tieneFechaFin && pasantia.estado_pas !== EstadoPasantia.TERMINADA) {
-          try {
-            await internshipService.updatePasantia(pasantia.id_pas, {
-              ...pasantia,
-              estado_pas: EstadoPasantia.TERMINADA
-            });
-            actualizacionesRealizadas = true;
-          } catch (error) {
-            console.error('Error al actualizar el estado de la pasantía:', error);
-          }
-        }
-      }
-
-      // Si se realizaron actualizaciones, recargar las pasantías
-      if (actualizacionesRealizadas) {
-        try {
-          const pasantiasData = await internshipService.getAllPasantias();
-          setPasantias(pasantiasData);
-        } catch (error) {
-          console.error('Error al recargar las pasantías:', error);
-        }
-      }
-    };
-
-    actualizarEstadoPasantias();
-  }, [estudiantes, pasantias]); // Se ejecuta cuando cambian los estudiantes o las pasantías
 
   // Filtrar pasantías según los criterios de búsqueda y estado
   const filtrarPasantias = (pasantiasList: Pasantia[], tallerFiltro: string, centroFiltro: string) => {
@@ -190,7 +149,7 @@ const PasantiaPage = () => {
   // Filtrar estudiantes por taller y estado activo
   const estudiantesFiltrados = estudiantes.filter(e => {
     const tallerId = e.taller_est?.id_taller;
-    const esActivo = e.usuario_est?.estado_usuario === 'Activo';
+    const esActivo = (e as any).usuario_est?.estado_usuario === 'Activo';
     if (esTutor && tallerTutor) {
       return tallerId && String(tallerId) === tallerTutor && esActivo;
     }
@@ -587,7 +546,7 @@ const PasantiaPage = () => {
     <MUI.Box sx={{ display: 'flex', width: '100vw', minHeight: '100vh', bgcolor: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.secondary.light} 100%)`, p: 0 }}>
       <SideBar drawerOpen={drawerOpen} toggleDrawer={toggleDrawer} />
       <MUI.Box component="main" sx={{ flexGrow: 1, overflow: 'auto' }}>
-        <DashboardAppBar notifications={4} toggleDrawer={toggleDrawer} />
+        <DashboardAppBar toggleDrawer={toggleDrawer} />
         {loading && (
           <MUI.Box sx={{
             position: 'fixed',
@@ -671,17 +630,31 @@ const PasantiaPage = () => {
                       setPlazaFormSeleccionada(null);
                     }}
                     label="Centro de Trabajo"
-                    disabled={!tallerFiltro}
+                    disabled={esEmpresa}
                     sx={{
                       color: '#fff',
                       '& .MuiSelect-icon': { color: '#fff' },
                       '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
                     }}
                   >
-                    <MUI.MenuItem value=""><em>Todos</em></MUI.MenuItem>
-                    {centrosFiltrados.map(c => (
-                      <MUI.MenuItem key={c.id_centro} value={String(c.id_centro)}>
-                        {c.nombre_centro}
+                    {esEmpresa && user && (() => {
+                      // Buscar el centro de la empresa logueada
+                      const centroEmpresa = centros.find(c => {
+                        const centro = c as any;
+                        if (typeof centro.usuario === 'object' && centro.usuario !== null) {
+                          return centro.usuario.id_usuario === user.id_usuario;
+                        }
+                        return centro.usuario === user.id_usuario;
+                      });
+                      return centroEmpresa ? (
+                        <MUI.MenuItem key={centroEmpresa.id_centro} value={String(centroEmpresa.id_centro)}>
+                          {centroEmpresa.nombre_centro}
+                        </MUI.MenuItem>
+                      ) : null;
+                    })()}
+                    {!esEmpresa && centrosFiltrados.map((centro) => (
+                      <MUI.MenuItem key={centro.id_centro} value={String(centro.id_centro)}>
+                        {centro.nombre_centro}
                       </MUI.MenuItem>
                     ))}
                   </MUI.Select>
@@ -717,7 +690,7 @@ const PasantiaPage = () => {
               </MUI.Grid>
 
               {/* Botón Nueva Pasantía */}
-              {!esEstudiante && (
+              {!esEmpresa && (
                 <MUI.Grid item xs={12} md={3}>
                   <MUI.Button
                     variant="contained"
@@ -771,7 +744,7 @@ const PasantiaPage = () => {
           </MUI.Box>
 
           {/* Tarjetas de plazas */}
-          {!esEstudiante && mostrarPlazas && tallerFiltro && (
+          {!esEstudiante && !esEmpresa && mostrarPlazas && tallerFiltro && (
             <MUI.Grid container spacing={3} sx={{ mb: 4 }}>
               {plazasFiltradas.map((plaza) => {
                 const ocupadas = plazasOcupadas(plaza);
@@ -972,6 +945,28 @@ const PasantiaPage = () => {
                         pasantiasMostradas = pasantiasActivasFiltradas;
                     }
 
+                    // Si es empresa, filtrar solo las pasantías de su centro
+                    if (esEmpresa && user) {
+                      // Buscar el id_centro del centro de trabajo de la empresa logueada
+                      let idCentroEmpresa: number | undefined = undefined;
+                      if (centros.length > 0) {
+                        // Buscar el centro cuyo usuario (objeto o id) coincide con el usuario logueado
+                        const centroEmpresa = centros.find(c => {
+                          const centro = c as any;
+                          if (typeof centro.usuario === 'object' && centro.usuario !== null) {
+                            return centro.usuario.id_usuario === user.id_usuario;
+                          }
+                          return centro.usuario === user.id_usuario;
+                        });
+                        idCentroEmpresa = centroEmpresa?.id_centro;
+                      }
+                      if (idCentroEmpresa) {
+                        pasantiasMostradas = pasantiasMostradas.filter(p => p.centro_pas?.id_centro === idCentroEmpresa);
+                      } else {
+                        pasantiasMostradas = [];
+                      }
+                    }
+
                     return pasantiasMostradas.map(p => (
                       <MUI.TableRow 
                         key={p.id_pas} 
@@ -1033,27 +1028,31 @@ const PasantiaPage = () => {
                             </MUI.Tooltip>
                           ) : (
                             <>
-                              <MUI.Tooltip title="Editar pasantía">
-                                <MUI.IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handleEditClick(p)}
-                                >
-                                  <Icons.Edit />
-                                </MUI.IconButton>
-                              </MUI.Tooltip>
-                              <MUI.Tooltip title="Cancelar pasantía">
-                                <MUI.IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => {
-                                    setPasantiaToDelete(p);
-                                    setOpenDeleteDialog(true);
-                                  }}
-                                >
-                                  <Icons.Delete />
-                                </MUI.IconButton>
-                              </MUI.Tooltip>
+                              {!esEmpresa && (
+                                <>
+                                  <MUI.Tooltip title="Editar pasantía">
+                                    <MUI.IconButton
+                                      size="small"
+                                      color="primary"
+                                      onClick={() => handleEditClick(p)}
+                                    >
+                                      <Icons.Edit />
+                                    </MUI.IconButton>
+                                  </MUI.Tooltip>
+                                  <MUI.Tooltip title="Cancelar pasantía">
+                                    <MUI.IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={() => {
+                                        setPasantiaToDelete(p);
+                                        setOpenDeleteDialog(true);
+                                      }}
+                                    >
+                                      <Icons.Delete />
+                                    </MUI.IconButton>
+                                  </MUI.Tooltip>
+                                </>
+                              )}
                             </>
                           )}
                         </MUI.Box>
@@ -1069,301 +1068,329 @@ const PasantiaPage = () => {
           </MUI.Paper>
 
           {/* Diálogos */}
-          <MUI.Dialog
-            open={openDialog}
-            onClose={() => {
-              setOpenDialog(false);
-              setEstudiantesSeleccionados([]);
-              setSupervisorSeleccionado('');
-              setPlazaFormSeleccionada(null);
-            }}
-            maxWidth="md"
-            fullWidth
-          >
-            <MUI.DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Icons.AddCircleOutline sx={{ color: theme.palette.primary.main }} /> Nueva Pasantía
-            </MUI.DialogTitle>
-            <MUI.DialogContent>
-              <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                {/* Mostrar restricciones de la plaza si hay una seleccionada */}
-                {plazaFormSeleccionada && (
-                  <MUI.Paper elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2, mb: 2 }}>
-                    <MUI.Typography variant="subtitle1" color="primary" gutterBottom>
-                      Restricciones de la Plaza:
-                    </MUI.Typography>
-                    <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      {plazaFormSeleccionada.edad_minima && (
-                        <MUI.Typography variant="body2">
-                          • Edad mínima requerida: {plazaFormSeleccionada.edad_minima} años
-                        </MUI.Typography>
-                      )}
-                      {plazaFormSeleccionada.genero && (
-                        <MUI.Typography variant="body2">
-                          • Sexo requerido: {plazaFormSeleccionada.genero}
-                        </MUI.Typography>
-                      )}
-                      {plazaFormSeleccionada.observacion && (
-                        <>
-                          <MUI.Typography variant="body2" color="error">
-                            • Observaciones importantes:
+          {!esEmpresa && (
+            <MUI.Dialog
+              open={openDialog}
+              onClose={() => {
+                setOpenDialog(false);
+                setEstudiantesSeleccionados([]);
+                setSupervisorSeleccionado('');
+                setPlazaFormSeleccionada(null);
+              }}
+              maxWidth="md"
+              fullWidth
+            >
+              <MUI.DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Icons.AddCircleOutline sx={{ color: theme.palette.primary.main }} /> Nueva Pasantía
+              </MUI.DialogTitle>
+              <MUI.DialogContent>
+                <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                  {/* Mostrar restricciones de la plaza si hay una seleccionada */}
+                  {plazaFormSeleccionada && (
+                    <MUI.Paper elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2, mb: 2 }}>
+                      <MUI.Typography variant="subtitle1" color="primary" gutterBottom>
+                        Restricciones de la Plaza:
+                      </MUI.Typography>
+                      <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {plazaFormSeleccionada.edad_minima && (
+                          <MUI.Typography variant="body2">
+                            • Edad mínima requerida: {plazaFormSeleccionada.edad_minima} años
                           </MUI.Typography>
-                          <MUI.Typography variant="body2" sx={{ pl: 2 }}>
-                            {plazaFormSeleccionada.observacion}
+                        )}
+                        {plazaFormSeleccionada.genero && (
+                          <MUI.Typography variant="body2">
+                            • Sexo requerido: {plazaFormSeleccionada.genero}
                           </MUI.Typography>
-                        </>
-                      )}
-                    </MUI.Box>
-                  </MUI.Paper>
-                )}
-
-                <MUI.Autocomplete
-                  multiple
-                  options={estudiantesFiltrados}
-                  getOptionLabel={e => `${e.nombre_est} ${e.apellido_est} - ${e.documento_id_est}`}
-                  value={estudiantes.filter(e => estudiantesSeleccionados.includes(e.documento_id_est))}
-                  onChange={handleEstudiantesChange}
-                  renderInput={(params) => (
-                    <MUI.TextField
-                      {...params}
-                      label="Estudiantes"
-                      placeholder="Buscar estudiantes..."
-                      variant="outlined"
-                      error={!!error && error.includes('estudiantes')}
-                      helperText={error && error.includes('estudiantes') ? error : ''}
-                    />
+                        )}
+                        {plazaFormSeleccionada.observacion && (
+                          <>
+                            <MUI.Typography variant="body2" color="error">
+                              • Observaciones importantes:
+                            </MUI.Typography>
+                            <MUI.Typography variant="body2" sx={{ pl: 2 }}>
+                              {plazaFormSeleccionada.observacion}
+                            </MUI.Typography>
+                          </>
+                        )}
+                      </MUI.Box>
+                    </MUI.Paper>
                   )}
-                  isOptionEqualToValue={(option, value) => option.documento_id_est === value.documento_id_est}
-                />
-                <MUI.FormHelperText>
-                  Máximo {plazaFormSeleccionada ? plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) : 0} estudiantes
-                </MUI.FormHelperText>
-                <MUI.FormControl fullWidth>
-                  <MUI.InputLabel></MUI.InputLabel>
+
                   <MUI.Autocomplete
-                    options={supervisores.filter(s => s.centro_trabajo && String(s.centro_trabajo.id_centro) === centroFiltro)}
-                    getOptionLabel={s => `${s.nombre_sup} ${s.apellido_sup}`}
-                    value={supervisores.find(s => String(s.id_sup) === supervisorSeleccionado) || null}
-                    onChange={(_, value) => setSupervisorSeleccionado(value ? String(value.id_sup) : '')}
+                    multiple
+                    options={estudiantesFiltrados}
+                    getOptionLabel={e => `${e.nombre_est} ${e.apellido_est} - ${e.documento_id_est}`}
+                    value={estudiantes.filter(e => estudiantesSeleccionados.includes(e.documento_id_est))}
+                    onChange={handleEstudiantesChange}
                     renderInput={(params) => (
                       <MUI.TextField
                         {...params}
-                        label=""
-                        placeholder="Buscar supervisor..."
+                        label="Estudiantes"
+                        placeholder="Buscar estudiantes..."
                         variant="outlined"
+                        error={!!error && error.includes('estudiantes')}
+                        helperText={error && error.includes('estudiantes') ? error : ''}
                       />
                     )}
+                    isOptionEqualToValue={(option, value) => option.documento_id_est === value.documento_id_est}
                   />
-                </MUI.FormControl>
-              </MUI.Box>
-            </MUI.DialogContent>
-            <MUI.DialogActions>
-              <MUI.Button onClick={() => {
-                setOpenDialog(false);
-                setError(null);
-                setSuccess(null);
-              }}>
-                Cancelar
-              </MUI.Button>
-              <MUI.Button 
-                variant="contained" 
-                onClick={handleCrearPasantias} 
-                disabled={!!loading || (!!plazaFormSeleccionada && (plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) === 0))}
-              >
-                {loading ? <MUI.CircularProgress size={24} /> : 'Crear'}
-              </MUI.Button>
-            </MUI.DialogActions>
-          </MUI.Dialog>
+                  <MUI.FormHelperText>
+                    Máximo {plazaFormSeleccionada ? plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) : 0} estudiantes
+                  </MUI.FormHelperText>
+                  <MUI.FormControl fullWidth>
+                    <MUI.InputLabel></MUI.InputLabel>
+                    <MUI.Autocomplete
+                      options={supervisores.filter(s => s.centro_trabajo && String(s.centro_trabajo.id_centro) === centroFiltro)}
+                      getOptionLabel={s => `${s.nombre_sup} ${s.apellido_sup}`}
+                      value={supervisores.find(s => String(s.id_sup) === supervisorSeleccionado) || null}
+                      onChange={(_, value) => setSupervisorSeleccionado(value ? String(value.id_sup) : '')}
+                      renderInput={(params) => (
+                        <MUI.TextField
+                          {...params}
+                          label=""
+                          placeholder="Buscar supervisor..."
+                          variant="outlined"
+                        />
+                      )}
+                    />
+                  </MUI.FormControl>
+                </MUI.Box>
+              </MUI.DialogContent>
+              <MUI.DialogActions>
+                <MUI.Button onClick={() => {
+                  setOpenDialog(false);
+                  setError(null);
+                  setSuccess(null);
+                }}>
+                  Cancelar
+                </MUI.Button>
+                <MUI.Button 
+                  variant="contained" 
+                  onClick={handleCrearPasantias} 
+                  disabled={!!loading || (!!plazaFormSeleccionada && (plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) === 0))}
+                >
+                  {loading ? <MUI.CircularProgress size={24} /> : 'Crear'}
+                </MUI.Button>
+              </MUI.DialogActions>
+            </MUI.Dialog>
+          )}
 
           {/* Diálogo para editar pasantía */}
-          <MUI.Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="sm" fullWidth>
-            <MUI.DialogTitle>
-              <Icons.Edit /> Editar Pasantía
-            </MUI.DialogTitle>
-            <MUI.DialogContent>
-              <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                {/* Estudiante */}
-                <MUI.TextField
-                  label="Estudiante"
-                  value={pasantiaToEdit ? `${pasantiaToEdit.estudiante_pas.nombre_est} ${pasantiaToEdit.estudiante_pas.apellido_est}` : ''}
-                  disabled
-                  fullWidth
-                />
+          {!esEmpresa && (
+            <>
+              <MUI.Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="sm" fullWidth>
+                <MUI.DialogTitle>
+                  <Icons.Edit /> Editar Pasantía
+                </MUI.DialogTitle>
+                <MUI.DialogContent>
+                  <MUI.Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+                    {/* Estudiante */}
+                    <MUI.TextField
+                      label="Estudiante"
+                      value={pasantiaToEdit ? `${pasantiaToEdit.estudiante_pas.nombre_est} ${pasantiaToEdit.estudiante_pas.apellido_est}` : ''}
+                      disabled
+                      fullWidth
+                    />
 
-                {/* Taller */}
-                <MUI.TextField
-                  label="Taller"
-                  value={pasantiaToEdit?.estudiante_pas?.taller_est?.nombre_taller || ''}
-                  disabled
-                  fullWidth
-                />
+                    {/* Taller */}
+                    <MUI.TextField
+                      label="Taller"
+                      value={pasantiaToEdit?.estudiante_pas?.taller_est?.nombre_taller || ''}
+                      disabled
+                      fullWidth
+                    />
 
-                {/* Centro */}
-                <MUI.FormControl fullWidth>
-                  <MUI.InputLabel>Centro de Trabajo</MUI.InputLabel>
-                  <MUI.Select
-                    value={centroFiltro}
-                    label="Centro de Trabajo"
-                    onChange={(e) => {
-                      setCentroFiltro(e.target.value);
-                      setPlazaFormSeleccionada(null);
-                      setSupervisorSeleccionado('');
-                    }}
+                    {/* Centro */}
+                    <MUI.FormControl fullWidth>
+                      <MUI.InputLabel>Centro de Trabajo</MUI.InputLabel>
+                      <MUI.Select
+                        value={centroFiltro}
+                        label="Centro de Trabajo"
+                        onChange={(e) => {
+                          setCentroFiltro(e.target.value);
+                          setPlazaFormSeleccionada(null);
+                          setSupervisorSeleccionado('');
+                        }}
+                        disabled={esEmpresa}
+                      >
+                        {esEmpresa && user && (() => {
+                          // Buscar el centro de la empresa logueada
+                          const centroEmpresa = centros.find(c => {
+                            const centro = c as any;
+                            if (typeof centro.usuario === 'object' && centro.usuario !== null) {
+                              return centro.usuario.id_usuario === user.id_usuario;
+                            }
+                            return centro.usuario === user.id_usuario;
+                          });
+                          return centroEmpresa ? (
+                            <MUI.MenuItem key={centroEmpresa.id_centro} value={String(centroEmpresa.id_centro)}>
+                              {centroEmpresa.nombre_centro}
+                            </MUI.MenuItem>
+                          ) : null;
+                        })()}
+                        {!esEmpresa && centrosFiltrados.map((centro) => (
+                          <MUI.MenuItem key={centro.id_centro} value={String(centro.id_centro)}>
+                            {centro.nombre_centro}
+                          </MUI.MenuItem>
+                        ))}
+                      </MUI.Select>
+                    </MUI.FormControl>
+
+                    {/* Supervisor */}
+                    <MUI.FormControl fullWidth>
+                      <MUI.InputLabel>Supervisor</MUI.InputLabel>
+                      <MUI.Select
+                        value={supervisorSeleccionado}
+                        label="Supervisor"
+                        onChange={(e) => setSupervisorSeleccionado(e.target.value)}
+                      >
+                        {supervisores
+                          .filter(s => s.centro_trabajo && String(s.centro_trabajo.id_centro) === centroFiltro)
+                          .map((supervisor) => (
+                            <MUI.MenuItem key={supervisor.id_sup} value={String(supervisor.id_sup)}>
+                              {supervisor.nombre_sup} {supervisor.apellido_sup}
+                            </MUI.MenuItem>
+                          ))}
+                      </MUI.Select>
+                    </MUI.FormControl>
+
+                    {/* Plaza */}
+                    <MUI.FormControl fullWidth>
+                      <MUI.InputLabel>Plaza</MUI.InputLabel>
+                      <MUI.Select
+                        value={plazaFormSeleccionada ? String(plazaFormSeleccionada.id_plaza) : ''}
+                        label="Plaza"
+                        onChange={(e) => {
+                          const plaza = plazas.find(p => String(p.id_plaza) === e.target.value);
+                          if (plaza) {
+                            setPlazaFormSeleccionada(plaza);
+                          }
+                        }}
+                      >
+                        {plazasDisponiblesForm.map((plaza) => (
+                          <MUI.MenuItem key={plaza.id_plaza} value={String(plaza.id_plaza)}>
+                            {plaza.taller_plaza.nombre_taller} - {plaza.centro_plaza.nombre_centro}
+                          </MUI.MenuItem>
+                        ))}
+                      </MUI.Select>
+                    </MUI.FormControl>
+                  </MUI.Box>
+                </MUI.DialogContent>
+                <MUI.DialogActions>
+                  <MUI.Button onClick={() => setOpenEditDialog(false)}>
+                    Cancelar
+                  </MUI.Button>
+                  <MUI.Button 
+                    variant="contained" 
+                    onClick={handleEditarPasantia}
+                    disabled={loading}
                   >
-                    {centrosFiltrados.map((centro) => (
-                      <MUI.MenuItem key={centro.id_centro} value={String(centro.id_centro)}>
-                        {centro.nombre_centro}
-                      </MUI.MenuItem>
-                    ))}
-                  </MUI.Select>
-                </MUI.FormControl>
-
-                {/* Supervisor */}
-                <MUI.FormControl fullWidth>
-                  <MUI.InputLabel>Supervisor</MUI.InputLabel>
-                  <MUI.Select
-                    value={supervisorSeleccionado}
-                    label="Supervisor"
-                    onChange={(e) => setSupervisorSeleccionado(e.target.value)}
-                  >
-                    {supervisores
-                      .filter(s => s.centro_trabajo && String(s.centro_trabajo.id_centro) === centroFiltro)
-                      .map((supervisor) => (
-                        <MUI.MenuItem key={supervisor.id_sup} value={String(supervisor.id_sup)}>
-                          {supervisor.nombre_sup} {supervisor.apellido_sup}
-                        </MUI.MenuItem>
-                      ))}
-                  </MUI.Select>
-                </MUI.FormControl>
-
-                {/* Plaza */}
-                <MUI.FormControl fullWidth>
-                  <MUI.InputLabel>Plaza</MUI.InputLabel>
-                  <MUI.Select
-                    value={plazaFormSeleccionada ? String(plazaFormSeleccionada.id_plaza) : ''}
-                    label="Plaza"
-                    onChange={(e) => {
-                      const plaza = plazas.find(p => String(p.id_plaza) === e.target.value);
-                      if (plaza) {
-                        setPlazaFormSeleccionada(plaza);
-                      }
-                    }}
-                  >
-                    {plazasDisponiblesForm.map((plaza) => (
-                      <MUI.MenuItem key={plaza.id_plaza} value={String(plaza.id_plaza)}>
-                        {plaza.taller_plaza.nombre_taller} - {plaza.centro_plaza.nombre_centro}
-                      </MUI.MenuItem>
-                    ))}
-                  </MUI.Select>
-                </MUI.FormControl>
-              </MUI.Box>
-            </MUI.DialogContent>
-            <MUI.DialogActions>
-              <MUI.Button onClick={() => setOpenEditDialog(false)}>
-                Cancelar
-              </MUI.Button>
-              <MUI.Button 
-                variant="contained" 
-                onClick={handleEditarPasantia}
-                disabled={loading}
-              >
-                {loading ? <MUI.CircularProgress size={24} /> : 'Guardar Cambios'}
-              </MUI.Button>
-            </MUI.DialogActions>
-          </MUI.Dialog>
+                    {loading ? <MUI.CircularProgress size={24} /> : 'Guardar Cambios'}
+                  </MUI.Button>
+                </MUI.DialogActions>
+              </MUI.Dialog>
+            </>
+          )}
 
           {/* Diálogo de confirmación para cancelar pasantía */}
-          <MUI.Dialog open={openDeleteDialog} onClose={() => {
-            setOpenDeleteDialog(false);
-            setError(null);
-            setSuccess(null);
-          }}>
-            <MUI.DialogTitle>
-              <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Icons.Warning sx={{ color: theme.palette.error.main }} />
-                Cancelar Pasantía
-              </MUI.Box>
-            </MUI.DialogTitle>
-            <MUI.DialogContent>
-              <MUI.Typography>
-                ¿Estás seguro de que deseas cancelar esta pasantía? Esta acción cambiará su estado a "Cancelada".
-              </MUI.Typography>
-              {pasantiaToDelete && (
-                <MUI.Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-                  <MUI.Typography variant="subtitle2" gutterBottom>
-                    Estudiante: {pasantiaToDelete.estudiante_pas.nombre_est} {pasantiaToDelete.estudiante_pas.apellido_est}
-                  </MUI.Typography>
-                  <MUI.Typography variant="subtitle2" gutterBottom>
-                    Centro: {pasantiaToDelete.centro_pas.nombre_centro}
-                  </MUI.Typography>
-                  <MUI.Typography variant="subtitle2">
-                    Taller: {pasantiaToDelete.estudiante_pas.taller_est?.nombre_taller || '-'}
-                  </MUI.Typography>
+          {!esEmpresa && (
+            <MUI.Dialog open={openDeleteDialog} onClose={() => {
+              setOpenDeleteDialog(false);
+              setError(null);
+              setSuccess(null);
+            }}>
+              <MUI.DialogTitle>
+                <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Icons.Warning sx={{ color: theme.palette.error.main }} />
+                  Cancelar Pasantía
                 </MUI.Box>
-              )}
-            </MUI.DialogContent>
-            <MUI.DialogActions>
-              <MUI.Button onClick={() => {
-                setOpenDeleteDialog(false);
-                setError(null);
-              }}>
-                No, Mantener
-              </MUI.Button>
-              <MUI.Button 
-                variant="contained" 
-                color="error" 
-                onClick={handleCancelarPasantia}
-                disabled={loading}
-                startIcon={loading ? <MUI.CircularProgress size={20} /> : <Icons.Delete />}
-              >
-                Sí, Cancelar Pasantía
-              </MUI.Button>
-            </MUI.DialogActions>
-          </MUI.Dialog>
+              </MUI.DialogTitle>
+              <MUI.DialogContent>
+                <MUI.Typography>
+                  ¿Estás seguro de que deseas cancelar esta pasantía? Esta acción cambiará su estado a "Cancelada".
+                </MUI.Typography>
+                {pasantiaToDelete && (
+                  <MUI.Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+                    <MUI.Typography variant="subtitle2" gutterBottom>
+                      Estudiante: {pasantiaToDelete.estudiante_pas.nombre_est} {pasantiaToDelete.estudiante_pas.apellido_est}
+                    </MUI.Typography>
+                    <MUI.Typography variant="subtitle2" gutterBottom>
+                      Centro: {pasantiaToDelete.centro_pas.nombre_centro}
+                    </MUI.Typography>
+                    <MUI.Typography variant="subtitle2">
+                      Taller: {pasantiaToDelete.estudiante_pas.taller_est?.nombre_taller || '-'}
+                    </MUI.Typography>
+                  </MUI.Box>
+                )}
+              </MUI.DialogContent>
+              <MUI.DialogActions>
+                <MUI.Button onClick={() => {
+                  setOpenDeleteDialog(false);
+                  setError(null);
+                }}>
+                  No, Mantener
+                </MUI.Button>
+                <MUI.Button 
+                  variant="contained" 
+                  color="error" 
+                  onClick={handleCancelarPasantia}
+                  disabled={loading}
+                  startIcon={loading ? <MUI.CircularProgress size={20} /> : <Icons.Delete />}
+                >
+                  Sí, Cancelar Pasantía
+                </MUI.Button>
+              </MUI.DialogActions>
+            </MUI.Dialog>
+          )}
 
           {/* Diálogo de confirmación para restaurar pasantía */}
-          <MUI.Dialog open={openRestoreDialog} onClose={() => setOpenRestoreDialog(false)}>
-            <MUI.DialogTitle>
-              <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Icons.Restore sx={{ color: theme.palette.success.main }} />
-                Restaurar Pasantía
-              </MUI.Box>
-            </MUI.DialogTitle>
-            <MUI.DialogContent>
-              <MUI.Typography>
-                ¿Estás seguro de que deseas restaurar esta pasantía? Esta acción cambiará su estado a "En Proceso".
-              </MUI.Typography>
-              {pasantiaToRestore && (
-                <MUI.Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-                  <MUI.Typography variant="subtitle2" gutterBottom>
-                    Estudiante: {pasantiaToRestore.estudiante_pas.nombre_est} {pasantiaToRestore.estudiante_pas.apellido_est}
+          {!esEmpresa && (
+            <>
+              <MUI.Dialog open={openRestoreDialog} onClose={() => setOpenRestoreDialog(false)}>
+                <MUI.DialogTitle>
+                  <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Icons.Restore sx={{ color: theme.palette.success.main }} />
+                    Restaurar Pasantía
+                  </MUI.Box>
+                </MUI.DialogTitle>
+                <MUI.DialogContent>
+                  <MUI.Typography>
+                    ¿Estás seguro de que deseas restaurar esta pasantía? Esta acción cambiará su estado a "En Proceso".
                   </MUI.Typography>
-                  <MUI.Typography variant="subtitle2" gutterBottom>
-                    Centro: {pasantiaToRestore.centro_pas.nombre_centro}
-                  </MUI.Typography>
-                  <MUI.Typography variant="subtitle2">
-                    Taller: {pasantiaToRestore.estudiante_pas.taller_est?.nombre_taller || '-'}
-                  </MUI.Typography>
-                </MUI.Box>
-              )}
-            </MUI.DialogContent>
-            <MUI.DialogActions>
-              <MUI.Button onClick={() => {
-                setOpenRestoreDialog(false);
-                setError(null);
-              }}>
-                No, Mantener Cancelada
-              </MUI.Button>
-              <MUI.Button 
-                variant="contained" 
-                color="success" 
-                onClick={handleRestaurarPasantia}
-                disabled={loading}
-                startIcon={loading ? <MUI.CircularProgress size={20} /> : <Icons.Restore />}
-              >
-                Sí, Restaurar Pasantía
-              </MUI.Button>
-            </MUI.DialogActions>
-          </MUI.Dialog>
+                  {pasantiaToRestore && (
+                    <MUI.Box sx={{ mt: 2, p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
+                      <MUI.Typography variant="subtitle2" gutterBottom>
+                        Estudiante: {pasantiaToRestore.estudiante_pas.nombre_est} {pasantiaToRestore.estudiante_pas.apellido_est}
+                      </MUI.Typography>
+                      <MUI.Typography variant="subtitle2" gutterBottom>
+                        Centro: {pasantiaToRestore.centro_pas.nombre_centro}
+                      </MUI.Typography>
+                      <MUI.Typography variant="subtitle2">
+                        Taller: {pasantiaToRestore.estudiante_pas.taller_est?.nombre_taller || '-'}
+                      </MUI.Typography>
+                    </MUI.Box>
+                  )}
+                </MUI.DialogContent>
+                <MUI.DialogActions>
+                  <MUI.Button onClick={() => {
+                    setOpenRestoreDialog(false);
+                    setError(null);
+                  }}>
+                    No, Mantener Cancelada
+                  </MUI.Button>
+                  <MUI.Button 
+                    variant="contained" 
+                    color="success" 
+                    onClick={handleRestaurarPasantia}
+                    disabled={loading}
+                    startIcon={loading ? <MUI.CircularProgress size={20} /> : <Icons.Restore />}
+                  >
+                    Sí, Restaurar Pasantía
+                  </MUI.Button>
+                </MUI.DialogActions>
+              </MUI.Dialog>
+            </>
+          )}
         </MUI.Container>
       </MUI.Box>
     </MUI.Box>
