@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import * as MUI from "@mui/material";
 import * as Icons from "@mui/icons-material";
 import Logotipo from '../assets/svg/Logotipo';
+import { authService } from '../services/authService';
 
 interface SideBarProps {
   drawerOpen: boolean;
@@ -16,11 +17,36 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
   const location = useLocation();
 
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [userInfo, setUserInfo] = useState({
+    nombre: '',
+    rol: '',
+    correo: ''
+  });
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    // Obtener información del usuario al cargar el componente
+    const user = authService.getCurrentUser();
+    if (user) {
+      // Mapear el rol a un string más amigable
+      const rolMap: { [key: number]: string } = {
+        1: 'Estudiante',
+        2: 'Centro de Trabajo',
+        3: 'Tutor',
+        4: 'Administrador'
+      };
+
+      setUserInfo({
+        nombre: user.dato_usuario,
+        rol: rolMap[user.rol] || 'Usuario',
+        correo: user.email || ''
+      });
+    }
   }, []);
 
   const menuItems = [
@@ -89,14 +115,16 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
             </MUI.Avatar>
             <MUI.Box>
               <MUI.Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                NOMBRE APELLIDO
+                {userInfo.nombre || 'Usuario'}
               </MUI.Typography>
               <MUI.Typography variant="subtitle2" sx={{ fontWeight: 'bold', lineHeight: 0, pb: 1 }}>
-                ROL DEL USUARIO
+                {userInfo.rol}
               </MUI.Typography>
-              <MUI.Typography variant="body2" color="text.secondary">
-                correo@ipisa.edu.do
-              </MUI.Typography>
+              {userInfo.correo && userInfo.correo.length > 0 && (
+                <MUI.Typography variant="body2" color="text.secondary">
+                  {userInfo.correo}
+                </MUI.Typography>
+              )}
             </MUI.Box>
           </MUI.Paper>
         </MUI.Box>
@@ -160,7 +188,14 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
             </MUI.Button>
           </MUI.ListItem>
           <MUI.ListItem disablePadding>
-            <MUI.Button fullWidth onClick={() => navigate('/Login')} sx={{ color: 'red' }}>
+            <MUI.Button 
+              fullWidth 
+              onClick={() => {
+                authService.logout();
+                navigate('/Login');
+              }} 
+              sx={{ color: 'red' }}
+            >
               <MUI.ListItemIcon sx={{ color: 'red' }}>
                 <Icons.Logout />
               </MUI.ListItemIcon>

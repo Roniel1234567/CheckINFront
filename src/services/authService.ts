@@ -41,6 +41,8 @@ interface DecodedToken {
   id: number;
   rol: number;
   estado: EstadoUsuarioType;
+  email?: string;
+  dato_usuario: string;
   iat: number;
   exp: number;
 }
@@ -75,10 +77,10 @@ class AuthService {
     } catch (error) {
       // Manejar errores específicos
       if (error && typeof error === 'object' && 'response' in error) {
-        const response = (error as any).response;
-        if (response) {
-          const status = response.status;
-          const message = response.data?.message;
+        const errorResponse = error as { response?: { status: number; data?: { message?: string } } };
+        if (errorResponse.response) {
+          const status = errorResponse.response.status;
+          const message = errorResponse.response.data?.message;
 
           switch (status) {
             case 400:
@@ -137,7 +139,7 @@ class AuthService {
     }
   }
 
-  getCurrentUser(): { id_usuario: number; dato_usuario: string; rol: number } | null {
+  getCurrentUser(): { id_usuario: number; dato_usuario: string; rol: number; email?: string } | null {
     const token = this.getToken();
     if (!token) return null;
 
@@ -152,8 +154,9 @@ class AuthService {
 
       return {
         id_usuario: decoded.id,
-        dato_usuario: '', // El token no incluye dato_usuario
-        rol: decoded.rol
+        dato_usuario: decoded.dato_usuario,
+        rol: decoded.rol,
+        email: decoded.email
       };
     } catch {
       return null;
