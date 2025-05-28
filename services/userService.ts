@@ -60,6 +60,15 @@ export const userService = {
     }
   },
 
+  getUserByUsername: async (username: string): Promise<User> => {
+    try {
+      const { data } = await axios.get<User>(`${API_URL}/usuarios/username/${username}`);
+      return data;
+    } catch (error) {
+      return handleApiError(error as AxiosError<ApiError>);
+    }
+  },
+
   searchUsers: async (searchTerm: string): Promise<User[]> => {
     try {
       const { data } = await axios.get<User[]>(`${API_URL}/usuarios/search?q=${searchTerm}`);
