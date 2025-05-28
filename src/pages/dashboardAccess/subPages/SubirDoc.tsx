@@ -179,7 +179,7 @@ function SubirDoc() {
       try {
         setLoading(true);
         // Obtener el estudiante seleccionado
-        const selectedStudentData = students.find(s => s.usuario_est.id_usuario === selectedStudent);
+        const selectedStudentData = students.find(s => s.documento_id_est === selectedStudent);
         if (!selectedStudentData) {
           throw new Error('Estudiante no encontrado');
         }
@@ -217,7 +217,7 @@ function SubirDoc() {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, documentType: keyof DocumentoEstudiante) => {
     if (!event.target.files || !event.target.files[0] || !selectedStudent) return;
 
-    const selectedStudentData = students.find(s => s.usuario_est.id_usuario === selectedStudent);
+    const selectedStudentData = students.find(s => s.documento_id_est === selectedStudent);
     if (!selectedStudentData) {
       setSnackbar({
         open: true,
@@ -276,7 +276,7 @@ function SubirDoc() {
       return;
     }
 
-    const selectedStudentData = students.find(s => s.usuario_est.id_usuario === selectedStudent);
+    const selectedStudentData = students.find(s => s.documento_id_est === selectedStudent);
     if (!selectedStudentData) {
       setSnackbar({
         open: true,
