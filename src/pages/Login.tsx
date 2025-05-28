@@ -278,6 +278,18 @@ function Login() {
                   'Iniciar Sesión'
                 )}
               </MUI.Button>
+
+              <MUI.Typography variant="body1" sx={{ textAlign: 'center', mt: 2 }}>
+                ¿Eres una empresa? 
+                <MUI.Link
+                  component="button"
+                  variant="body1"
+                  onClick={() => navigate('/registro-centro')}
+                  sx={{ ml: 1, color: '#1a237e', textDecoration: 'underline' }}
+                >
+                  Regístrate aquí
+                </MUI.Link>
+              </MUI.Typography>
             </MUI.Stack>
           </MUI.Box>
         </MUI.Paper>

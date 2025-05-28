@@ -33,6 +33,7 @@ import Administradores from './pages/dashboardAccess/Administradores';
 import Documento from './pages/dashboardAccess/Documento';
 import Reportes from './pages/dashboardAccess/Reportes';
 import CierrePasantia from './pages/CierrePasantia';
+import RegistroCentro from './pages/RegistroCentro';
 
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -55,6 +56,7 @@ function App() {
           <Route path="/Funcionalidades" element={<Features />} />
           <Route path="/ManualdeUsuario" element={<UserManual />} />
           <Route path="/Login" element={<Login />} />
+          <Route path="/registro-centro" element={<RegistroCentro />} />
           <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
           <Route path="/reset-password/:token" element={<RecuperarContrasena />} />
 
