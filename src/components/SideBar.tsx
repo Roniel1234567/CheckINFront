@@ -31,8 +31,8 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
 
   useEffect(() => {
     // Obtener información del usuario al cargar el componente
-    const user = authService.getCurrentUser();
-    if (user) {
+    const currentUser = authService.getCurrentUser();
+    if (currentUser) {
       // Mapear el rol a un string más amigable
       const rolMap: { [key: number]: string } = {
         1: 'Estudiante',
@@ -42,12 +42,20 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
       };
 
       setUserInfo({
-        nombre: user.dato_usuario,
-        rol: rolMap[user.rol] || 'Usuario',
-        correo: user.email || ''
+        nombre: currentUser.dato_usuario,
+        rol: rolMap[currentUser.rol] || 'Usuario',
+        correo: currentUser.email || ''
       });
     }
   }, []);
+
+  useEffect(() => {
+    // Redirección solo para estudiantes
+    const currentUser = authService.getCurrentUser();
+    if (currentUser && currentUser.rol === 1 && location.pathname === '/dashboard') {
+      navigate('/dashboard/subir-documentos', { replace: true });
+    }
+  }, [location, navigate]);
 
   const menuItems = [
     { id: 'Dashboard', text: 'Dashboard', icon: <Icons.Dashboard />, path: '/Dashboard' },
@@ -68,6 +76,17 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
     { id: 'reports', text: 'Reportes', icon: <Icons.Assessment />, path: '/Reportes' },
     { id: 'cierre', text: 'Cierre de Pasantías', icon: <Icons.PowerSettingsNew />, path: '/cierre-pasantia' }
   ];
+
+  // Filtrar menú según el rol del usuario
+  let filteredMenuItems = menuItems;
+  if (userInfo.rol === 'Estudiante') {
+    filteredMenuItems = menuItems.filter(item => [
+      'calificacion',
+      'pasantias',
+      'evaluaciones',
+      'subirdoc'
+    ].includes(item.id));
+  }
 
   const activeMenu = menuItems.find(item => location.pathname === item.path)?.id || '';
 
@@ -130,7 +149,7 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
         </MUI.Box>
         <MUI.Divider />
         <MUI.List sx={{ px: 2 }}>
-          {menuItems.map(item => (
+          {filteredMenuItems.map(item => (
             <MUI.ListItem
               key={item.id}
               disablePadding

@@ -72,23 +72,23 @@ function App() {
           <Route path="usuarios/administradores" element={<Administrators />} />
           <Route path="usuarios/observadores" element={<Observers />} />
           <Route path="visitas" element={<Visits />} />
-          <Route path="pasantias" element={<PasantiaPage />} />
+          <Route path="pasantias" element={<PasantiaPage key={window.location.pathname} />} />
           <Route path="centros-trabajo" element={<Companies />} />
           <Route path="plazas" element={<PlazasCentro />} />
-          <Route path="evaluaciones" element={<Evaluaciones />} />
+          <Route path="evaluaciones" element={<Evaluaciones key={window.location.pathname} />} />
           <Route path="talleres" element={<TallerConFamilias />} />
           <Route path="tutores" element={<TutoresPage />} />
           <Route path="supervisores" element={<SupervisoresPage />} />
           <Route path="administradores" element={<Administradores />} />
           <Route path="documentos" element={<Documento />} />
-          <Route path="subir-documentos" element={<SubirDoc />} />
+          <Route path="subir-documentos" element={<SubirDoc key={window.location.pathname} />} />
           <Route path="reportes" element={<Reportes />} />
           <Route path="/cierre-pasantia" element={<CierrePasantia />} />
           {/* Ruta alternativa para gestión de talleres que apunta al mismo componente */}
           <Route path="gestion-talleres" element={<TallerConFamilias />} />
           <Route path="/dashboard/evaluaciones" element={<Evaluaciones />} />
           <Route path="/dashboard/taller" element={<Taller />} />
-          <Route path="/dashboard/calificacion" element={<Calificacion />} />
+          <Route path="/dashboard/calificacion" element={<Calificacion key={window.location.pathname} />} />
 
           {/* Rutas protegidas */}
           <Route path="/" element={

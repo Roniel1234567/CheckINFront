@@ -7,6 +7,9 @@ import DashboardAppBar from '../../components/DashboardAppBar';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { authService } from '../../services/authService';
+import studentService from '../../services/studentService';
+import { useLocation } from 'react-router-dom';
 
 // Interfaces
 interface Usuario {
@@ -121,6 +124,14 @@ function Evaluaciones() {
   const [isEditModeEstudiante, setIsEditModeEstudiante] = useState(false);
   const [editingEvaluacionEstudianteId, setEditingEvaluacionEstudianteId] = useState<number | null>(null);
   const notifications = 4;
+  const location = useLocation();
+
+  // Obtener usuario actual
+  const user = authService.getCurrentUser();
+  const esEstudiante = user && user.rol === 1;
+
+  // Si es estudiante, solo mostrar el tab de evaluar empresa y solo su pasantía
+  const tabsToShow = esEstudiante ? [0] : [0, 1];
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -209,6 +220,10 @@ function Evaluaciones() {
         console.log('Pasantías después del filtro:', pasantiasFiltradas);
         setPasantias(pasantiasFiltradas);
         
+        // Filtrar pasantías para estudiante
+        const pasantiasFiltradasEstudiante = esEstudiante && user ? pasantiasFiltradas.filter(p => p.estudiante_pas?.usuario_est?.id_usuario === user.id_usuario) : pasantiasFiltradas;
+        setPasantias(pasantiasFiltradasEstudiante);
+        
       } catch (error) {
         console.error('Error al cargar datos:', error);
         toast.error('Error al cargar los datos. Por favor, intente nuevamente.');
@@ -218,7 +233,41 @@ function Evaluaciones() {
     };
     
     fetchData();
-  }, []);
+  }, [location]);
+
+  // Si es estudiante, filtrar solo sus evaluaciones después de cargar los datos
+  useEffect(() => {
+    let cancelado = false;
+    const filtrarEvaluacionesEstudiante = async () => {
+      if (esEstudiante && user) {
+        try {
+          const estudiantes = await studentService.getAllStudents();
+          const estudianteLogueado = estudiantes.find(e => e.usuario_est && e.usuario_est.id_usuario === user.id_usuario);
+          if (estudianteLogueado) {
+            if (!cancelado) {
+              setPasantias(pasantias.filter(p => p.estudiante_pas?.documento_id_est === estudianteLogueado.documento_id_est));
+              setEvaluacionesEstudiante(evaluacionesEstudiante.filter(e => {
+                // Filtrar por pasantía del estudiante
+                return pasantias.some(p => p.estudiante_pas?.documento_id_est === estudianteLogueado.documento_id_est && p.id_pas === e.pasantia_eval);
+              }));
+            }
+          } else {
+            if (!cancelado) {
+              setPasantias([]);
+              setEvaluacionesEstudiante([]);
+            }
+          }
+        } catch {
+          if (!cancelado) {
+            setPasantias([]);
+            setEvaluacionesEstudiante([]);
+          }
+        }
+      }
+    };
+    filtrarEvaluacionesEstudiante();
+    return () => { cancelado = true; };
+  }, [esEstudiante, user, location]);
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
@@ -822,16 +871,20 @@ function Evaluaciones() {
                   }
                 }}
               >
-                <MUI.Tab 
-                  icon={<Icons.Business />} 
-                  label="Evaluación Centro" 
-                  iconPosition="start"
-                />
-                <MUI.Tab 
-                  icon={<Icons.School />} 
-                  label="Evaluación Estudiante" 
-                  iconPosition="start"
-                />
+                {tabsToShow.includes(0) && (
+                  <MUI.Tab 
+                    icon={<Icons.Business />} 
+                    label="Evaluación Centro" 
+                    iconPosition="start"
+                  />
+                )}
+                {tabsToShow.includes(1) && !esEstudiante && (
+                  <MUI.Tab 
+                    icon={<Icons.School />} 
+                    label="Evaluación Estudiante" 
+                    iconPosition="start"
+                  />
+                )}
                 <MUI.Tab 
                   icon={<Icons.History />} 
                   label="Historial" 

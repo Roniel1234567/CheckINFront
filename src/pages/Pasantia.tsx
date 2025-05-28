@@ -8,6 +8,9 @@ import supervisorService from '../services/supervisorService';
 import type { Supervisor } from '../services/supervisorService';
 import SideBar from '../components/SideBar';
 import DashboardAppBar from '../components/DashboardAppBar';
+import { authService } from '../services/authService';
+import studentService from '../services/studentService';
+import { useLocation } from 'react-router-dom';
 
 const PasantiaPage = () => {
   const theme = MUI.useTheme();
@@ -45,6 +48,12 @@ const PasantiaPage = () => {
 
   // Estado para el término de búsqueda
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Obtener usuario actual
+  const user = authService.getCurrentUser();
+  const esEstudiante = user && user.rol === 1;
+
+  const location = useLocation();
 
   // Función para calcular plazas ocupadas
   const plazasOcupadas = (plaza: PlazasCentro, pasantiaActual?: Pasantia | null) =>
@@ -275,7 +284,29 @@ const PasantiaPage = () => {
   // Usar useEffect con la función cargarDatos
   useEffect(() => {
     cargarDatos();
-  }, []);
+  }, [location]);
+
+  // Si es estudiante, filtrar solo su pasantía después de cargar los datos
+  useEffect(() => {
+    let cancelado = false;
+    const filtrarPasantiaEstudiante = async () => {
+      if (esEstudiante && user) {
+        try {
+          const estudiantes = await studentService.getAllStudents();
+          const estudianteLogueado = estudiantes.find(e => e.usuario_est && e.usuario_est.id_usuario === user.id_usuario);
+          if (estudianteLogueado) {
+            if (!cancelado) setPasantias(pasantias.filter(p => p.estudiante_pas?.documento_id_est === estudianteLogueado.documento_id_est));
+          } else {
+            if (!cancelado) setPasantias([]);
+          }
+        } catch {
+          if (!cancelado) setPasantias([]);
+        }
+      }
+    };
+    filtrarPasantiaEstudiante();
+    return () => { cancelado = true; };
+  }, [esEstudiante, user, location]);
 
   // Diálogo de edición
   const handleEditClick = (pasantia: Pasantia) => {
@@ -642,28 +673,30 @@ const PasantiaPage = () => {
               </MUI.Grid>
 
               {/* Botón Nueva Pasantía */}
-              <MUI.Grid item xs={12} md={3}>
-                <MUI.Button
-                  variant="contained"
-                  color="warning"
-                  startIcon={<Icons.AddCircleOutline sx={{ color: theme.palette.primary.main }} />}
-                  fullWidth
-                  size="large"
-                  sx={{
-                    fontWeight: 'bold',
-                    borderRadius: 3,
-                    boxShadow: 2,
-                    py: 1.5,
-                    color: theme.palette.primary.main,
-                    bgcolor: theme.palette.warning.light,
-                    '&:hover': { bgcolor: theme.palette.warning.main }
-                  }}
-                  onClick={() => setOpenDialog(true)}
-                  disabled={!plazaFormSeleccionada || plazasOcupadas(plazaFormSeleccionada) >= (plazaFormSeleccionada?.plazas_centro || 0)}
-                >
-                  Nueva Pasantía
-                </MUI.Button>
-              </MUI.Grid>
+              {!esEstudiante && (
+                <MUI.Grid item xs={12} md={3}>
+                  <MUI.Button
+                    variant="contained"
+                    color="warning"
+                    startIcon={<Icons.AddCircleOutline sx={{ color: theme.palette.primary.main }} />}
+                    fullWidth
+                    size="large"
+                    sx={{
+                      fontWeight: 'bold',
+                      borderRadius: 3,
+                      boxShadow: 2,
+                      py: 1.5,
+                      color: theme.palette.primary.main,
+                      bgcolor: theme.palette.warning.light,
+                      '&:hover': { bgcolor: theme.palette.warning.main }
+                    }}
+                    onClick={() => setOpenDialog(true)}
+                    disabled={!plazaFormSeleccionada || plazasOcupadas(plazaFormSeleccionada) >= (plazaFormSeleccionada?.plazas_centro || 0)}
+                  >
+                    Nueva Pasantía
+                  </MUI.Button>
+                </MUI.Grid>
+              )}
             </MUI.Grid>
           </MUI.Paper>
 

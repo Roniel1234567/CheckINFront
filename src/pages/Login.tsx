@@ -84,7 +84,7 @@ function Login() {
           navigate('/dashboard/companies');
           break;
         case 1: // Estudiante
-          navigate('/dashboard-estudiante');
+          navigate('/subir-documentos');
           break;
         case 2: // Empresa
           navigate('/dashboard-centro');

@@ -5,6 +5,7 @@ import * as MUI from '@mui/material';
 import * as Icons from '@mui/icons-material';
 import SideBar from '../components/SideBar';
 import DashboardAppBar from '../components/DashboardAppBar';
+import { authService } from '../services/authService';
 
 function Dashboard() {
   const theme = MUI.useTheme();
@@ -12,13 +13,13 @@ function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const user = authService.getCurrentUser();
 
   {/* VARIABLES para extraer de la bd*/}
   const activeStudents=121; 
   const activeCompanies=36; 
   const activeInternships=36; 
   const pendingDocs=45; 
-  const notifications=4; 
 
   // Simulación de carga inicial
   useEffect(() => {
@@ -32,6 +33,12 @@ function Dashboard() {
   useEffect(() => {
     setDrawerOpen(!isMobile);
   }, [isMobile]);
+
+  useEffect(() => {
+    if (user && user.rol === 1) {
+      navigate('/dashboard/subir-documentos', { replace: true });
+    }
+  }, [user, navigate]);
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
@@ -97,6 +104,10 @@ function Dashboard() {
     { tutor: 'Nombre Apellido', company: 'Nombre Empresa', date: 'Fecha de la visita' },
   ];
 
+  if (user && user.rol === 1) {
+    return null;
+  }
+
   return (
     <MUI.Box sx={{ display: 'flex', width:'100vw',minHeight: '100vh', bgcolor: MUI.alpha(theme.palette.background.paper, 0.6), p:0}}>
       {/* Loading overlay */}
@@ -128,7 +139,7 @@ function Dashboard() {
       {/* Main content */}
       <MUI.Box component="main" sx={{ flexGrow: 1, overflow: 'auto' }}>
         {/* App bar */}
-        <DashboardAppBar notifications={notifications} toggleDrawer={toggleDrawer} />
+        <DashboardAppBar toggleDrawer={toggleDrawer} />
 
         {/* Dashboard content */}
         <MUI.Box sx={{ p: { xs: 2, md: 4 } }}>

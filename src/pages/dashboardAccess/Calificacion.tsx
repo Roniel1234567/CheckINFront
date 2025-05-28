@@ -7,6 +7,9 @@ import api from '../../services/api';
 import { toast } from 'react-toastify';
 import { alpha } from '@mui/material/styles';
 import * as XLSX from 'xlsx'; // Importación para exportar a Excel
+import studentService from '../../services/studentService';
+import { authService } from '../../services/authService';
+import { useLocation } from 'react-router-dom';
 
 // Interfaces
 interface Taller {
@@ -106,6 +109,10 @@ const Calificacion = () => {
   const [loadingAnimation, setLoadingAnimation] = useState(false);
   const notifications = 4;
   const [mostrarEstadisticas, setMostrarEstadisticas] = useState(false);
+  const location = useLocation();
+
+  const user = authService.getCurrentUser();
+  const esEstudiante = user && user.rol === 1;
 
   // Obtener lista de talleres al cargar el componente
   useEffect(() => {
@@ -136,13 +143,19 @@ const Calificacion = () => {
         const estudiantes = resEstudiantes.data as Estudiante[];
         console.log('Estudiantes cargados:', estudiantes.length);
         const todasLasEvaluaciones: Evaluacion[] = [];
-        const estudiantesConEvaluaciones: EstudianteConEvaluaciones[] = [];
+        let estudiantesConEvaluaciones: EstudianteConEvaluaciones[] = [];
 
         // Filtrar estudiantes eliminados y por taller seleccionado
-        const estudiantesActivos = estudiantes.filter(estudiante => 
+        let estudiantesActivos = estudiantes.filter(estudiante => 
           estudiante.usuario_est?.estado_usuario !== 'Eliminado' && 
           estudiante.taller_est?.id_taller === selectedTaller
         );
+
+        // Si es estudiante, solo dejar el suyo
+        if (esEstudiante && user) {
+          const estudianteLogueado = estudiantesActivos.find(e => e.usuario_est && e.usuario_est.id_usuario === user.id_usuario);
+          estudiantesActivos = estudianteLogueado ? [estudianteLogueado] : [];
+        }
 
         console.log('Estudiantes filtrados por taller:', estudiantesActivos.length);
 
@@ -249,7 +262,7 @@ const Calificacion = () => {
     if (selectedTaller) {
       cargarEstudiantesYEvaluaciones();
     }
-  }, [selectedTaller]);
+  }, [selectedTaller, location]);
   
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
@@ -1212,16 +1225,18 @@ const Calificacion = () => {
                                 <MUI.TableCell
                                   key={ra}
                                   align="center"
-                                  onClick={() => handleCellClick(estudianteData.estudiante.documento_id_est, ra, estudianteData.evaluaciones[ra])}
+                                  // Solo permitir click si NO es estudiante
+                                  onClick={!esEstudiante ? () => handleCellClick(estudianteData.estudiante.documento_id_est, ra, estudianteData.evaluaciones[ra]) : undefined}
                                   sx={{
-                                    cursor: 'pointer',
+                                    cursor: !esEstudiante ? 'pointer' : 'default',
                                     position: 'relative',
                                     '&:hover': {
-                                      bgcolor: alpha(theme.palette.primary.light, 0.2),
+                                      bgcolor: !esEstudiante ? alpha(theme.palette.primary.light, 0.2) : undefined,
                                     },
                                   }}
                                 >
-                                  {editCell?.estudiante === estudianteData.estudiante.documento_id_est && editCell?.ra === ra ? (
+                                  {/* Si está editando y NO es estudiante, mostrar input, si no, solo mostrar valor */}
+                                  {editCell?.estudiante === estudianteData.estudiante.documento_id_est && editCell?.ra === ra && !esEstudiante ? (
                                     <MUI.TextField
                                       type="number"
                                       value={editCell.valor}
@@ -1310,56 +1325,60 @@ const Calificacion = () => {
                         Haga clic en una celda para editar la calificación
                       </MUI.Alert>
                       
-                      <MUI.Box sx={{ display: 'flex', gap: 1 }}>
-                        <MUI.Button 
-                          variant="contained" 
-                          color="primary"
-                          startIcon={<Icons.SaveAlt />}
-                          size={isSmallScreen ? 'small' : 'medium'}
-                          onClick={guardarTodasLasCalificaciones}
-                        >
-                          Guardar Todo
-                        </MUI.Button>
-                        <MUI.Button 
-                          variant="outlined" 
-                          startIcon={<Icons.Print />}
-                          size={isSmallScreen ? 'small' : 'medium'}
-                        >
-                          Imprimir
-                        </MUI.Button>
-                      </MUI.Box>
+                      {!esEstudiante && (
+                        <MUI.Box sx={{ display: 'flex', gap: 1 }}>
+                          <MUI.Button 
+                            variant="contained" 
+                            color="primary"
+                            startIcon={<Icons.SaveAlt />}
+                            size={isSmallScreen ? 'small' : 'medium'}
+                            onClick={guardarTodasLasCalificaciones}
+                          >
+                            Guardar Todo
+                          </MUI.Button>
+                          <MUI.Button 
+                            variant="outlined" 
+                            startIcon={<Icons.Print />}
+                            size={isSmallScreen ? 'small' : 'medium'}
+                          >
+                            Imprimir
+                          </MUI.Button>
+                        </MUI.Box>
+                      )}
                     </MUI.Box>
                   </MUI.Paper>
                   
                   {/* Botones finales - Centrar en toda la anchura */}
-                  <MUI.Box 
-                    sx={{ 
-                      mt: 3, 
-                      display: 'flex', 
-                      justifyContent: 'center',
-                      flexWrap: 'wrap',
-                      gap: 2,
-                      width: '100%'
-                    }}
-                  >
-                    <MUI.Button 
-                      variant="outlined" 
-                      color="info" 
-                      startIcon={<Icons.BarChart />}
-                      size={isSmallScreen ? 'small' : 'medium'}
-                      onClick={() => setMostrarEstadisticas(true)}
+                  {!esEstudiante && (
+                    <MUI.Box 
+                      sx={{ 
+                        mt: 3, 
+                        display: 'flex', 
+                        justifyContent: 'center',
+                        flexWrap: 'wrap',
+                        gap: 2,
+                        width: '100%'
+                      }}
                     >
-                      Ver Estadísticas
-                    </MUI.Button>
-                    <MUI.Button 
-                      variant="outlined" 
-                      color="primary" 
-                      startIcon={<Icons.Print />}
-                      size={isSmallScreen ? 'small' : 'medium'}
-                    >
-                      Imprimir
-                    </MUI.Button>
-                  </MUI.Box>
+                      <MUI.Button 
+                        variant="outlined" 
+                        color="info" 
+                        startIcon={<Icons.BarChart />}
+                        size={isSmallScreen ? 'small' : 'medium'}
+                        onClick={() => setMostrarEstadisticas(true)}
+                      >
+                        Ver Estadísticas
+                      </MUI.Button>
+                      <MUI.Button 
+                        variant="outlined" 
+                        color="primary" 
+                        startIcon={<Icons.Print />}
+                        size={isSmallScreen ? 'small' : 'medium'}
+                      >
+                        Imprimir
+                      </MUI.Button>
+                    </MUI.Box>
+                  )}
                 </MUI.Box>
               ) : selectedTaller ? (
                 <MUI.Paper 

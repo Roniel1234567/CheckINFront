@@ -7,6 +7,8 @@ import { uploadDocsEstudiante } from '../../../services/docEstudianteService';
 import documentoService from '../../../services/documentoService';
 import SideBar from '../../../components/SideBar';
 import DashboardAppBar from '../../../components/DashboardAppBar';
+import { authService } from '../../../services/authService';
+import { useLocation } from 'react-router-dom';
 
 interface DocumentoEstudiante {
   est_doc: string;
@@ -74,6 +76,12 @@ function SubirDoc() {
     severity: 'success'
   });
 
+  const location = useLocation();
+
+  // Obtener usuario actual
+  const user = authService.getCurrentUser();
+  const esEstudiante = user && user.rol === 1;
+
   // Efecto para manejar el drawer en móvil
   useEffect(() => {
     setDrawerOpen(!isMobile);
@@ -98,7 +106,7 @@ function SubirDoc() {
       }
     };
     loadTalleres();
-  }, []);
+  }, [location]);
 
   // Cargar estudiantes cuando se selecciona un taller
   useEffect(() => {
@@ -138,6 +146,28 @@ function SubirDoc() {
     };
     loadStudents();
   }, [selectedTaller]);
+
+  // Si es estudiante, seleccionar automáticamente su usuario y no permitir cambiarlo
+  useEffect(() => {
+    let cancelado = false;
+    const seleccionarEstudiante = async () => {
+      if (esEstudiante && user) {
+        try {
+          const estudiantes = await studentService.getAllStudents();
+          const estudianteLogueado = estudiantes.find(e => e.usuario_est && e.usuario_est.id_usuario === user.id_usuario);
+          if (estudianteLogueado) {
+            if (!cancelado) setSelectedStudent(estudianteLogueado.documento_id_est);
+          } else {
+            if (!cancelado) setSelectedStudent('');
+          }
+        } catch {
+          if (!cancelado) setSelectedStudent('');
+        }
+      }
+    };
+    seleccionarEstudiante();
+    return () => { cancelado = true; };
+  }, [esEstudiante, user, location]);
 
   // Cargar documentos cuando se selecciona un estudiante
   useEffect(() => {
@@ -319,18 +349,26 @@ function SubirDoc() {
                 <MUI.InputLabel>Estudiante</MUI.InputLabel>
                 <MUI.Select
                   value={selectedStudent || ''}
-                  onChange={(e) => setSelectedStudent(Number(e.target.value))}
+                  onChange={(e) => setSelectedStudent(e.target.value)}
                   label="Estudiante"
-                  disabled={!selectedTaller}
+                  disabled={esEstudiante}
                 >
                   <MUI.MenuItem value="">
                     <em>Seleccione un estudiante</em>
                   </MUI.MenuItem>
-                  {students.map((student) => (
-                    <MUI.MenuItem key={student.usuario_est.id_usuario} value={student.usuario_est.id_usuario}>
-                      {`${student.nombre_est} ${student.apellido_est}`}
-                    </MUI.MenuItem>
-                  ))}
+                  {esEstudiante && user ? (
+                    students.filter(s => s.usuario_est.id_usuario === user.id_usuario).map(student => (
+                      <MUI.MenuItem key={student.documento_id_est} value={student.documento_id_est}>
+                        {`${student.nombre_est} ${student.apellido_est}`}
+                      </MUI.MenuItem>
+                    ))
+                  ) : (
+                    students.map((student) => (
+                      <MUI.MenuItem key={student.documento_id_est} value={student.documento_id_est}>
+                        {`${student.nombre_est} ${student.apellido_est}`}
+                      </MUI.MenuItem>
+                    ))
+                  )}
                 </MUI.Select>
               </MUI.FormControl>
             </MUI.Grid>
