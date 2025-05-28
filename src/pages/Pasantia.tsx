@@ -771,7 +771,7 @@ const PasantiaPage = () => {
           </MUI.Box>
 
           {/* Tarjetas de plazas */}
-          {mostrarPlazas && tallerFiltro && (
+          {!esEstudiante && mostrarPlazas && tallerFiltro && (
             <MUI.Grid container spacing={3} sx={{ mb: 4 }}>
               {plazasFiltradas.map((plaza) => {
                 const ocupadas = plazasOcupadas(plaza);
