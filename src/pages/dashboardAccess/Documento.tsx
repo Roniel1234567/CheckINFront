@@ -63,7 +63,9 @@ function Documento() {
     try {
       setLoading(true);
       const data = await studentService.getAllStudents();
-      setEstudiantes(data);
+      // Filtrar solo estudiantes con usuario y estado_usuario 'Activo'
+      const activos = data.filter(e => e.usuario_est && e.usuario_est.estado_usuario === 'Activo');
+      setEstudiantes(activos);
     } catch (error) {
       console.error('Error al cargar estudiantes:', error);
       setSnackbar({
