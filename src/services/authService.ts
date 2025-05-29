@@ -43,6 +43,7 @@ interface DecodedToken {
   estado: EstadoUsuarioType;
   email?: string;
   dato_usuario: string;
+  id_centro?: number;
   iat: number;
   exp: number;
 }
@@ -139,7 +140,7 @@ class AuthService {
     }
   }
 
-  getCurrentUser(): { id_usuario: number; dato_usuario: string; rol: number; email?: string } | null {
+  getCurrentUser(): { id_usuario: number; dato_usuario: string; rol: number; email?: string; id_centro?: number } | null {
     const token = this.getToken();
     if (!token) return null;
 
@@ -156,7 +157,8 @@ class AuthService {
         id_usuario: decoded.id,
         dato_usuario: decoded.dato_usuario,
         rol: decoded.rol,
-        email: decoded.email
+        email: decoded.email,
+        id_centro: decoded.id_centro
       };
     } catch {
       return null;

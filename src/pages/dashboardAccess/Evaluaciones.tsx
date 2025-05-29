@@ -139,6 +139,7 @@ function Evaluaciones() {
 
   // Obtener usuario actual
   const user = authService.getCurrentUser();
+  console.log('Usuario logueado:', user);
   const esEstudiante = user && user.rol === 1;
   const esEmpresa = user && user.rol === 2;
 
@@ -180,20 +181,15 @@ function Evaluaciones() {
         
         // Asegurar que tenemos los datos correctos
         const evaluacionesCentroFormateadas = Array.isArray(resEvalCentro.data) 
-          ? resEvalCentro.data.map(evaluacion => {
-              console.log('Procesando evaluación:', evaluacion);
-              
-              // Mantener la estructura original pero asegurarnos de que sea un objeto válido
-              return {
-                id_eval_centro: evaluacion.id_eval_centro || 0,
-                pasantia_eval_centro: evaluacion.pasantia_eval_centro || null,
-                espacio_trabajo_eval: Number(evaluacion.espacio_trabajo_eval) || 0,
-                asignacion_tareas_eval: Number(evaluacion.asignacion_tareas_eval) || 0,
-                disponibilidad_dudas_eval: Number(evaluacion.disponibilidad_dudas_eval) || 0,
-                observaciones_eval_centro: evaluacion.observaciones_eval_centro || '',
-                fecha_eval_centro: evaluacion.fecha_eval_centro || ''
-              };
-            })
+          ? resEvalCentro.data.map(evaluacion => ({
+              id_eval_centro: evaluacion.id_eval_centro || 0,
+              pasantia_eval_centro: evaluacion.pasantia_eval_centro || null,
+              espacio_trabajo_eval: Number(evaluacion.espacio_trabajo_eval) || 0,
+              asignacion_tareas_eval: Number(evaluacion.asignacion_tareas_eval) || 0,
+              disponibilidad_dudas_eval: Number(evaluacion.disponibilidad_dudas_eval) || 0,
+              observaciones_eval_centro: evaluacion.observaciones_eval_centro || '',
+              fecha_eval_centro: evaluacion.fecha_eval_centro || ''
+            }))
           : [];
           
         console.log('Evaluaciones formateadas:', evaluacionesCentroFormateadas);
@@ -202,99 +198,40 @@ function Evaluaciones() {
         
         // Obtener pasantías pendientes para evaluación
         const resPasantias = await api.get('/pasantias/pendientesEvaluacion');
-        console.log('Pasantías recibidas del backend:', resPasantias.data);
-        
-        // Filtrar estudiantes eliminados y pasantías canceladas
-        const pasantiasFiltradas = (resPasantias.data as Pasantia[]).filter(pasantia => {
-          if (!pasantia.estudiante_pas) {
-            console.log(`Pasantía ${pasantia.id_pas} - No tiene estudiante asociado`);
-            return false;
-          }
-
-          // Filtrar por estado de pasantía
-          if (pasantia.estado_pas === 'Cancelada') {
-            console.log(`Pasantía ${pasantia.id_pas} - Estado de pasantía: Cancelada (excluida)`);
-            return false;
-          }
-
-          const estudiante = pasantia.estudiante_pas;
-          console.log('Datos completos del estudiante:', estudiante);
-          
-          // Verificar si el estudiante tiene usuario y estado
-          if (!estudiante.usuario_est) {
-            console.log(`Pasantía ${pasantia.id_pas} - Estudiante ${estudiante.nombre_est} - No tiene usuario asociado`);
-            return true; // Incluir estudiantes sin usuario por ahora
-          }
-
-          const estadoUsuario = estudiante.usuario_est.estado_usuario;
-          console.log(`Pasantía ${pasantia.id_pas} - Estudiante ${estudiante.nombre_est} - Estado Usuario: ${estadoUsuario}`);
-          return estadoUsuario !== 'Eliminado';
+        console.log('Pasantías crudas recibidas:', resPasantias.data);
+        let pasantiasFiltradas = (resPasantias.data as Pasantia[]).filter(pasantia => {
+          if (!pasantia.estudiante_pas) return false;
+          if (pasantia.estado_pas === 'Cancelada') return false;
+          if (!pasantia.estudiante_pas.usuario_est) return true;
+          return pasantia.estudiante_pas.usuario_est.estado_usuario !== 'Eliminado';
         });
-        
-        console.log('Pasantías después del filtro:', pasantiasFiltradas);
+
+        // FILTRO ÚNICO SEGÚN ROL
+        if (esEstudiante && user) {
+          pasantiasFiltradas = pasantiasFiltradas.filter(
+            p => p.estudiante_pas?.usuario_est?.id_usuario === user.id_usuario
+          );
+        } else if (esEmpresa && user) {
+          console.log('Filtro empresa: user.id_centro:', user.id_centro);
+          pasantiasFiltradas = pasantiasFiltradas.filter(
+            p =>
+              Number(p.centro_pas?.id_centro) === Number(user.id_centro) &&
+              p.estado_pas === 'En Proceso' &&
+              p.estudiante_pas?.usuario_est?.estado_usuario === 'Activo'
+          );
+          console.log('Pasantías después del filtro empresa:', pasantiasFiltradas);
+        }
+
         setPasantias(pasantiasFiltradas);
-        
-        // Filtrar pasantías para estudiante
-        const pasantiasFiltradasEstudiante = esEstudiante && user ? pasantiasFiltradas.filter(p => p.estudiante_pas?.usuario_est?.id_usuario === user.id_usuario) : pasantiasFiltradas;
-        setPasantias(pasantiasFiltradasEstudiante);
-        
       } catch (error) {
         console.error('Error al cargar datos:', error);
         toast.error('Error al cargar los datos. Por favor, intente nuevamente.');
       } finally {
-      setLoading(false);
+        setLoading(false);
       }
     };
-    
     fetchData();
-  }, [location]);
-
-  // Si es estudiante, filtrar solo sus evaluaciones después de cargar los datos
-  useEffect(() => {
-    let cancelado = false;
-    const filtrarEvaluacionesEstudiante = async () => {
-      if (esEstudiante && user) {
-        try {
-          const estudiantes = await studentService.getAllStudents();
-          const estudianteLogueado = estudiantes.find(e => e.usuario_est && e.usuario_est.id_usuario === user.id_usuario);
-          if (estudianteLogueado) {
-            if (!cancelado) {
-              setPasantias(pasantias.filter(p => p.estudiante_pas?.documento_id_est === estudianteLogueado.documento_id_est));
-              setEvaluacionesEstudiante(evaluacionesEstudiante.filter(e => {
-                // Filtrar por pasantía del estudiante
-                return pasantias.some(p => p.estudiante_pas?.documento_id_est === estudianteLogueado.documento_id_est && p.id_pas === e.pasantia_eval);
-              }));
-            }
-          } else {
-            if (!cancelado) {
-              setPasantias([]);
-              setEvaluacionesEstudiante([]);
-            }
-          }
-        } catch {
-          if (!cancelado) {
-            setPasantias([]);
-            setEvaluacionesEstudiante([]);
-          }
-        }
-      }
-    };
-    filtrarEvaluacionesEstudiante();
-    return () => { cancelado = true; };
-  }, [esEstudiante, user, location]);
-
-  // Filtrar pasantías y evaluaciones para empresa
-  useEffect(() => {
-    if (esEmpresa && user) {
-      setPasantias(prev => prev.filter(p => p.centro_pas && p.centro_pas.usuario?.id_usuario === user.id_usuario));
-      setEvaluacionesEstudiante(prev => prev.filter(e => {
-        // Buscar la pasantía y ver si pertenece a la empresa
-        if (!e.pasantia_eval) return false;
-        const pas = Array.isArray(pasantias) ? pasantias.find(p => p.id_pas === (typeof e.pasantia_eval === 'object' ? e.pasantia_eval.id_pas : e.pasantia_eval)) : null;
-        return pas && pas.centro_pas && pas.centro_pas.usuario?.id_usuario === user.id_usuario;
-      }));
-    }
-  }, [esEmpresa, user, pasantias]);
+  }, []);
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
@@ -831,6 +768,18 @@ function Evaluaciones() {
     }
   };
 
+  // Logs de depuración SOLO en useEffect
+  useEffect(() => {
+    console.log('Pasantías que llegan al select:', pasantias);
+    console.log('selectedPasantia:', selectedPasantia);
+  }, [pasantias, selectedPasantia]);
+
+  useEffect(() => {
+    if (pasantias.length === 1 && !selectedPasantia) {
+      setSelectedPasantia(pasantias[0].id_pas);
+    }
+  }, [pasantias, selectedPasantia]);
+
   return (
     <MUI.Box sx={{ display: 'flex', width: '100vw', minHeight: '100vh', bgcolor: MUI.alpha(theme.palette.background.paper, 0.6), p: 0 }}>
       <SideBar drawerOpen={drawerOpen} toggleDrawer={toggleDrawer} />
@@ -942,17 +891,7 @@ function Evaluaciones() {
                         required
                         disabled={isEditMode} // Deshabilitar cambio de pasantía en modo edición
                       >
-                        {(esEmpresa
-                          ? pasantias.filter(p => {
-                              // Solo pasantías cuyo centro_pas está relacionado al usuario logueado
-                              const centro = p.centro_pas as any;
-                              if (typeof centro.usuario === 'object' && centro.usuario !== null) {
-                                return centro.usuario.id_usuario === user.id_usuario;
-                              }
-                              return centro.usuario === user.id_usuario;
-                            })
-                          : pasantias
-                        ).map((pasantia) => (
+                        {pasantias.map((pasantia) => (
                           <MUI.MenuItem key={pasantia.id_pas} value={String(pasantia.id_pas)}>
                             {pasantia.estudiante_pas.nombre_est} - {pasantia.centro_pas.nombre_centro}
                           </MUI.MenuItem>
@@ -1093,19 +1032,9 @@ function Evaluaciones() {
                         required
                         disabled={isEditModeEstudiante} // Deshabilitar cambio de pasantía en modo edición
                       >
-                        {(esEmpresa
-                          ? pasantias.filter(p => {
-                              // Solo pasantías cuyo centro_pas está relacionado al usuario logueado
-                              const centro = p.centro_pas as any;
-                              if (typeof centro.usuario === 'object' && centro.usuario !== null) {
-                                return centro.usuario.id_usuario === user.id_usuario;
-                              }
-                              return centro.usuario === user.id_usuario;
-                            })
-                          : pasantias
-                        ).map((pasantia) => (
+                        {pasantias.map((pasantia) => (
                           <MUI.MenuItem key={pasantia.id_pas} value={String(pasantia.id_pas)}>
-                            {pasantia.estudiante_pas.nombre_est} - {pasantia.centro_pas.nombre_centro}
+                            {`${pasantia.estudiante_pas?.nombre_est || 'Sin nombre'} - ${pasantia.centro_pas?.nombre_centro || 'Sin centro'}`}
                           </MUI.MenuItem>
                         ))}
                       </MUI.Select>
