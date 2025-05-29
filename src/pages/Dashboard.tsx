@@ -168,7 +168,6 @@ function Dashboard() {
                     overflow: 'hidden',
                     border: card.title === 'Pasantías' ? `2px solid ${theme.palette.success.main}` : undefined,
                   }}
-                  onClick={() => card.path && navigate(card.path)}
                 >
                   <MUI.Box
                     sx={{
