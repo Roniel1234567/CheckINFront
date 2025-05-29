@@ -66,29 +66,29 @@ function App() {
           {/* Rutas del dashboard directas, sin layout */}
           <Route path='/dashboard' element={<Dashboard />} />
           <Route path="usuarios" element={<Users />} />
-          <Route path="estudiantes" element={<Students />} />
+          <Route path="estudiantes" element={<ProtectedRoute allowedRoles={[3]}><Students /></ProtectedRoute>} />
           <Route path="usuarios/tutores" element={<Tutors />} />
-          <Route path="usuarios/supervisores" element={<Supervisors />} />
+          <Route path="usuarios/supervisores" element={<ProtectedRoute allowedRoles={[3]}><Supervisors /></ProtectedRoute>} />
           <Route path="usuarios/administradores" element={<Administrators />} />
           <Route path="usuarios/observadores" element={<Observers />} />
           <Route path="visitas" element={<Visits />} />
-          <Route path="pasantias" element={<PasantiaPage key={window.location.pathname} />} />
-          <Route path="centros-trabajo" element={<Companies />} />
-          <Route path="plazas" element={<PlazasCentro />} />
-          <Route path="evaluaciones" element={<Evaluaciones key={window.location.pathname} />} />
+          <Route path="pasantias" element={<ProtectedRoute allowedRoles={[1,2,3]}><PasantiaPage key={window.location.pathname} /></ProtectedRoute>} />
+          <Route path="centros-trabajo" element={<ProtectedRoute allowedRoles={[2]}><Companies /></ProtectedRoute>} />
+          <Route path="plazas" element={<ProtectedRoute allowedRoles={[2]}><PlazasCentro /></ProtectedRoute>} />
+          <Route path="evaluaciones" element={<ProtectedRoute allowedRoles={[1,2]}><Evaluaciones /></ProtectedRoute>} />
           <Route path="talleres" element={<TallerConFamilias />} />
           <Route path="tutores" element={<TutoresPage />} />
-          <Route path="supervisores" element={<SupervisoresPage />} />
+          <Route path="supervisores" element={<ProtectedRoute allowedRoles={[3]}><SupervisoresPage /></ProtectedRoute>} />
           <Route path="administradores" element={<Administradores />} />
           <Route path="documentos" element={<Documento />} />
-          <Route path="subir-documentos" element={<SubirDoc key={window.location.pathname} />} />
-          <Route path="reportes" element={<Reportes />} />
+          <Route path="subir-documentos" element={<ProtectedRoute allowedRoles={[1]}><SubirDoc key={window.location.pathname} /></ProtectedRoute>} />
+          <Route path="reportes" element={<ProtectedRoute allowedRoles={[3]}><Reportes /></ProtectedRoute>} />
           <Route path="/cierre-pasantia" element={<CierrePasantia />} />
           {/* Ruta alternativa para gestión de talleres que apunta al mismo componente */}
           <Route path="gestion-talleres" element={<TallerConFamilias />} />
           <Route path="/dashboard/evaluaciones" element={<Evaluaciones />} />
           <Route path="/dashboard/taller" element={<Taller />} />
-          <Route path="/dashboard/calificacion" element={<Calificacion key={window.location.pathname} />} />
+          <Route path="/dashboard/calificacion" element={<ProtectedRoute allowedRoles={[1,3]}><Calificacion key={window.location.pathname} /></ProtectedRoute>} />
 
           {/* Rutas protegidas */}
           <Route path="/" element={
