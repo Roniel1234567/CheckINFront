@@ -94,6 +94,11 @@ function SubirDoc() {
         setLoading(true);
         const data = await tallerService.getAllTalleres();
         setTalleres(data);
+        setSnackbar({
+          open: true,
+          message: 'Datos cargados correctamente',
+          severity: 'success'
+        });
       } catch (error) {
         console.error('Error al cargar talleres:', error);
         setSnackbar({
@@ -133,6 +138,11 @@ function SubirDoc() {
 
         console.log('Estudiantes filtrados:', filteredStudents);
         setStudents(filteredStudents);
+        setSnackbar({
+          open: true,
+          message: 'Datos cargados correctamente',
+          severity: 'success'
+        });
       } catch (err) {
         console.error('Error al cargar estudiantes:', err);
         setSnackbar({
@@ -147,25 +157,34 @@ function SubirDoc() {
     loadStudents();
   }, [selectedTaller]);
 
-  // Si es estudiante, seleccionar automáticamente su usuario y no permitir cambiarlo
+  // Seleccionar automáticamente taller y estudiante si es estudiante
   useEffect(() => {
     let cancelado = false;
-    const seleccionarEstudiante = async () => {
+    const seleccionarEstudianteYtaller = async () => {
       if (esEstudiante && user) {
         try {
           const estudiantes = await studentService.getAllStudents();
           const estudianteLogueado = estudiantes.find(e => e.usuario_est && e.usuario_est.id_usuario === user.id_usuario);
           if (estudianteLogueado) {
-            if (!cancelado) setSelectedStudent(estudianteLogueado.documento_id_est);
+            if (!cancelado) {
+              setSelectedStudent(estudianteLogueado.documento_id_est);
+              setSelectedTaller(estudianteLogueado.taller_est?.id_taller?.toString() || '');
+            }
           } else {
-            if (!cancelado) setSelectedStudent('');
+            if (!cancelado) {
+              setSelectedStudent('');
+              setSelectedTaller('');
+            }
           }
         } catch {
-          if (!cancelado) setSelectedStudent('');
+          if (!cancelado) {
+            setSelectedStudent('');
+            setSelectedTaller('');
+          }
         }
       }
     };
-    seleccionarEstudiante();
+    seleccionarEstudianteYtaller();
     return () => { cancelado = true; };
   }, [esEstudiante, user, location]);
 
@@ -195,6 +214,11 @@ function SubirDoc() {
           console.log('Documentos procesados:', docs);
           
           setDocumentos(docs as DocumentoEstudiante);
+          setSnackbar({
+            open: true,
+            message: 'Datos cargados correctamente',
+            severity: 'success'
+          });
         } catch {
           // Si no hay documentos, inicializar con un objeto vacío
           console.log('No se encontraron documentos, inicializando vacío');
@@ -332,6 +356,7 @@ function SubirDoc() {
                     setSelectedTaller(e.target.value as string);
                   }}
                   label="Taller"
+                  disabled={esEstudiante}
                 >
                   <MUI.MenuItem value="">
                     <em>Seleccione un taller</em>
