@@ -66,7 +66,6 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
     { id: 'Dashboard', text: 'Dashboard', icon: <Icons.Dashboard />, path: '/Dashboard' },
     { id: 'pasantias', text: 'Gestión de Pasantías', icon: <Icons.AssignmentTurnedIn />, path: '/pasantias' },
     { id: 'estudiante', text: 'Estudiantes', icon: <Icons.School />, path: '/estudiantes' },
-    { id: 'users', text: 'Usuarios', icon: <Icons.Person />, path: '/Usuarios' },
     { id: 'talleres', text: 'Gestión de Talleres', icon: <Icons.Build />, path: '/talleres' },
     { id: 'tutores', text: 'Gestión de Tutores', icon: <Icons.SupervisorAccount />, path: '/tutores' },
     { id: 'supervisores', text: 'Gestión de Supervisores', icon: <Icons.SupervisorAccount />, path: '/supervisores' },
@@ -77,7 +76,6 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
     { id: 'subirdoc', text: 'Subir Documentos', icon: <Icons.Upload />, path: '/subir-documentos' },
     { id: 'evaluaciones', text: 'Evaluaciones', icon: <Icons.Assessment />, path: '/evaluaciones' },
     { id: 'calificacion', text: 'Calificaciones', icon: <Icons.Grade />, path: '/dashboard/calificacion' },
-    { id: 'visits', text: 'Visitas', icon: <Icons.Explore />, path: '/Visitas' },
     { id: 'reports', text: 'Reportes', icon: <Icons.Assessment />, path: '/Reportes' },
     { id: 'cierre', text: 'Cierre de Pasantías', icon: <Icons.PowerSettingsNew />, path: '/cierre-pasantia' }
   ];
@@ -220,14 +218,6 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
       <MUI.Box sx={{ mt: 'auto' }}>
         <MUI.Divider />
         <MUI.List sx={{ px: 2 }}>
-          <MUI.ListItem disablePadding>
-            <MUI.Button fullWidth onClick={() => navigate('/ManualdeUsuario')}>
-              <MUI.ListItemIcon>
-                <Icons.Assignment />
-              </MUI.ListItemIcon>
-              <MUI.ListItemText primary="Manual de Usuario" />
-            </MUI.Button>
-          </MUI.ListItem>
           <MUI.ListItem disablePadding>
             <MUI.Button 
               fullWidth 
