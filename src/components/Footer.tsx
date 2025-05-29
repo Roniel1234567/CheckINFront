@@ -11,8 +11,7 @@ function Footer() {
 
     const menuItems = [
         { text: 'Funcionalidades', icon: <Icons.Person />, path: '/Registro_usuario' },
-        { text: 'Sobre Nosotros', icon: <Icons.Person />, path: '/Sobre_nosotros' },
-        { text: 'Guía de Usuario', icon: <Icons.Assessment />, path: '/Guia_usuario' },
+        { text: 'Sobre Nosotros', icon: <Icons.Person />, path: '/Sobre_nosotros' }
     ];
 
     useEffect(() => {
@@ -42,7 +41,7 @@ function Footer() {
                     <MUI.Grid item xs={12} md={6}>
                         <MUI.Typography variant="h6">Contacto</MUI.Typography>
                         <MUI.Stack spacing={2}>
-                            <MUI.Typography><Icons.LocationOn /> Av. Estrella Sadhalá, Santiago</MUI.Typography>
+                            <MUI.Typography><Icons.LocationOn /> Av. Hispanoamericana, Santiago</MUI.Typography>
                             <MUI.Typography><Icons.Phone /> (809) 247-2000</MUI.Typography>
                             <MUI.Typography><Icons.Email /> info@ipisa.edu.do</MUI.Typography>
                         </MUI.Stack>
