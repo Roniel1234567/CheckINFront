@@ -564,6 +564,45 @@ const PasantiaPage = () => {
           </MUI.Box>
         )}
         <MUI.Container maxWidth="lg" sx={{ py: 4 }}>
+          {/* Tarjetas de resumen general */}
+          <MUI.Grid container spacing={3} sx={{ mb: 4 }}>
+            <MUI.Grid item xs={12} sm={6} md={3}>
+              <MUI.Card sx={{ borderRadius: 4, boxShadow: 3, p: 0 }}>
+                <MUI.CardContent sx={{ textAlign: 'center' }}>
+                  <Icons.School fontSize="large" color="primary" />
+                  <MUI.Typography variant="h4" sx={{ fontWeight: 'bold', mt: 1 }}>{estudiantes.filter(e => e.usuario_est && e.usuario_est.estado_usuario === 'Activo').length}</MUI.Typography>
+                  <MUI.Typography variant="subtitle1">Estudiantes Activos</MUI.Typography>
+                </MUI.CardContent>
+              </MUI.Card>
+            </MUI.Grid>
+            <MUI.Grid item xs={12} sm={6} md={3}>
+              <MUI.Card sx={{ borderRadius: 4, boxShadow: 3, p: 0 }}>
+                <MUI.CardContent sx={{ textAlign: 'center' }}>
+                  <Icons.Business fontSize="large" color="primary" />
+                  <MUI.Typography variant="h4" sx={{ fontWeight: 'bold', mt: 1 }}>{centros.filter(c => c.validacion === 'Aceptada').length}</MUI.Typography>
+                  <MUI.Typography variant="subtitle1">Centros de Trabajo</MUI.Typography>
+                </MUI.CardContent>
+              </MUI.Card>
+            </MUI.Grid>
+            <MUI.Grid item xs={12} sm={6} md={3}>
+              <MUI.Card sx={{ borderRadius: 4, boxShadow: 3, p: 0 }}>
+                <MUI.CardContent sx={{ textAlign: 'center' }}>
+                  <Icons.Work fontSize="large" color="primary" />
+                  <MUI.Typography variant="h4" sx={{ fontWeight: 'bold', mt: 1 }}>{pasantiasActivas.length}</MUI.Typography>
+                  <MUI.Typography variant="subtitle1">Pasantías Activas</MUI.Typography>
+                </MUI.CardContent>
+              </MUI.Card>
+            </MUI.Grid>
+            <MUI.Grid item xs={12} sm={6} md={3}>
+              <MUI.Card sx={{ borderRadius: 4, boxShadow: 3, p: 0 }}>
+                <MUI.CardContent sx={{ textAlign: 'center' }}>
+                  <Icons.CheckCircle fontSize="large" color="success" />
+                  <MUI.Typography variant="h4" sx={{ fontWeight: 'bold', mt: 1 }}>{pasantiasTerminadas.length}</MUI.Typography>
+                  <MUI.Typography variant="subtitle1">Pasantías Terminadas</MUI.Typography>
+                </MUI.CardContent>
+              </MUI.Card>
+            </MUI.Grid>
+          </MUI.Grid>
           {/* Mensajes de éxito y error centralizados */}
           {error && (
             <MUI.Alert 
