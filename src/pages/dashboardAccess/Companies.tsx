@@ -390,9 +390,9 @@ function Companies() {
     setCentroToDelete(null);
   };
 
-  // Filtrar solo empresas con usuario activo (igual que en Students.tsx)
+  // Filtrar solo empresas con usuario activo y validación 'Aceptada'
   let empresasFiltradas = centrosTrabajo.filter(
-    centro => (centro as any).usuario?.estado_usuario === 'Activo'
+    centro => centro.usuario?.estado_usuario === 'Activo' && centro.validacion === 'Aceptada'
   );
   if (esEmpresa && user) {
     empresasFiltradas = empresasFiltradas.filter(centro => centro.usuario?.id_usuario === user.id_usuario);
@@ -479,7 +479,7 @@ function Companies() {
       try {
         const empresas = await CompaniesCRUD.getAllCompanies();
         setTotalEmpresas(empresas.length);
-        setTotalEmpresasActivas(empresas.filter(e => e.estado_centro === 'Activo').length);
+        setTotalEmpresasActivas(empresas.filter(e => e.validacion === 'Aceptada').length);
         const talleres = await CompaniesCRUD.getAllTalleres();
         setTalleresCubiertos(talleres.length);
         // Estudiantes asignados (pasantías en proceso)
@@ -507,11 +507,11 @@ function Companies() {
       description: 'Centros registrados en el sistema'
     },
     {
-      title: 'Centros de Trabajo Activos',
+      title: 'Centros de Trabajo Aceptados',
       value: totalEmpresasActivas,
       icon: <Icons.BusinessCenter fontSize="large" />,
       color: '#1a237e',
-      description: 'Centros de trabajo con estudiantes actualmente'
+      description: 'Centros de trabajo con validación aceptada'
     },
     {
       title: 'Estudiantes Asignados',
