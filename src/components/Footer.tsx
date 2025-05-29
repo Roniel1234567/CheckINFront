@@ -26,33 +26,35 @@ function Footer() {
             <MUI.Box sx={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
-                background: MUI.alpha(theme.palette.primary.main, 1), 
-                boxShadow: `0 3px 5px 2px ${MUI.alpha(theme.palette.primary.main, 0.2)}`, 
-                borderRadius: '1.5rem',
+                background: `linear-gradient(135deg, ${theme.palette.primary.main} 60%, ${theme.palette.secondary.main} 100%)`,
+                boxShadow: `0 6px 24px 0 ${MUI.alpha(theme.palette.primary.dark, 0.18)}`,
+                borderRadius: '2rem',
                 color: theme.palette.background.paper,
                 backdropFilter: 'blur(1rem)', 
-                padding: '1rem',
-                marginTop: '1.5rem',
-                width: '95%',  // Mismo ancho que el AppBar
-                maxWidth: '100vw',  // Mismo maxWidth que el AppBar
-                mx: "auto",  // Centrar el footer
+                padding: { xs: '1.5rem 1rem', md: '2.5rem 3rem' },
+                marginTop: '2.5rem',
+                width: '95%',
+                maxWidth: '100vw',
+                mx: 'auto',
+                position: 'relative',
+                overflow: 'hidden',
             }}>
-                <MUI.Grid container spacing={2}>
-                    <MUI.Grid item xs={12} md={6}>
-                        <MUI.Typography variant="h6">Contacto</MUI.Typography>
+                <MUI.Grid container spacing={4} alignItems="center">
+                    <MUI.Grid item xs={12} md={4}>
+                        <MUI.Typography variant="h6" sx={{ fontWeight: 700, mb: 2, letterSpacing: 1 }}>Contacto</MUI.Typography>
                         <MUI.Stack spacing={2}>
-                            <MUI.Typography><Icons.LocationOn /> Av. Hispanoamericana, Santiago</MUI.Typography>
-                            <MUI.Typography><Icons.Phone /> (809) 247-2000</MUI.Typography>
-                            <MUI.Typography><Icons.Email /> info@ipisa.edu.do</MUI.Typography>
+                            <MUI.Typography sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Icons.LocationOn /> Av. Hispanoamericana, Santiago</MUI.Typography>
+                            <MUI.Typography sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Icons.Phone /> (809) 247-2000</MUI.Typography>
+                            <MUI.Typography sx={{ display: 'flex', alignItems: 'center', gap: 1 }}><Icons.Email /> info@ipisa.edu.do</MUI.Typography>
                         </MUI.Stack>
                     </MUI.Grid>
-                    <MUI.Grid item xs={12} md={6}>
-                        <MUI.Typography variant="h6">Enlaces Rápidos</MUI.Typography>
+                    <MUI.Grid item xs={12} md={4}>
+                        <MUI.Typography variant="h6" sx={{ fontWeight: 700, mb: 2, letterSpacing: 1 }}>Enlaces Rápidos</MUI.Typography>
                         <MUI.Stack spacing={1}>
                             {menuItems.map((item) => (
                                 <MUI.Typography 
                                     key={item.text} 
-                                    sx={{ cursor: 'pointer' }} 
+                                    sx={{ cursor: 'pointer', transition: 'color 0.2s', '&:hover': { color: theme.palette.secondary.light, textDecoration: 'underline' }, fontWeight: 500, fontSize: '1.1rem' }} 
                                     onClick={() => navigate(item.path)}
                                 >
                                     {item.text}
@@ -60,9 +62,24 @@ function Footer() {
                             ))}
                         </MUI.Stack>
                     </MUI.Grid>
+                    <MUI.Grid item xs={12} md={4}>
+                        <MUI.Typography variant="h6" sx={{ fontWeight: 700, mb: 2, letterSpacing: 1 }}>Ubicación</MUI.Typography>
+                        <MUI.Box sx={{ borderRadius: 2, overflow: 'hidden', boxShadow: 3, border: `2px solid ${MUI.alpha(theme.palette.primary.dark, 0.2)}` }}>
+                            <iframe
+                                title="IPISA Location"
+                                src="https://www.google.com/maps?q=Av.+Circunvalaci%C3%B3n+468,+Santiago+de+los+Caballeros+51000&output=embed"
+                                width="100%"
+                                height="180"
+                                style={{ border: 0 }}
+                                allowFullScreen
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                            ></iframe>
+                        </MUI.Box>
+                    </MUI.Grid>
                 </MUI.Grid>
-                <MUI.Divider sx={{ my: 2, bgcolor: 'white' }} />
-                <MUI.Typography variant="body2" align="center" sx={{ pb: 2 }}>
+                <MUI.Divider sx={{ my: 3, bgcolor: 'white', opacity: 0.3 }} />
+                <MUI.Typography variant="body2" align="center" sx={{ pb: 2, fontWeight: 400, letterSpacing: 1 }}>
                     © {new Date().getFullYear()} IPISA. Todos los derechos reservados.
                 </MUI.Typography>
             </MUI.Box>
@@ -73,7 +90,7 @@ function Footer() {
                     size="small" 
                     aria-label="scroll back to top" 
                     onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
-                    sx={{ position: 'fixed', bottom: 24, right: 24 }}
+                    sx={{ position: 'fixed', bottom: 24, right: 24, boxShadow: 4 }}
                 >
                     <Icons.KeyboardArrowUp />
                 </MUI.Fab>
