@@ -6,6 +6,9 @@ import * as Icons from '@mui/icons-material';
 import SideBar from '../components/SideBar';
 import DashboardAppBar from '../components/DashboardAppBar';
 import { authService } from '../services/authService';
+import { internshipService } from '../services/internshipService';
+import documentoService, { EstadoDocumento } from '../services/documentoService';
+import studentService from '../services/studentService';
 
 function Dashboard() {
   const theme = MUI.useTheme();
@@ -15,18 +18,38 @@ function Dashboard() {
   const navigate = useNavigate();
   const user = authService.getCurrentUser();
 
-  {/* VARIABLES para extraer de la bd*/}
-  const activeStudents=121; 
-  const activeCompanies=36; 
-  const activeInternships=36; 
-  const pendingDocs=45; 
+  const [activeStudents, setActiveStudents] = useState(0);
+  const [activeCompanies, setActiveCompanies] = useState(0);
+  const [activeInternships, setActiveInternships] = useState(0);
+  const [pendingDocs, setPendingDocs] = useState(0);
 
-  // Simulación de carga inicial
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    async function fetchDashboardData() {
+      setLoading(true);
+      try {
+        // Estudiantes activos
+        const estudiantes = await studentService.getAllStudents();
+        setActiveStudents(estudiantes.filter(e => e.usuario_est && e.usuario_est.estado_usuario === 'Activo').length);
+        // Centros aceptados
+        const centros = await internshipService.getAllCentrosTrabajo();
+        setActiveCompanies(centros.filter(c => c.validacion === 'Aceptada').length);
+        // Pasantías activas
+        const pasantias = await internshipService.getAllPasantias();
+        setActiveInternships(pasantias.filter(p => p.estado_pas === 'En Proceso' || p.estado_pas === 'Pendiente').length);
+        // Documentos pendientes
+        const docs = await documentoService.getAllDocumentos();
+        setPendingDocs(docs.filter(d => d.estado_doc_est === EstadoDocumento.PENDIENTE).length);
+      } catch {
+        // Si hay error, dejar los valores en 0
+        setActiveStudents(0);
+        setActiveCompanies(0);
+        setActiveInternships(0);
+        setPendingDocs(0);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDashboardData();
   }, []);
 
   // Manejar el cambio de tamaño de la ventana
