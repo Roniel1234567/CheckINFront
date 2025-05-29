@@ -22,7 +22,7 @@ const ProtectedRoute = ({ children, allowedRoles = [], routeId }: ProtectedRoute
 
   if (!token || !user) {
     // Redirigir a login si no hay token o usuario
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/Login" state={{ from: location }} replace />;
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user.rol)) {

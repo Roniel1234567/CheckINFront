@@ -139,7 +139,7 @@ function App() {
           />
 
           {/* Ruta por defecto - redirige a login */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/Login" replace />} />
         </Routes>
       </BrowserRouter>
       {/* Configuración del ToastContainer para mostrar notificaciones */}

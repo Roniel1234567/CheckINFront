@@ -223,7 +223,9 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
               fullWidth 
               onClick={() => {
                 authService.logout();
-                navigate('/Login');
+                if (location.pathname !== '/Login') {
+                  navigate('/Login', { replace: true });
+                }
               }} 
               sx={{ color: 'red' }}
             >
