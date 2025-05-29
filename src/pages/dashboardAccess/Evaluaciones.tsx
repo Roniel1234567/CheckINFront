@@ -107,7 +107,8 @@ function Evaluaciones() {
   const isMobile = MUI.useMediaQuery(theme.breakpoints.down('md'));
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
-  const [activeTab, setActiveTab] = useState(0);
+  const user = authService.getCurrentUser();
+  const [activeTab, setActiveTab] = useState(user && user.rol === 2 ? 1 : 0);
   const [showResponses, setShowResponses] = useState(false);
   const [evaluacionesCentro, setEvaluacionesCentro] = useState<EvaluacionCentro[]>([]);
   const [evaluacionesEstudiante, setEvaluacionesEstudiante] = useState<EvaluacionEstudiante[]>([]);
@@ -138,7 +139,6 @@ function Evaluaciones() {
   const location = useLocation();
 
   // Obtener usuario actual
-  const user = authService.getCurrentUser();
   console.log('Usuario logueado:', user);
   const esEstudiante = user && user.rol === 1;
   const esEmpresa = user && user.rol === 2;
@@ -775,10 +775,41 @@ function Evaluaciones() {
   }, [pasantias, selectedPasantia]);
 
   useEffect(() => {
-    if (pasantias.length === 1 && !selectedPasantia) {
-      setSelectedPasantia(pasantias[0].id_pas);
+    if (esEmpresa && pasantias.length === 1) {
+      if (!selectedPasantia) {
+        setSelectedPasantia(pasantias[0].id_pas);
+      }
+      // Verificar si ya existe evaluación de estudiante y activar modo edición
+      const idPasantia = pasantias[0].id_pas;
+      const evaluacionExistente = evaluacionesEstudiante.find(evaluacion => {
+        if (typeof evaluacion.pasantia_eval === 'object' && evaluacion.pasantia_eval) {
+          return evaluacion.pasantia_eval.id_pas === idPasantia;
+        }
+        if (typeof evaluacion.pasantia_eval === 'number') {
+          return evaluacion.pasantia_eval === idPasantia;
+        }
+        return false;
+      });
+      if (evaluacionExistente) {
+        setEvaluacionEstudiante({
+          id_eval_est: evaluacionExistente.id_eval_est || 0,
+          asistencia_eval: Number(evaluacionExistente.asistencia_eval) || 0,
+          desempeño_eval: Number(evaluacionExistente.desempeño_eval) || 0,
+          disponibilidad_eval: Number(evaluacionExistente.disponibilidad_eval) || 0,
+          responsabilidad_eval: Number(evaluacionExistente.responsabilidad_eval) || 0,
+          limpieza_eval: Number(evaluacionExistente.limpieza_eval) || 0,
+          trabajo_equipo_eval: Number(evaluacionExistente.trabajo_equipo_eval) || 0,
+          resolucion_problemas_eval: Number(evaluacionExistente.resolucion_problemas_eval) || 0,
+          observaciones_eval: evaluacionExistente.observaciones_eval || '',
+          ra_eval: evaluacionExistente.ra_eval || 'RA1',
+          pasantia_eval: idPasantia
+        });
+        setIsEditModeEstudiante(true);
+        setEditingEvaluacionEstudianteId(evaluacionExistente.id_eval_est || 0);
+        setSelectedRA(evaluacionExistente.ra_eval || 'RA1');
+      }
     }
-  }, [pasantias, selectedPasantia]);
+  }, [esEmpresa, pasantias, selectedPasantia, evaluacionesEstudiante]);
 
   return (
     <MUI.Box sx={{ display: 'flex', width: '100vw', minHeight: '100vh', bgcolor: MUI.alpha(theme.palette.background.paper, 0.6), p: 0 }}>

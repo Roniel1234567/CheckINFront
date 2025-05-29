@@ -97,7 +97,8 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
       'pasantias',
       'estudiante',
       'calificacion',
-      'reports'
+      'reports',
+      'supervisores'
     ].includes(item.id));
   }
   else if (userInfo.rol === 'Centro de Trabajo') {
