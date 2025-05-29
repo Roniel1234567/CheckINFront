@@ -202,6 +202,58 @@ function Dashboard() {
               </MUI.Grid>
             ))}
           </MUI.Grid>
+
+          {/* Diseño decorativo y mensaje motivacional */}
+          <MUI.Box sx={{
+            mt: 6,
+            mb: 4,
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 220,
+            background: `linear-gradient(135deg, ${theme.palette.primary.light}22 0%, ${theme.palette.secondary.light}22 100%)`,
+            borderRadius: 6,
+            boxShadow: '0 4px 24px 0 rgba(26,35,126,0.07)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <Icons.EmojiEvents sx={{
+              fontSize: 80,
+              color: theme.palette.primary.main,
+              opacity: 0.18,
+              position: 'absolute',
+              top: 24,
+              right: 32,
+              zIndex: 0
+            }} />
+            <Icons.AutoAwesome sx={{
+              fontSize: 80,
+              color: theme.palette.secondary.main,
+              opacity: 0.13,
+              position: 'absolute',
+              bottom: 24,
+              left: 32,
+              zIndex: 0
+            }} />
+            <MUI.Typography variant="h4" sx={{
+              fontWeight: 'bold',
+              color: theme.palette.primary.dark,
+              mb: 1,
+              zIndex: 1
+            }}>
+              ¡Sigue impulsando el éxito de las pasantías!
+            </MUI.Typography>
+            <MUI.Typography variant="h6" sx={{
+              color: theme.palette.text.secondary,
+              maxWidth: 600,
+              textAlign: 'center',
+              zIndex: 1
+            }}>
+              Revisa los indicadores y mantén el control de la gestión.
+            </MUI.Typography>
+          </MUI.Box>
         </MUI.Box>
       </MUI.Box>
     </MUI.Box>
