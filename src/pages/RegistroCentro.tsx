@@ -13,6 +13,7 @@ import { personaContactoEmpresaService } from '../services/personaContactoEmpres
 import contactService from '../services/contactService';
 import { userService } from '../../services/userService';
 import { toast } from 'react-toastify';
+import Footer from '../components/Footer';
 
 // Estado inicial del formulario
 interface FormData {
@@ -662,6 +663,7 @@ function RegistroCentro() {
           <MUI.CircularProgress />
         </MUI.Box>
       )}
+      <Footer />
     </MUI.Box>
   );
 }
