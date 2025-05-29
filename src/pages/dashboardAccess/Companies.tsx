@@ -20,6 +20,7 @@ import { userService } from '../../services/userService';
 import direccionService from '../../services/direccionService';
 import axios from 'axios';
 import { authService } from '../../services/authService';
+import { internshipService } from '../../services/internshipService';
 
 // Estado inicial del formulario
 interface FormData {
@@ -74,10 +75,6 @@ function Companies() {
   const [selectedProvincia, setSelectedProvincia] = useState<number | ''>('');
   const [selectedCiudad, setSelectedCiudad] = useState<number | ''>('');
   const [selectedSector, setSelectedSector] = useState<number | ''>('');
-  const totalempresas: number = 67;
-  const totalemactivos: number = 34;
-  const estasignados: number = 121;
-  const tallerescub: number = 8;
   const notifications=4; 
 
   // Estados para ubicaciones
@@ -469,32 +466,63 @@ function Companies() {
     navigate(path);
   };
 
-  // Datos de ejemplo para las tarjetas principales
+  // Estados para las métricas
+  const [totalEmpresas, setTotalEmpresas] = useState(0);
+  const [totalEmpresasActivas, setTotalEmpresasActivas] = useState(0);
+  const [talleresCubiertos, setTalleresCubiertos] = useState(0);
+  const [estudiantesAsignados, setEstudiantesAsignados] = useState(0);
+
+  // useEffect para cargar los datos reales
+  useEffect(() => {
+    async function fetchStats() {
+      setLoading(true);
+      try {
+        const empresas = await CompaniesCRUD.getAllCompanies();
+        setTotalEmpresas(empresas.length);
+        setTotalEmpresasActivas(empresas.filter(e => e.estado_centro === 'Activo').length);
+        const talleres = await CompaniesCRUD.getAllTalleres();
+        setTalleresCubiertos(talleres.length);
+        // Estudiantes asignados (pasantías en proceso)
+        const pasantias = await internshipService.getAllPasantias();
+        setEstudiantesAsignados(pasantias.filter(p => p.estado_pas === 'En Proceso').length);
+      } catch {
+        setTotalEmpresas(0);
+        setTotalEmpresasActivas(0);
+        setTalleresCubiertos(0);
+        setEstudiantesAsignados(0);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  // companyStats ahora usa los estados:
   const companyStats = [
     {
       title: 'Total Centros de Trabajo',
-      value: totalempresas,
+      value: totalEmpresas,
       icon: <Icons.Business fontSize="large" />,
       color: '#1a237e',
       description: 'Centros registrados en el sistema'
     },
     {
       title: 'Centros de Trabajo Activos',
-      value: totalemactivos,
+      value: totalEmpresasActivas,
       icon: <Icons.BusinessCenter fontSize="large" />,
       color: '#1a237e',
       description: 'Centros de trabajo con estudiantes actualmente'
     },
     {
       title: 'Estudiantes Asignados',
-      value: estasignados,
+      value: estudiantesAsignados,
       icon: <Icons.School fontSize="large" />,
       color: '#1a237e',
-      description: 'Total de estudiantes en centros de trabajo'
+      description: 'Total de estudiantes en pasantía en proceso'
     },
     {
       title: 'Talleres Cubiertos',
-      value: tallerescub,
+      value: talleresCubiertos,
       icon: <Icons.Assignment fontSize="large" />,
       color: '#1a237e',
       description: 'Diferentes talleres con centros de trabajo asignadas'
