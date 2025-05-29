@@ -12,8 +12,7 @@ const AboutUs = () => {
 
   const menuItems = [
     { text: 'Principal', icon: <Icons.MenuBook />, path: '/Principal' },
-    { text: 'Funcionalidades', icon: <Icons.Person />, path: '/Funcionalidades' },
-    { text: 'Guía de Usuario', icon: <Icons.Assessment />, path: '/Guia_usuario' },
+    { text: 'Funcionalidades', icon: <Icons.Person />, path: '/Funcionalidades' }
   ];
 
   return (
@@ -37,16 +36,10 @@ const AboutUs = () => {
               <MUI.Typography variant="h4" sx={{color:theme.palette.primary.main, fontWeight:600}} gutterBottom>Sobre Nosotros</MUI.Typography>
             
               <MUI.Typography variant='body1' sx={{textAlign:'justify', color:'black'}}>
-             <p>CheckInt In es una app web que busca facilitar por completo el proceso de pasantías y su gestión. La app a la que pueden acceder usuarios como:</p>
-
-              <ul>
-              <li>Tutores (Maestro titular de un taller, encargado de comprobar el progreso de sus estudiantes)</li>
-              <li>Estudiantes (Se desempeña como pasante en el Centro de Trabajo, es a quien se le evalúa)</li>
-              <li>Supervisores (Empleado del centro de trabajo, encargado de evaluar al estudiante y examinarlo)</li>
-              <li>Administradores (Cuenta con todos los permisos, tiene la habilidad de ver y editar todos los datos)</li>
-              <li>Observadores (Usuario con el unico permiso de observar los datos de la gestión de pasantías)</li>
-            </ul>
-          </MUI.Typography>
+                CheckInt In es una aplicación web diseñada para optimizar y digitalizar por completo el proceso de gestión de pasantías. Ofrece una plataforma centralizada donde las distintas personas involucradas —desde instituciones educativas hasta centros de trabajo— pueden interactuar de forma eficiente y estructurada.
+                <br /><br />
+                La app permite dar seguimiento al progreso de los pasantes, realizar evaluaciones, coordinar actividades y mantener un registro claro y accesible de todo el proceso de práctica profesional. Su enfoque está en simplificar la comunicación, supervisión y documentación, asegurando que cada etapa de la pasantía se desarrolle de manera fluida y transparente.
+              </MUI.Typography>
             
             </MUI.CardContent>
           </MUI.Card>

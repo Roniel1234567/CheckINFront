@@ -11,8 +11,7 @@ const Principal = () => {
 
   const menuItems = [
     { text: 'Funcionalidades', icon: <Icons.Person />, path: '/Funcionalidades' },
-    { text: 'Sobre Nosotros', icon: <Icons.Note />, path: '/Sobre_nosotros' },
-    { text: 'Manual de Usuario', icon: <Icons.Assessment />, path: '/ManualdeUsuario' },
+    { text: 'Sobre Nosotros', icon: <Icons.Note />, path: '/Sobre_nosotros' }
   ];
 
   return (

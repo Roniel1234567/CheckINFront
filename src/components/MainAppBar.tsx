@@ -16,8 +16,7 @@ function MainAppBar() {
     const menuItems = [
       { text: 'Principal', icon: <Icons.Home />, path: '/' },
       { text: 'Funcionalidades', icon: <Icons.School />, path: '/Funcionalidades' },
-      { text: 'Sobre Nosotros', icon: <Icons.Person />, path: '/SobreNosotros' },
-      { text: 'Manual de Usuario', icon: <Icons.Assessment />, path: '/ManualdeUsuario' },
+      { text: 'Sobre Nosotros', icon: <Icons.Person />, path: '/SobreNosotros' }
     ];
 
     const toggleDrawer = () => setDrawerOpen(!drawerOpen);

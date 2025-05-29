@@ -13,8 +13,7 @@ const Features = () => {
 
   const menuItems = [
     { text: 'Principal', icon: <Icons.MenuBook />, path: '/Principal' },
-    { text: 'Sobre Nosotros', icon: <Icons.Note />, path: '/Sobre_nosotros' },
-    { text: 'Manual de Usuario', icon: <Icons.Assessment />, path: '/ManualdeUsuario' },
+    { text: 'Sobre Nosotros', icon: <Icons.Note />, path: '/Sobre_nosotros' }
   ];
 
   const isMobile = MUI.useMediaQuery(theme.breakpoints.down('sm'));
