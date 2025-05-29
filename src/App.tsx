@@ -98,11 +98,6 @@ function App() {
           <Route path="/dashboard/calificacion" element={<ProtectedRoute routeId="calificacion"><Calificacion key={window.location.pathname} /></ProtectedRoute>} />
 
           {/* Rutas protegidas */}
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Principal />
-            </ProtectedRoute>
-          } />
           <Route path="/evaluaciones" element={
             <ProtectedRoute>
               <Evaluaciones />

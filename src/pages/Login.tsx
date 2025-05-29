@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import * as MUI from "@mui/material";
 import * as Icons from "@mui/icons-material";
 import '../styles/login.scss';
@@ -27,6 +27,7 @@ const features = [
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
@@ -41,6 +42,17 @@ function Login() {
       behavior: 'smooth'
     });
   }, []);
+
+  // Redirigir a /Principal si el usuario está en /Login y presiona atrás
+  useEffect(() => {
+    const handlePopState = () => {
+      if (location.pathname === '/Login') {
+        navigate('/Principal', { replace: true });
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [location, navigate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
