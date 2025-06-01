@@ -1,5 +1,4 @@
 import api from './api';
-import axios from 'axios';
 
 export interface Estudiante {
   tipo_documento_est: string;
@@ -166,7 +165,7 @@ const studentService = {
     horaspasrealizadas_est: number;
   }): Promise<Estudiante> => {
     try {
-      const response = await api.put<Estudiante>(`/estudiantes/${documento_id_est}/fechas`, {
+      const response = await api.put<Estudiante>(`/estudiantes/fecha/${documento_id_est}`, {
         fecha_inicio_pasantia: data.fecha_inicio_pasantia || null,
         fecha_fin_pasantia: data.fecha_fin_pasantia || null,
         horaspasrealizadas_est: Number(data.horaspasrealizadas_est) || 0
