@@ -12,6 +12,7 @@ import { authService } from '../services/authService';
 import studentService from '../services/studentService';
 import { useLocation } from 'react-router-dom';
 import api from '../services/api';
+import { useReadOnlyMode } from '../hooks/useReadOnlyMode';
 
 // Definir tipo mínimo para Tutor solo para este uso
 interface TutorMin {
@@ -20,6 +21,7 @@ interface TutorMin {
 }
 
 const PasantiaPage = () => {
+  const isReadOnly = useReadOnlyMode();
   const theme = MUI.useTheme();
   const isMobile = MUI.useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
@@ -342,6 +344,7 @@ const PasantiaPage = () => {
 
   // Modificar el handleCrearPasantias para incluir la validación
   const handleCrearPasantias = async () => {
+    if (isReadOnly) return;
     if (!plazaFormSeleccionada || estudiantesSeleccionados.length === 0 || !supervisorSeleccionado) {
       setError('Completa todos los campos requeridos');
       return;
@@ -400,6 +403,7 @@ const PasantiaPage = () => {
 
   // Handler para editar pasantía
   const handleEditarPasantia = async () => {
+    if (isReadOnly) return;
     if (!pasantiaToEdit || !plazaFormSeleccionada || !supervisorSeleccionado) {
       setError('Completa todos los campos requeridos');
       return;
@@ -449,6 +453,7 @@ const PasantiaPage = () => {
 
   // Handler para cancelar pasantía
   const handleCancelarPasantia = async () => {
+    if (isReadOnly) return;
     if (!pasantiaToDelete || !pasantiaToDelete.id_pas) return;
     setLoading(true);
     setError(null);
@@ -473,6 +478,7 @@ const PasantiaPage = () => {
 
   // Handler para restaurar pasantía
   const handleRestaurarPasantia = async () => {
+    if (isReadOnly) return;
     if (!pasantiaToRestore || !pasantiaToRestore.id_pas) return;
     setLoading(true);
     setError(null);
@@ -747,7 +753,7 @@ const PasantiaPage = () => {
                       '&:hover': { bgcolor: theme.palette.warning.main }
                     }}
                     onClick={() => setOpenDialog(true)}
-                    disabled={!plazaFormSeleccionada || plazasOcupadas(plazaFormSeleccionada) >= (plazaFormSeleccionada?.plazas_centro || 0)}
+                    disabled={isReadOnly || !plazaFormSeleccionada || plazasOcupadas(plazaFormSeleccionada) >= (plazaFormSeleccionada?.plazas_centro || 0)}
                   >
                     Nueva Pasantía
                   </MUI.Button>
@@ -762,7 +768,7 @@ const PasantiaPage = () => {
               variant={mostrarPlazas ? 'contained' : 'outlined'}
               color="primary"
               onClick={() => setMostrarPlazas(!mostrarPlazas)}
-              disabled={!tallerFiltro}
+              disabled={isReadOnly || !tallerFiltro}
               sx={{
                 fontWeight: 'bold',
                 borderRadius: 4,
@@ -1061,6 +1067,7 @@ const PasantiaPage = () => {
                                   setPasantiaToRestore(p);
                                   setOpenRestoreDialog(true);
                                 }}
+                                disabled={isReadOnly}
                               >
                                 <Icons.Restore />
                               </MUI.IconButton>
@@ -1074,6 +1081,7 @@ const PasantiaPage = () => {
                                       size="small"
                                       color="primary"
                                       onClick={() => handleEditClick(p)}
+                                      disabled={isReadOnly}
                                     >
                                       <Icons.Edit />
                                     </MUI.IconButton>
@@ -1086,6 +1094,7 @@ const PasantiaPage = () => {
                                         setPasantiaToDelete(p);
                                         setOpenDeleteDialog(true);
                                       }}
+                                      disabled={isReadOnly}
                                     >
                                       <Icons.Delete />
                                     </MUI.IconButton>
@@ -1206,7 +1215,7 @@ const PasantiaPage = () => {
                 <MUI.Button 
                   variant="contained" 
                   onClick={handleCrearPasantias} 
-                  disabled={!!loading || (!!plazaFormSeleccionada && (plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) === 0))}
+                  disabled={isReadOnly || !!loading || (!!plazaFormSeleccionada && (plazaFormSeleccionada.plazas_centro - plazasOcupadas(plazaFormSeleccionada) === 0))}
                 >
                   {loading ? <MUI.CircularProgress size={24} /> : 'Crear'}
                 </MUI.Button>
@@ -1322,7 +1331,7 @@ const PasantiaPage = () => {
                   <MUI.Button 
                     variant="contained" 
                     onClick={handleEditarPasantia}
-                    disabled={loading}
+                    disabled={isReadOnly || loading}
                   >
                     {loading ? <MUI.CircularProgress size={24} /> : 'Guardar Cambios'}
                   </MUI.Button>
@@ -1373,7 +1382,7 @@ const PasantiaPage = () => {
                   variant="contained" 
                   color="error" 
                   onClick={handleCancelarPasantia}
-                  disabled={loading}
+                  disabled={isReadOnly}
                   startIcon={loading ? <MUI.CircularProgress size={20} /> : <Icons.Delete />}
                 >
                   Sí, Cancelar Pasantía
@@ -1421,7 +1430,7 @@ const PasantiaPage = () => {
                     variant="contained" 
                     color="success" 
                     onClick={handleRestaurarPasantia}
-                    disabled={loading}
+                    disabled={isReadOnly}
                     startIcon={loading ? <MUI.CircularProgress size={20} /> : <Icons.Restore />}
                   >
                     Sí, Restaurar Pasantía

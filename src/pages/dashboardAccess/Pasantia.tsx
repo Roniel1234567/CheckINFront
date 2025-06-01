@@ -1,9 +1,11 @@
 import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
 import { Button, IconButton } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
 
 function PasantiaPage() {
   const isReadOnly = useReadOnlyMode();
+  const theme = useTheme();
   
   // ... existing code ...
 
@@ -27,14 +29,14 @@ function PasantiaPage() {
       <MUI.Box sx={{ mb: 4 }}>
         <MUI.Button
           variant="contained"
-          startIcon={<Icons.Add />}
+          startIcon={<Add />}
           onClick={() => {
             if (!isReadOnly) {
               setOpenDialog(true);
             }
           }}
           disabled={isReadOnly}
-          sx={{ mb: 2 }}
+          sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#1976d2', color: '#fff', '&:hover': { bgcolor: '#115293' } }}
         >
           Nueva Pasantía
         </MUI.Button>
@@ -48,23 +50,29 @@ function PasantiaPage() {
               <MUI.TableRow key={pasantia.id_pas}>
                 {/* ... existing table cells ... */}
                 <MUI.TableCell>
-                  <MUI.IconButton
-                    onClick={() => {
-                      if (!isReadOnly) {
-                        setPasantiaToEdit(pasantia);
-                        setOpenEditDialog(true);
-                      }
-                    }}
-                    disabled={isReadOnly}
-                  >
-                    <Icons.Edit />
-                  </MUI.IconButton>
-                  <MUI.IconButton
-                    onClick={() => handleEliminarPasantia(pasantia.id_pas)}
-                    disabled={isReadOnly}
-                  >
-                    <Icons.Delete />
-                  </MUI.IconButton>
+                  <MUI.Box sx={{ display: 'flex', gap: 1 }}>
+                    <MUI.IconButton
+                      size="small"
+                      onClick={() => {
+                        if (!isReadOnly) {
+                          setPasantiaToEdit(pasantia);
+                          setOpenEditDialog(true);
+                        }
+                      }}
+                      disabled={isReadOnly}
+                      sx={{ color: theme.palette.primary.main }}
+                    >
+                      <Edit />
+                    </MUI.IconButton>
+                    <MUI.IconButton
+                      size="small"
+                      onClick={() => handleEliminarPasantia(pasantia.id_pas)}
+                      disabled={isReadOnly}
+                      sx={{ color: theme.palette.error.main }}
+                    >
+                      <Delete />
+                    </MUI.IconButton>
+                  </MUI.Box>
                 </MUI.TableCell>
               </MUI.TableRow>
             ))}

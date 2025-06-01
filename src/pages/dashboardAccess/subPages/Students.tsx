@@ -1322,17 +1322,22 @@ const Students = () => {
                           {estudiante.horaspasrealizadas_est ?? '-'}
                         </MUI.TableCell>
                         <MUI.TableCell>
-                          <MUI.IconButton size="small" color="success" onClick={async () => {
-                            setRestaurando(estudiante.documento_id_est);
-                            try {
-                              await userService.updateUser(estudiante.usuario_est.id_usuario, { estado_usuario: 'Activo' });
-                              setSnackbar({ open: true, message: 'Estudiante restablecido correctamente', severity: 'success' });
-                              loadData();
-                            } catch {
-                              setSnackbar({ open: true, message: 'Error al restablecer estudiante', severity: 'error' });
-                            }
-                            setRestaurando(null);
-                          }} disabled={restaurando === estudiante.documento_id_est}>
+                          <MUI.IconButton 
+                            size="small" 
+                            color="success" 
+                            onClick={async () => {
+                              setRestaurando(estudiante.documento_id_est);
+                              try {
+                                await userService.updateUser(estudiante.usuario_est.id_usuario, { estado_usuario: 'Activo' });
+                                setSnackbar({ open: true, message: 'Estudiante restablecido correctamente', severity: 'success' });
+                                loadData();
+                              } catch {
+                                setSnackbar({ open: true, message: 'Error al restablecer estudiante', severity: 'error' });
+                              }
+                              setRestaurando(null);
+                            }} 
+                            disabled={isReadOnly || restaurando === estudiante.documento_id_est}
+                          >
                             <RestoreIcon />
                           </MUI.IconButton>
                         </MUI.TableCell>
@@ -1454,17 +1459,22 @@ const Students = () => {
                         {estudiante.horaspasrealizadas_est ?? '-'}
                       </MUI.TableCell>
                       <MUI.TableCell>
-                        <MUI.IconButton size="small" color="success" onClick={async () => {
-                          setRestaurando(estudiante.documento_id_est);
-                          try {
-                            await userService.updateUser(estudiante.usuario_est.id_usuario, { estado_usuario: 'Activo' });
-                            setSnackbar({ open: true, message: 'Estudiante restablecido correctamente', severity: 'success' });
-                            loadData();
-                          } catch {
-                            setSnackbar({ open: true, message: 'Error al restablecer estudiante', severity: 'error' });
-                          }
-                          setRestaurando(null);
-                        }} disabled={restaurando === estudiante.documento_id_est}>
+                        <MUI.IconButton 
+                          size="small" 
+                          color="success" 
+                          onClick={async () => {
+                            setRestaurando(estudiante.documento_id_est);
+                            try {
+                              await userService.updateUser(estudiante.usuario_est.id_usuario, { estado_usuario: 'Activo' });
+                              setSnackbar({ open: true, message: 'Estudiante restablecido correctamente', severity: 'success' });
+                              loadData();
+                            } catch {
+                              setSnackbar({ open: true, message: 'Error al restablecer estudiante', severity: 'error' });
+                            }
+                            setRestaurando(null);
+                          }} 
+                          disabled={isReadOnly || restaurando === estudiante.documento_id_est}
+                        >
                           <RestoreIcon />
                         </MUI.IconButton>
                       </MUI.TableCell>
