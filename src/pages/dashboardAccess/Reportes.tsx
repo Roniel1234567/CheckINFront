@@ -156,6 +156,16 @@ function Reportes() {
   const esTutor = user && user.rol === 3;
   const [tallerTutor, setTallerTutor] = useState<number | null>(null);
 
+  const documentosMeta = [
+    { tipo: 'ced_est', nombre: 'Cédula' },
+    { tipo: 'cv_doc', nombre: 'Curriculum Vitae' },
+    { tipo: 'anexo_iv_doc', nombre: 'Anexo IV' },
+    { tipo: 'anexo_v_doc', nombre: 'Anexo V' },
+    { tipo: 'acta_nac_doc', nombre: 'Acta de Nacimiento' },
+    { tipo: 'ced_padres_doc', nombre: 'Cédula de Padres' },
+    { tipo: 'vac_covid_doc', nombre: 'Tarjeta de Vacunación' }
+  ];
+
   useEffect(() => {
     const cargarDatos = async () => {
       try {
@@ -590,6 +600,85 @@ function Reportes() {
     }
   };
 
+  const generarReporteDocumentacionEstudiante = async () => {
+    try {
+      setLoading(true);
+      // Obtener estudiantes activos y documentos
+      const [estudiantes, documentos] = await Promise.all([
+        studentService.getAllStudents(),
+        (await import('../../services/documentoService')).default.getAllDocumentos()
+      ]);
+      // Filtrar estudiantes activos y por taller
+      let estudiantesFiltrados = estudiantes.filter(e => e.usuario_est && e.usuario_est.estado_usuario === 'Activo');
+      if (selectedTaller) {
+        estudiantesFiltrados = estudiantesFiltrados.filter(e => e.taller_est && String(e.taller_est.id_taller) === selectedTaller);
+      }
+      // Filtrar por año si está seleccionado
+      if (selectedYear) {
+        estudiantesFiltrados = estudiantesFiltrados.filter(e => {
+          if (!e.fecha_fin_pasantia) return false;
+          return new Date(e.fecha_fin_pasantia).getFullYear().toString() === selectedYear;
+        });
+      }
+      // Generar tabla de documentos
+      const contenido = `
+        ${estilosBase}
+        <div class="reporte-container">
+          <div class="encabezado">
+            <h1>Reporte de Documentación de Estudiantes</h1>
+            <p>Instituto Politécnico Industrial de Santiago (IPISA)</p>
+          </div>
+          <div class="info-reporte">
+            <p><strong>Año:</strong> ${selectedYear || 'Todos los años'}</p>
+            <p><strong>Taller:</strong> ${selectedTaller ? (talleres.find(t => String(t.id_taller) === selectedTaller)?.nombre_taller || '') : 'Todos'}</p>
+            <p><strong>Fecha de generación:</strong> ${new Date().toLocaleDateString()}</p>
+            <p><strong>Total de estudiantes:</strong> ${estudiantesFiltrados.length}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Estudiante</th>
+                ${documentosMeta.map(doc => `<th>${doc.nombre}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${estudiantesFiltrados.map(est => {
+                const docEst = documentos.find(d => d.est_doc === est.documento_id_est) || {};
+                return `<tr>
+                  <td>${est.nombre_est} ${est.apellido_est}</td>
+                  ${documentosMeta.map(doc => {
+                    const tiene = docEst[doc.tipo] && Array.isArray(docEst[doc.tipo].data) && docEst[doc.tipo].data.length > 0;
+                    return `<td style="text-align:center; font-size:18px;">${tiene ? '✓' : '✗'}</td>`;
+                  }).join('')}
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+          <div class="footer">
+            <p>Este es un documento generado automáticamente por el Sistema de Gestión de Pasantías</p>
+            <p>✓ Documento subido, ✗ Documento no subido</p>
+            <p>© ${new Date().getFullYear()} IPISA - Todos los derechos reservados</p>
+          </div>
+        </div>
+      `;
+      await generarPDF(contenido, 'reporte-documentacion-estudiante.pdf');
+      setSnackbar({
+        open: true,
+        message: 'Reporte generado exitosamente',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      setSnackbar({
+        open: true,
+        message: 'Error al generar el reporte',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const reportes: ReporteProps[] = [
     {
       titulo: 'Reporte de Estudiantes y Pasantías',
@@ -611,6 +700,13 @@ function Reportes() {
       icono: <Icons.Business sx={{ fontSize: 40 }} />,
       color: '#FF9800',
       accion: generarReporteAsignaciones
+    },
+    {
+      titulo: 'Documentación Estudiante',
+      descripcion: 'Genera un reporte de los documentos subidos por los estudiantes activos de un taller y año',
+      icono: <Icons.FolderCopy sx={{ fontSize: 40 }} />,
+      color: '#7B1FA2',
+      accion: generarReporteDocumentacionEstudiante
     }
   ];
 
