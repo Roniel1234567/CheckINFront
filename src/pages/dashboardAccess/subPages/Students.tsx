@@ -25,6 +25,7 @@ import { authService } from '../../../services/authService';
 import api from '../../../services/api';
 import { useReadOnlyMode } from '../../../hooks/useReadOnlyMode';
 import { useToast } from '../../../hooks/useToast';
+import emailService from '../../../services/emailService';
 
 // Define el tipo para la dirección completa
 interface DireccionCompleta {
@@ -282,162 +283,117 @@ const Students = () => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Función para generar una contraseña segura
+  const generateSecurePassword = () => {
+    // Generar una contraseña de 12 caracteres con números, letras y símbolos
+    const length = 12;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let password = "";
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(Math.random() * charset.length);
+      password += charset[randomIndex];
+    }
+    return password;
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (isReadOnly) return;
-    e.preventDefault();
-    setLoading(true);
-    setError('');
 
     try {
-      if (editMode) {
-        // Obtener el estudiante actual antes de actualizarlo
-        const estudianteActual = await studentService.getStudentById(formData.documento);
-        
-        // 1. Actualizar dirección si existe
-        if (estudianteActual.direccion_id?.id_dir && formData.sector) {
-          try {
-            await direccionService.updateDireccion(estudianteActual.direccion_id.id_dir, {
-              sector_dir: Number(formData.sector),
-              calle_dir: formData.calle,
-              num_res_dir: formData.numero
-            });
-          } catch (error) {
-            console.error('Error al actualizar dirección:', error);
-            throw new Error('Error al actualizar la dirección del estudiante');
-          }
-        }
+      setLoading(true);
+      setError(null);
 
-        // 2. Actualizar contacto si existe
-        if (estudianteActual.contacto_est?.id_contacto) {
-          try {
-            await contactService.updateContacto(estudianteActual.contacto_est.id_contacto, {
-              telefono_contacto: formData.telefono,
-              email_contacto: formData.email
-            });
-          } catch (error) {
-            console.error('Error al actualizar contacto:', error);
-            throw new Error('Error al actualizar el contacto del estudiante');
-          }
-        }
+      // Generar usuario y contraseña
+      const usuario = formData.pasaporte_codigo_pais 
+        ? `${formData.pasaporte_codigo_pais}-${formData.documento}`
+        : formData.documento;
+      const contrasena = generateSecurePassword();
 
-        // 3. Actualizar estudiante
-        const estudianteActualizado: Partial<Estudiante> = {
-          tipo_documento_est: formData.tipoDocumento,
-          nombre_est: formData.nombre,
-          seg_nombre_est: formData.segNombre || undefined,
-          apellido_est: formData.apellido,
-          seg_apellido_est: formData.segApellido || undefined,
-          fecha_nac_est: formData.fechaNacimiento,
-          sexo_est: formData.sexo_est ? formData.sexo_est as "Masculino" | "Femenino" : undefined,
-          pasaporte_codigo_pais: formData.tipoDocumento === 'Pasaporte' ? formData.pasaporte_codigo_pais : undefined,
-          nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
-          horaspasrealizadas_est: formData.horaspasrealizadas ? Number(formData.horaspasrealizadas) : undefined,
-          taller_est: formData.taller ? {
-            id_taller: Number(formData.taller),
-            nombre_taller: '',
-            cod_titulo_taller: '',
-            estado_taller: ''
-          } : undefined,
-          fecha_inicio_pasantia: formData.fechaInicioPasantia || null,
-          fecha_fin_pasantia: formData.fechaFinPasantia || null,
-          // Preservar los objetos existentes
-          direccion_id: estudianteActual.direccion_id,
-          ciclo_escolar_est: estudianteActual.ciclo_escolar_est,
-          usuario_est: estudianteActual.usuario_est,
-          contacto_est: estudianteActual.contacto_est
-        };
+      // 1. Crear el contacto primero
+      const contactoResponse = await api.post('/contactos', {
+        telefono_contacto: formData.telefono,
+        email_contacto: formData.email
+      });
 
-        await studentService.updateStudent(formData.documento, estudianteActualizado);
+      const contactoId = contactoResponse.data.id_contacto;
 
-        setSnackbar({
-          open: true,
-          message: 'Estudiante actualizado correctamente',
-          severity: 'success'
-        });
+      // 2. Crear la dirección
+      const direccionResponse = await api.post('/direcciones', {
+        sector_dir: Number(formData.sector),
+        calle_dir: formData.calle,
+        num_res_dir: formData.numero
+      });
 
-        handleCloseForm();
-        loadData();
-      } else {
-        // Validar campos requeridos
-        if (!formData.documento || !formData.nombre || !formData.apellido || !formData.telefono || !formData.email || !formData.provincia || !formData.ciudad || !formData.sector || !formData.calle || !formData.numero || !formData.usuario || !formData.contrasena) {
-          setError('Todos los campos obligatorios deben estar completos');
-          setLoading(false);
-          return;
-        }
+      const direccionId = direccionResponse.data.id_dir;
 
-        // 1. Crear ciclo escolar
-        const nuevoCiclo = await cicloEscolarService.createCicloEscolar({
+      // 3. Crear el usuario primero
+      const nuevoUsuario = await userService.createUser({
+        dato_usuario: usuario,
+        contrasena_usuario: contrasena,
+        rol_usuario: 1 // Rol de estudiante
+      });
+
+      // 4. Crear el estudiante con el ID del usuario
+      const nuevoEstudiante = {
+        tipo_documento_est: formData.tipoDocumento,
+        documento_id_est: formData.documento,
+        nombre_est: formData.nombre,
+        seg_nombre_est: formData.segNombre || null,
+        apellido_est: formData.apellido,
+        seg_apellido_est: formData.segApellido || null,
+        fecha_nac_est: formData.fechaNacimiento,
+        sexo_est: formData.sexo_est as "Masculino" | "Femenino",
+        nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
+        pasaporte_codigo_pais: formData.pasaporte_codigo_pais || null,
+        taller_est: formData.taller ? Number(formData.taller) : null,
+        usuario_est: nuevoUsuario.id_usuario, // Usar el ID del usuario creado
+        contacto_est: contactoId,
+        direccion_id: direccionId,
+        ciclo_escolar: {
           inicio_ciclo: Number(formData.inicioCiclo),
           fin_ciclo: Number(formData.finCiclo),
           estado_ciclo: formData.estadoCiclo
-        });
-        const cicloEscolarId = nuevoCiclo.id_ciclo;
-
-        // 2. Crear dirección
-        const nuevaDireccion = await direccionService.createDireccion({
-          sector_dir: Number(formData.sector),
-          calle_dir: formData.calle,
-          num_res_dir: formData.numero
-        });
-
-        // 3. Crear contacto
-        const nuevoContacto = await contactService.createContacto({
-          email_contacto: formData.email,
-          telefono_contacto: formData.telefono
-        });
-
-        // 4. Crear usuario
-        const nuevoUsuario = await userService.createUser({
-          dato_usuario: formData.usuario,
-          contrasena_usuario: formData.contrasena,
-          rol_usuario: 1,
-          estado_usuario: 'Activo'
-        });
-
-        // 5. Crear estudiante
-        const nuevoEstudiante = {
-          tipo_documento_est: formData.tipoDocumento,
-          documento_id_est: formData.documento,
-          nombre_est: formData.nombre,
-          seg_nombre_est: formData.segNombre || undefined,
-          apellido_est: formData.apellido,
-          seg_apellido_est: formData.segApellido || undefined,
-          fecha_nac_est: formData.fechaNacimiento,
-          sexo_est: formData.sexo_est ? formData.sexo_est as "Masculino" | "Femenino" : undefined,
-          pasaporte_codigo_pais: formData.tipoDocumento === 'Pasaporte' ? formData.pasaporte_codigo_pais : undefined,
-          nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
-          horaspasrealizadas_est: formData.horaspasrealizadas ? Number(formData.horaspasrealizadas) : undefined,
-          taller_est: formData.taller ? Number(formData.taller) : null,
-          contacto_est: nuevoContacto.id_contacto,
-          usuario_est: nuevoUsuario.id_usuario || nuevoUsuario.id || nuevoUsuario.usuario_id,
-          direccion_id: nuevaDireccion.id_dir,
-          ciclo_escolar_est: cicloEscolarId,
-          fecha_inicio_pasantia: formData.fechaInicioPasantia || null,
-          fecha_fin_pasantia: formData.fechaFinPasantia || null
-        };
-
-        await studentService.createStudent(nuevoEstudiante);
-
-        // 6. Crear persona de contacto del estudiante
-        await personaContactoEstudianteService.createPersonaContactoEst({
+        },
+        persona_contacto: {
           nombre: formData.nombrePersonaContacto,
           apellido: formData.apellidoPersonaContacto,
-          relacion: formData.relacionPersonaContacto,
+          relacion: formData.relacionPersonaContacto as 'Padre' | 'Madre' | 'Tutor',
           telefono: formData.telefonoPersonaContacto,
-          correo: formData.correoPersonaContacto,
-          estudiante: formData.documento
-        });
+          correo: formData.correoPersonaContacto || null
+        }
+      };
 
-        setSnackbar({ open: true, message: 'Estudiante creado correctamente', severity: 'success' });
-        handleCloseForm(); // Cerrar el formulario después de crear exitosamente
-        loadData(); // Recargar la lista de estudiantes
+      const estudianteCreado = await studentService.createStudent(nuevoEstudiante);
+
+      // Enviar email con las credenciales
+      if (formData.email) {
+        try {
+          await emailService.sendCredencialesEmail({
+            correoEstudiante: formData.email,
+            nombreEstudiante: `${formData.nombre} ${formData.apellido}`,
+            usuario: usuario,
+            contrasena: contrasena
+          });
+          setSnackbar({ open: true, message: 'Estudiante creado y credenciales enviadas por email', severity: 'success' });
+        } catch (emailError) {
+          console.error('Error al enviar el email:', emailError);
+          setSnackbar({ 
+            open: true, 
+            message: 'Estudiante creado pero hubo un error al enviar las credenciales por email', 
+            severity: 'error' 
+          });
+        }
       }
+
+      setOpenForm(false);
+      loadData();
     } catch (error) {
-      console.error('Error:', error);
-      setError(error.response?.data?.message || error.message || 'Error al procesar la solicitud');
+      console.error('Error al crear estudiante:', error);
+      setError('Error al crear el estudiante');
       setSnackbar({
         open: true,
-        message: error.response?.data?.message || error.message || 'Error al procesar la solicitud',
+        message: 'Error al crear el estudiante. Por favor, verifica los datos e intenta nuevamente.', 
         severity: 'error'
       });
     } finally {
@@ -2096,15 +2052,9 @@ const Students = () => {
                       fullWidth
                       label="Usuario"
                       name="usuario"
-                      value={formData.usuario}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-                        handleInputChange(e as React.ChangeEvent<HTMLInputElement>);
-                        checkUsuario(e.target.value);
-                      }}
-                      onBlur={(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => checkUsuario(e.target.value)}
-                      required
-                      error={!usuarioDisponible}
-                      helperText={!usuarioDisponible ? "Este usuario ya existe" : ""}
+                      value={formData.documento}
+                      InputProps={{ readOnly: true }}
+                      helperText="Se generará automáticamente del documento"
                     />
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>
@@ -2112,10 +2062,9 @@ const Students = () => {
                       fullWidth
                       label="Contraseña"
                       name="contrasena"
-                      type="password"
-                      value={formData.contrasena}
-                      onChange={handleInputChange}
-                      required
+                      value="Se generará automáticamente"
+                      InputProps={{ readOnly: true }}
+                      helperText="Se enviará por email"
                     />
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>

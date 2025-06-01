@@ -53,17 +53,33 @@ export interface NuevoEstudiante {
   apellido_est: string;
   seg_apellido_est?: string | null;
   fecha_nac_est: string;
-  usuario_est: number | null;
-  contacto_est: number | null;
+  sexo_est: "Masculino" | "Femenino";
+  nacionalidad: string;
+  pasaporte_codigo_pais?: string | null;
   taller_est: number | null;
-  direccion_id: number | null;
-  ciclo_escolar_est: number | null;
-  horaspasrealizadas_est?: number | null;
-  nombre_poliza?: string | null;
-  numero_poliza?: string | null;
-  fecha_inicio_pasantia?: string | null;
-  fecha_fin_pasantia?: string | null;
-  nacionalidad?: string | null;
+  usuario_est: string;
+  contrasena_est: string;
+  contacto: {
+    telefono_contacto: string;
+    email_contacto: string;
+  };
+  direccion: {
+    sector_dir: number;
+    calle_dir: string;
+    num_res_dir: string;
+  };
+  ciclo_escolar: {
+    inicio_ciclo: number;
+    fin_ciclo: number;
+    estado_ciclo: string;
+  };
+  persona_contacto: {
+    nombre: string;
+    apellido: string;
+    relacion: 'Padre' | 'Madre' | 'Tutor';
+    telefono: string;
+    correo: string | null;
+  };
 }
 
 export interface PolizaData {
