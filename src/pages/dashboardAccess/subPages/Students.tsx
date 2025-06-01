@@ -928,7 +928,12 @@ const Students = () => {
       const pasantias = await pasantiaService.getAllPasantias();
 
       const fechasData = estudiantes
-        .filter(est => est.usuario_est?.estado_usuario === 'Activo')
+        .filter(est => {
+          if (esTutor && tallerTutor) {
+            return est.usuario_est?.estado_usuario === 'Activo' && est.taller_est?.id_taller === tallerTutor;
+          }
+          return est.usuario_est?.estado_usuario === 'Activo';
+        })
         .map(est => {
           // Buscar la pasantía activa o la más reciente del estudiante
           const pasantiasEst = pasantias.filter(p => p.estudiante_pas.documento_id_est === est.documento_id_est);
