@@ -10,6 +10,7 @@ import * as XLSX from 'xlsx'; // Importación para exportar a Excel
 import { authService } from '../../services/authService';
 import { useLocation } from 'react-router-dom';
 import moduloPasantiaService from '../../services/moduloPasantiaService';
+import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
 
 // Interfaces
 interface Taller {
@@ -148,6 +149,7 @@ const Calificacion = () => {
   const esEstudiante = user && user.rol === 1;
   const esTutor = user && user.rol === 3;
   const [tallerTutor, setTallerTutor] = useState<number | null>(null);
+  const isReadOnly = useReadOnlyMode();
 
   // Obtener lista de talleres al cargar el componente
   useEffect(() => {
@@ -1324,6 +1326,7 @@ const Calificacion = () => {
                                             textAlign: 'center',
                                           }
                                         }}
+                                        disabled={isReadOnly}
                                       />
                                     ) : (
                                       <MUI.Box
@@ -1435,6 +1438,7 @@ const Calificacion = () => {
                             startIcon={<Icons.SaveAlt />}
                             size={isSmallScreen ? 'small' : 'medium'}
                             onClick={guardarTodasLasCalificaciones}
+                            disabled={isReadOnly}
                           >
                             Guardar Todo
                           </MUI.Button>
@@ -1442,6 +1446,7 @@ const Calificacion = () => {
                             variant="outlined" 
                             startIcon={<Icons.Print />}
                             size={isSmallScreen ? 'small' : 'medium'}
+                            disabled={isReadOnly}
                           >
                             Imprimir
                           </MUI.Button>
@@ -1468,6 +1473,7 @@ const Calificacion = () => {
                         startIcon={<Icons.BarChart />}
                         size={isSmallScreen ? 'small' : 'medium'}
                         onClick={() => setMostrarEstadisticas(true)}
+                        disabled={isReadOnly}
                       >
                         Ver Estadísticas
                       </MUI.Button>
@@ -1476,6 +1482,7 @@ const Calificacion = () => {
                         color="primary" 
                         startIcon={<Icons.Print />}
                         size={isSmallScreen ? 'small' : 'medium'}
+                        disabled={isReadOnly}
                       >
                         Imprimir
                       </MUI.Button>
@@ -1509,6 +1516,7 @@ const Calificacion = () => {
                     startIcon={<Icons.Refresh />}
                     onClick={() => setSelectedTaller('')}
                     sx={{ mt: 1 }}
+                    disabled={isReadOnly}
                   >
                     Seleccionar otro taller
                   </MUI.Button>
@@ -1547,6 +1555,7 @@ const Calificacion = () => {
                           tallerSelect.focus();
                         }
                       }}
+                      disabled={isReadOnly}
                     >
                       Ver Talleres Disponibles
                     </MUI.Button>

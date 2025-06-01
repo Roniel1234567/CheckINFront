@@ -1019,8 +1019,9 @@ function Evaluaciones() {
                           boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
                         }
                       }}
+                      disabled={isReadOnly || loading}
                     >
-                      {isEditMode ? 'Actualizar Evaluación' : 'Enviar Evaluación'}
+                      {loading ? <MUI.CircularProgress size={24} /> : (isEditMode ? 'Actualizar Evaluación' : 'Enviar Evaluación')}
                     </MUI.Button>
                     {isEditMode && (
                       <MUI.Button
@@ -1158,8 +1159,9 @@ function Evaluaciones() {
                           boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
                         }
                       }}
+                      disabled={isReadOnly || loading}
                     >
-                      {isEditModeEstudiante ? 'Actualizar Evaluación' : 'Enviar Evaluación'}
+                      {loading ? <MUI.CircularProgress size={24} /> : (isEditModeEstudiante ? 'Actualizar Evaluación' : 'Enviar Evaluación')}
                     </MUI.Button>
                     {isEditModeEstudiante && (
                       <MUI.Button

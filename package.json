@@ -23,6 +23,7 @@
     "html2pdf.js": "^0.10.3",
     "jwt-decode": "^4.0.0",
     "nodemailer": "^7.0.3",
+    "notistack": "^3.0.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.4.0",

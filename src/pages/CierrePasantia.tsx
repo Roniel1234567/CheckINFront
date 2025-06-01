@@ -5,6 +5,7 @@ import * as Icons from '@mui/icons-material';
 import SideBar from '../components/SideBar';
 import DashboardAppBar from '../components/DashboardAppBar';
 import { userService } from '../services/userService';
+import { useReadOnlyMode } from '../hooks/useReadOnlyMode';
 
 interface Plaza {
   id_plaza: number;
@@ -34,6 +35,8 @@ function CierrePasantia() {
     message: '',
     severity: 'success' as 'success' | 'error' | 'info' | 'warning'
   });
+
+  const isReadOnly = useReadOnlyMode();
 
   const handleCierrePasantia = async () => {
     try {
@@ -194,7 +197,7 @@ function CierrePasantia() {
               color="error"
               variant="contained"
               autoFocus
-              disabled={loading}
+              disabled={isReadOnly || loading}
             >
               {loading ? <MUI.CircularProgress size={24} /> : "Confirmar Cierre"}
             </MUI.Button>

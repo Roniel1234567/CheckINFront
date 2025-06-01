@@ -37,6 +37,7 @@ import SubirDoc from './pages/dashboardAccess/subPages/SubirDoc';
 import AccesoDenegado from './pages/AccesoDenegado';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ReadOnlyProvider } from './context/ReadOnlyContext';
+import { SnackbarProvider } from 'notistack';
 
 // Roles
 const ROLES = {
@@ -48,109 +49,111 @@ const ROLES = {
 
 function App() {
   return (
-    <ReadOnlyProvider>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <BrowserRouter>
-          <Routes>
-            {/* Rutas públicas */}
-            <Route path="/" element={<Navigate to="/Principal" replace />} />
-            <Route path="/Principal" element={<Principal />} />
-            <Route path="/SobreNosotros" element={<AboutUs />} />
-            <Route path="/Funcionalidades" element={<Features />} />
-            <Route path="/ManualdeUsuario" element={<UserManual />} />
-            <Route path="/Login" element={<Login />} />
-            <Route path="/registro-centro" element={<RegistroCentro />} />
-            <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
-            <Route path="/reset-password/:token" element={<RecuperarContrasena />} />
-            <Route path="/acceso-denegado" element={<AccesoDenegado />} />
+    <SnackbarProvider maxSnack={3}>
+      <ReadOnlyProvider>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <BrowserRouter>
+            <Routes>
+              {/* Rutas públicas */}
+              <Route path="/" element={<Navigate to="/Principal" replace />} />
+              <Route path="/Principal" element={<Principal />} />
+              <Route path="/SobreNosotros" element={<AboutUs />} />
+              <Route path="/Funcionalidades" element={<Features />} />
+              <Route path="/ManualdeUsuario" element={<UserManual />} />
+              <Route path="/Login" element={<Login />} />
+              <Route path="/registro-centro" element={<RegistroCentro />} />
+              <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+              <Route path="/reset-password/:token" element={<RecuperarContrasena />} />
+              <Route path="/acceso-denegado" element={<AccesoDenegado />} />
 
-            {/* Rutas del dashboard directas, sin layout */}
-            <Route path='/dashboard' element={<ProtectedRoute routeId="Dashboard"><Dashboard /></ProtectedRoute>} />
-            <Route path="usuarios" element={<ProtectedRoute routeId="users"><Users /></ProtectedRoute>} />
-            <Route path="estudiantes" element={<ProtectedRoute routeId="estudiante"><Students /></ProtectedRoute>} />
-            <Route path="usuarios/tutores" element={<ProtectedRoute routeId="tutores"><Tutors /></ProtectedRoute>} />
-            <Route path="usuarios/supervisores" element={<ProtectedRoute routeId="supervisores"><Supervisors /></ProtectedRoute>} />
-            <Route path="usuarios/administradores" element={<ProtectedRoute routeId="administradores"><Administrators /></ProtectedRoute>} />
-            <Route path="observadores" element={<ProtectedRoute routeId="observadores"><ObservadoresPage /></ProtectedRoute>} />
-            <Route path="visitas" element={<ProtectedRoute routeId="visits"><Visits /></ProtectedRoute>} />
-            <Route path="pasantias" element={<ProtectedRoute routeId="pasantias"><PasantiaPage key={window.location.pathname} /></ProtectedRoute>} />
-            <Route path="centros-trabajo" element={<ProtectedRoute routeId="companies"><Companies /></ProtectedRoute>} />
-            <Route path="plazas" element={<ProtectedRoute routeId="plazas"><PlazasCentro /></ProtectedRoute>} />
-            <Route path="evaluaciones" element={<ProtectedRoute routeId="evaluaciones"><Evaluaciones /></ProtectedRoute>} />
-            <Route path="talleres" element={<ProtectedRoute routeId="talleres"><TallerConFamilias /></ProtectedRoute>} />
-            <Route path="tutores" element={<ProtectedRoute routeId="tutores"><TutoresPage /></ProtectedRoute>} />
-            <Route path="supervisores" element={<ProtectedRoute routeId="supervisores"><SupervisoresPage /></ProtectedRoute>} />
-            <Route path="administradores" element={<ProtectedRoute routeId="administradores"><Administradores /></ProtectedRoute>} />
-            <Route path="documentos" element={<ProtectedRoute routeId="documentos"><Documento /></ProtectedRoute>} />
-            <Route path="subir-documentos" element={<ProtectedRoute routeId="subirdoc"><SubirDoc key={window.location.pathname} /></ProtectedRoute>} />
-            <Route path="reportes" element={<ProtectedRoute routeId="reports"><Reportes /></ProtectedRoute>} />
-            <Route path="/cierre-pasantia" element={<ProtectedRoute routeId="cierre"><CierrePasantia /></ProtectedRoute>} />
-            <Route path="gestion-talleres" element={<ProtectedRoute routeId="talleres"><TallerConFamilias /></ProtectedRoute>} />
-            <Route path="/dashboard/evaluaciones" element={<ProtectedRoute routeId="evaluaciones"><Evaluaciones /></ProtectedRoute>} />
-            <Route path="/dashboard/taller" element={<ProtectedRoute routeId="talleres"><Taller /></ProtectedRoute>} />
-            <Route path="/dashboard/calificacion" element={<ProtectedRoute routeId="calificacion"><Calificacion key={window.location.pathname} /></ProtectedRoute>} />
+              {/* Rutas del dashboard directas, sin layout */}
+              <Route path='/dashboard' element={<ProtectedRoute routeId="Dashboard"><Dashboard /></ProtectedRoute>} />
+              <Route path="usuarios" element={<ProtectedRoute routeId="users"><Users /></ProtectedRoute>} />
+              <Route path="estudiantes" element={<ProtectedRoute routeId="estudiante"><Students /></ProtectedRoute>} />
+              <Route path="usuarios/tutores" element={<ProtectedRoute routeId="tutores"><Tutors /></ProtectedRoute>} />
+              <Route path="usuarios/supervisores" element={<ProtectedRoute routeId="supervisores"><Supervisors /></ProtectedRoute>} />
+              <Route path="usuarios/administradores" element={<ProtectedRoute routeId="administradores"><Administrators /></ProtectedRoute>} />
+              <Route path="observadores" element={<ProtectedRoute routeId="observadores"><ObservadoresPage /></ProtectedRoute>} />
+              <Route path="visitas" element={<ProtectedRoute routeId="visits"><Visits /></ProtectedRoute>} />
+              <Route path="pasantias" element={<ProtectedRoute routeId="pasantias"><PasantiaPage key={window.location.pathname} /></ProtectedRoute>} />
+              <Route path="centros-trabajo" element={<ProtectedRoute routeId="companies"><Companies /></ProtectedRoute>} />
+              <Route path="plazas" element={<ProtectedRoute routeId="plazas"><PlazasCentro /></ProtectedRoute>} />
+              <Route path="evaluaciones" element={<ProtectedRoute routeId="evaluaciones"><Evaluaciones /></ProtectedRoute>} />
+              <Route path="talleres" element={<ProtectedRoute routeId="talleres"><TallerConFamilias /></ProtectedRoute>} />
+              <Route path="tutores" element={<ProtectedRoute routeId="tutores"><TutoresPage /></ProtectedRoute>} />
+              <Route path="supervisores" element={<ProtectedRoute routeId="supervisores"><SupervisoresPage /></ProtectedRoute>} />
+              <Route path="administradores" element={<ProtectedRoute routeId="administradores"><Administradores /></ProtectedRoute>} />
+              <Route path="documentos" element={<ProtectedRoute routeId="documentos"><Documento /></ProtectedRoute>} />
+              <Route path="subir-documentos" element={<ProtectedRoute routeId="subirdoc"><SubirDoc key={window.location.pathname} /></ProtectedRoute>} />
+              <Route path="reportes" element={<ProtectedRoute routeId="reports"><Reportes /></ProtectedRoute>} />
+              <Route path="/cierre-pasantia" element={<ProtectedRoute routeId="cierre"><CierrePasantia /></ProtectedRoute>} />
+              <Route path="gestion-talleres" element={<ProtectedRoute routeId="talleres"><TallerConFamilias /></ProtectedRoute>} />
+              <Route path="/dashboard/evaluaciones" element={<ProtectedRoute routeId="evaluaciones"><Evaluaciones /></ProtectedRoute>} />
+              <Route path="/dashboard/taller" element={<ProtectedRoute routeId="talleres"><Taller /></ProtectedRoute>} />
+              <Route path="/dashboard/calificacion" element={<ProtectedRoute routeId="calificacion"><Calificacion key={window.location.pathname} /></ProtectedRoute>} />
 
-            {/* Rutas protegidas */}
-            <Route path="/evaluaciones" element={
-              <ProtectedRoute>
-                <Evaluaciones />
-              </ProtectedRoute>
-            } />
+              {/* Rutas protegidas */}
+              <Route path="/evaluaciones" element={
+                <ProtectedRoute>
+                  <Evaluaciones />
+                </ProtectedRoute>
+              } />
 
-            {/* Rutas protegidas para administradores */}
-            <Route
-              path="/dashboard/companies"
-              element={
-                <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
-                  <Companies />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/students"
-              element={
-                <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
-                  <Students />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/documentos"
-              element={
-                <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
-                  <Documento />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard/subir-documentos"
-              element={
-                <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
-                  <SubirDoc />
-                </ProtectedRoute>
-              }
-            />
+              {/* Rutas protegidas para administradores */}
+              <Route
+                path="/dashboard/companies"
+                element={
+                  <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
+                    <Companies />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/students"
+                element={
+                  <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
+                    <Students />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/documentos"
+                element={
+                  <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
+                    <Documento />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/dashboard/subir-documentos"
+                element={
+                  <ProtectedRoute allowedRoles={[ROLES.ADMINISTRADOR]}>
+                    <SubirDoc />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Ruta por defecto - redirige a login */}
-            <Route path="*" element={<Navigate to="/Login" replace />} />
-          </Routes>
-        </BrowserRouter>
-        {/* Configuración del ToastContainer para mostrar notificaciones */}
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
-        />
-      </ThemeProvider>
-    </ReadOnlyProvider>
+              {/* Ruta por defecto - redirige a login */}
+              <Route path="*" element={<Navigate to="/Login" replace />} />
+            </Routes>
+          </BrowserRouter>
+          {/* Configuración del ToastContainer para mostrar notificaciones */}
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="colored"
+          />
+        </ThemeProvider>
+      </ReadOnlyProvider>
+    </SnackbarProvider>
   );
 }
 

@@ -24,6 +24,7 @@ import * as XLSX from 'xlsx';
 import { authService } from '../../../services/authService';
 import api from '../../../services/api';
 import { useReadOnlyMode } from '../../../hooks/useReadOnlyMode';
+import { useToast } from '../../../hooks/useToast';
 
 // Define el tipo para la dirección completa
 interface DireccionCompleta {
@@ -77,6 +78,51 @@ interface TutorMin {
   taller_tutor: number | { id_taller: number };
 }
 
+interface FormData {
+  nacionalidad: string;
+  tipoDocumento: string;
+  documento: string;
+  pasaporte_codigo_pais: string;
+  nombre: string;
+  segNombre: string;
+  apellido: string;
+  segApellido: string;
+  fechaNacimiento: string;
+  sexo_est: string;
+  telefono: string;
+  email: string;
+  taller: string;
+  provincia: string;
+  ciudad: string;
+  sector: string;
+  calle: string;
+  numero: string;
+  direccionId: string;
+  inicioCiclo: string;
+  finCiclo: string;
+  estadoCiclo: string;
+  usuario: string;
+  contrasena: string;
+  id_doc_file: File | null;
+  cv_doc_file: File | null;
+  anexo_iv_doc_file: File | null;
+  anexo_v_doc_file: File | null;
+  acta_nac_doc_file: File | null;
+  ced_padres_doc_file: File | null;
+  vac_covid_doc_file: File | null;
+  horaspasrealizadas: string;
+  nombrePersonaContacto: string;
+  apellidoPersonaContacto: string;
+  relacionPersonaContacto: string;
+  telefonoPersonaContacto: string;
+  correoPersonaContacto: string;
+  nacionalidadOtra: string;
+  nombrePoliza: string;
+  numeroPoliza: string;
+  fechaInicioPasantia: string;
+  fechaFinPasantia: string;
+}
+
 const Students = () => {
   const theme = MUI.useTheme();
   const isMobile = MUI.useMediaQuery(theme.breakpoints.down('md'));
@@ -120,9 +166,19 @@ const Students = () => {
   const [fechasSearchTerm, setFechasSearchTerm] = useState('');
   const [fechasTallerFiltro, setFechasTallerFiltro] = useState('');
   const [fechasCentroFiltro, setFechasCentroFiltro] = useState('');
+  const [fechasData, setFechasData] = useState<FechasPasantiaRow[]>([]);
 
-  // Estado del formulario
-  const [formData, setFormData] = useState({
+  const isReadOnly = useReadOnlyMode();
+  const [fechasModificadas, setFechasModificadas] = useState(false);
+
+  const toast = useToast();
+
+  // Lógica de usuario y rol
+  const user = authService.getCurrentUser();
+  const esTutor = user && user.rol === 3;
+  const [tallerTutor, setTallerTutor] = useState<number | null>(null);
+
+  const [formData, setFormData] = useState<FormData>({
     nacionalidad: 'Dominicana',
     tipoDocumento: 'Cédula',
     documento: '',
@@ -147,13 +203,13 @@ const Students = () => {
     estadoCiclo: 'Actual',
     usuario: '',
     contrasena: '',
-    id_doc_file: null as File | null,
-    cv_doc_file: null as File | null,
-    anexo_iv_doc_file: null as File | null,
-    anexo_v_doc_file: null as File | null,
-    acta_nac_doc_file: null as File | null,
-    ced_padres_doc_file: null as File | null,
-    vac_covid_doc_file: null as File | null,
+    id_doc_file: null,
+    cv_doc_file: null,
+    anexo_iv_doc_file: null,
+    anexo_v_doc_file: null,
+    acta_nac_doc_file: null,
+    ced_padres_doc_file: null,
+    vac_covid_doc_file: null,
     horaspasrealizadas: '',
     nombrePersonaContacto: '',
     apellidoPersonaContacto: '',
@@ -167,20 +223,13 @@ const Students = () => {
     fechaFinPasantia: ''
   });
 
-  // Lógica de usuario y rol
-  const user = authService.getCurrentUser();
-  const esTutor = user && user.rol === 3;
-  const [tallerTutor, setTallerTutor] = useState<number | null>(null);
-
-  const isReadOnly = useReadOnlyMode();
-
   // Obtener el taller del tutor al cargar
   useEffect(() => {
     const fetchTallerTutor = async () => {
       if (esTutor && user) {
         try {
           const { data } = await api.get<TutorMin[] | { tutores: TutorMin[] }>('/tutores');
-          const tutores: TutorMin[] = Array.isArray(data) ? data : (data as any).tutores;
+          const tutores: TutorMin[] = Array.isArray(data) ? data : (data as { tutores: TutorMin[] }).tutores;
           const tutor = tutores.find((t) => {
             if (typeof t.usuario_tutor === 'object' && t.usuario_tutor !== null) {
               return t.usuario_tutor.id_usuario === user.id_usuario;
@@ -915,7 +964,72 @@ const Students = () => {
   };
 
   // --- ACTUALIZAR FECHAS Y HORAS DE PASANTÍA ---
-  // const handleFechasUpdate = async () => { ... };
+  const cargarDatosFechas = async () => {
+    try {
+      // Primero obtenemos todos los estudiantes
+      const estudiantes = await studentService.getAllStudents();
+      
+      // Transformamos los datos al formato que necesitamos
+      const fechasData = estudiantes.map(est => ({
+        documento_id_est: est.documento_id_est,
+        nombre_completo: `${est.nombre_est} ${est.apellido_est}`,
+        centro: est.centro_trabajo?.nombre_centro || '-',
+        fecha_inicio: est.fecha_inicio_pasantia,
+        fecha_fin: est.fecha_fin_pasantia,
+        horas_realizadas: est.horaspasrealizadas_est || 0,
+        tipo_documento_est: est.tipo_documento_est,
+        pasaporte_codigo_pais: est.pasaporte_codigo_pais
+      }));
+
+      setFechasData(fechasData);
+      setFechasRows(fechasData);
+      setFechasModificadas(false);
+    } catch (error) {
+      console.error('Error al cargar fechas:', error);
+      toast.error('Error al cargar los datos de fechas');
+      setFechasData([]);
+      setFechasRows([]);
+    }
+  };
+
+  const handleFechaCellChange = (estudiante: string, field: 'fecha_inicio' | 'fecha_fin' | 'horas_realizadas', value: string | number) => {
+    setFechasData(prev => {
+      const newData = prev.map(row => {
+        if (row.documento_id_est === estudiante) {
+          return { ...row, [field]: value };
+        }
+        return row;
+      });
+      setFechasModificadas(true); // Marcar que hay cambios
+      return newData;
+    });
+  };
+
+  const handleGuardarFechas = async () => {
+    if (!fechasModificadas) return;
+    
+    setLoading(true);
+    try {
+      await Promise.all(
+        fechasData.map(async (estudiante) => {
+          await studentService.updateFechasPasantia(estudiante.documento_id_est, {
+            fecha_inicio_pasantia: estudiante.fecha_inicio,
+            fecha_fin_pasantia: estudiante.fecha_fin,
+            horas_realizadas: estudiante.horas_realizadas
+          });
+        })
+      );
+      
+      toast.success('Fechas actualizadas correctamente');
+      setFechasModificadas(false);
+      await cargarDatosFechas(); // Recargar datos
+    } catch (error) {
+      console.error('Error al guardar fechas:', error);
+      toast.error('Error al actualizar las fechas');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Función para formatear fechas tipo 'YYYY-MM-DD' a 'DD/MM/YYYY'
   const formatDate = (dateStr: string | undefined) => {
@@ -934,91 +1048,6 @@ const Students = () => {
     const usuarioEliminado = estudiante.usuario_est?.estado_usuario === 'Eliminado';
     return nombreMatch && tallerMatch && usuarioEliminado;
   });
-
-  // Función para cargar los datos de fechas
-  const cargarDatosFechas = async () => {
-    try {
-      setLoading(true);
-      // Obtener estudiantes y pasantías
-      const [estudiantesData, pasantiasData] = await Promise.all([
-        studentService.getAllStudents(),
-        internshipService.getAllPasantias()
-      ]);
-      // Filtrar estudiantes activos
-      let estudiantesActivos = estudiantesData.filter(e => 
-        e.usuario_est?.estado_usuario !== 'Eliminado'
-      );
-      if (esTutor && tallerTutor) {
-        estudiantesActivos = estudiantesActivos.filter(e => e.taller_est?.id_taller === tallerTutor);
-      }
-
-      // Crear un mapa de pasantías activas por estudiante
-      const pasantiasActivas = pasantiasData.reduce((acc, pasantia) => {
-        if (pasantia.estado_pas !== 'Cancelada') {
-          acc[pasantia.estudiante_pas.documento_id_est] = pasantia;
-        }
-        return acc;
-      }, {} as { [key: string]: { centro_pas: { nombre_centro: string } } });
-
-      // Crear las filas de datos solo con estudiantes activos
-      const rows: FechasPasantiaRow[] = estudiantesActivos.map(e => {
-        const pasantiaActiva = pasantiasActivas[e.documento_id_est];
-        return {
-          documento_id_est: e.documento_id_est,
-          nombre_completo: `${e.nombre_est} ${e.apellido_est}`,
-          centro: pasantiaActiva ? pasantiaActiva.centro_pas.nombre_centro : '-',
-          fecha_inicio: e.fecha_inicio_pasantia || null,
-          fecha_fin: e.fecha_fin_pasantia || null,
-          horas_realizadas: Number(e.horaspasrealizadas_est || 0),
-          tipo_documento_est: e.tipo_documento_est || '',
-          pasaporte_codigo_pais: e.pasaporte_codigo_pais || ''
-        };
-      });
-
-      setFechasRows(rows);
-    } catch (error) {
-      console.error('Error al cargar datos de fechas:', error);
-      setSnackbar({ open: true, message: 'Error al cargar datos de fechas', severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Función para manejar cambios en las celdas
-  const handleFechaCellChange = (estudiante: string, field: 'fecha_inicio' | 'fecha_fin' | 'horas_realizadas', value: string | number) => {
-    setFechasRows(prev => prev.map(row => {
-      if (row.documento_id_est === estudiante) {
-        return { ...row, [field]: value };
-      }
-      return row;
-    }));
-  };
-
-  // Función para guardar los cambios
-  const handleGuardarFechas = async () => {
-    try {
-      setLoading(true);
-      await Promise.all(fechasRows.map(async row => {
-        const data = {
-          fecha_inicio_pasantia: row.fecha_inicio,
-          fecha_fin_pasantia: row.fecha_fin,
-          horaspasrealizadas_est: String(row.horas_realizadas)
-        };
-        await studentService.updateFechasPasantia(row.documento_id_est, {
-          ...data,
-          horaspasrealizadas_est: Number(data.horaspasrealizadas_est)
-        });
-      }));
-      setSnackbar({ open: true, message: 'Fechas actualizadas correctamente', severity: 'success' });
-      loadData(); // Recargar datos
-      setOpenFechasDialog(false);
-    } catch (error) {
-      console.error('Error al guardar fechas:', error);
-      setSnackbar({ open: true, message: 'Error al guardar las fechas', severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Modificar la función de exportar a Excel
   const exportarFechasExcel = () => {
@@ -1504,8 +1533,14 @@ const Students = () => {
             </MUI.DialogContent>
             <MUI.DialogActions>
               <MUI.Button onClick={() => setOpenPolizaDialog(false)}>Cancelar</MUI.Button>
-              <MUI.Button variant="contained" color="primary" onClick={handlePolizaUpdate} disabled={!polizaData.nombre_poliza || !polizaData.numero_poliza || !polizaData.compania || !polizaData.tipo_poliza || !polizaData.fecha_inicio || !polizaData.estudiante}>
-                Asignar
+              <MUI.Button
+                variant="contained"
+                color="primary"
+                onClick={handlePolizaUpdate}
+                disabled={isReadOnly || loading}
+                sx={{ mt: 2 }}
+              >
+                {loading ? <MUI.CircularProgress size={24} /> : 'Actualizar Póliza'}
               </MUI.Button>
             </MUI.DialogActions>
           </MUI.Dialog>
@@ -1606,9 +1641,9 @@ const Students = () => {
                             type="date"
                             value={row.fecha_inicio || ''}
                             onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_inicio', e.target.value)}
-                            fullWidth
-                            size="small"
+                            disabled={isReadOnly}
                             InputLabelProps={{ shrink: true }}
+                            fullWidth
                           />
                         </MUI.TableCell>
                         <MUI.TableCell>
@@ -1616,38 +1651,18 @@ const Students = () => {
                             type="date"
                             value={row.fecha_fin || ''}
                             onChange={(e) => handleFechaCellChange(row.documento_id_est, 'fecha_fin', e.target.value)}
-                            fullWidth
-                            size="small"
+                            disabled={isReadOnly}
                             InputLabelProps={{ shrink: true }}
+                            fullWidth
                           />
                         </MUI.TableCell>
                         <MUI.TableCell>
                           <MUI.TextField
                             type="number"
-                            value={row.horas_realizadas}
+                            value={row.horas_realizadas || ''}
                             onChange={(e) => handleFechaCellChange(row.documento_id_est, 'horas_realizadas', e.target.value)}
+                            disabled={isReadOnly}
                             fullWidth
-                            size="small"
-                            inputProps={{
-                              min: 0,
-                              style: { 
-                                textAlign: 'right',
-                                paddingRight: '40px'
-                              }
-                            }}
-                            InputProps={{
-                              endAdornment: (
-                                <MUI.InputAdornment position="end" sx={{ position: 'absolute', right: 8 }}>
-                                  hrs
-                                </MUI.InputAdornment>
-                              ),
-                              sx: { 
-                                minWidth: '120px',
-                                '& input': {
-                                  width: '100%'
-                                }
-                              }
-                            }}
                           />
                         </MUI.TableCell>
                       </MUI.TableRow>
@@ -1678,7 +1693,7 @@ const Students = () => {
               <MUI.Button
                 variant="contained"
                 onClick={handleGuardarFechas}
-                disabled={loading}
+                disabled={isReadOnly || !fechasModificadas || loading}
                 startIcon={loading ? <MUI.CircularProgress size={20} /> : <Icons.Save />}
               >
                 Guardar Cambios

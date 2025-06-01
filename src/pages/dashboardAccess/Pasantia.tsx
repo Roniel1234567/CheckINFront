@@ -1,4 +1,6 @@
 import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
+import { Button, IconButton } from '@mui/material';
+import { Add, Edit, Delete } from '@mui/icons-material';
 
 function PasantiaPage() {
   const isReadOnly = useReadOnlyMode();

@@ -626,6 +626,7 @@ function Companies() {
   }, [openValidarEmpresas]);
 
   const handleValidarCentro = async (id: number, estado: 'Aceptada' | 'Rechazada' | 'Pendiente') => {
+    if (isReadOnly) return;
     try {
       await axios.put(`http://localhost:5000/api/centros-trabajo/${id}/validar`, {
         validacion: estado
@@ -1298,16 +1299,18 @@ function Companies() {
                         <MUI.TableCell align="center">
                           <MUI.ButtonGroup>
                             <MUI.Button
-                              color="success"
+                              color={empresa.validacion === 'Aceptada' ? 'success' : 'primary'}
                               onClick={() => handleValidarCentro(empresa.id_centro, 'Aceptada')}
+                              disabled={isReadOnly || empresa.validacion === 'Aceptada'}
                             >
-                              <Icons.Check />
+                              Aceptar
                             </MUI.Button>
                             <MUI.Button
                               color="error"
                               onClick={() => handleValidarCentro(empresa.id_centro, 'Rechazada')}
+                              disabled={isReadOnly || empresa.validacion === 'Rechazada'}
                             >
-                              <Icons.Close />
+                              Rechazar
                             </MUI.Button>
                           </MUI.ButtonGroup>
                         </MUI.TableCell>
