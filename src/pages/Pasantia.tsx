@@ -735,30 +735,28 @@ const PasantiaPage = () => {
               </MUI.Grid>
 
               {/* Botón Nueva Pasantía */}
-              {!esEmpresa && (
-                <MUI.Grid item xs={12} md={3}>
-                  <MUI.Button
-                    variant="contained"
-                    color="warning"
-                    startIcon={<Icons.AddCircleOutline sx={{ color: theme.palette.primary.main }} />}
-                    fullWidth
-                    size="large"
-                    sx={{
-                      fontWeight: 'bold',
-                      borderRadius: 3,
-                      boxShadow: 2,
-                      py: 1.5,
-                      color: theme.palette.primary.main,
-                      bgcolor: theme.palette.warning.light,
-                      '&:hover': { bgcolor: theme.palette.warning.main }
-                    }}
-                    onClick={() => setOpenDialog(true)}
-                    disabled={isReadOnly || !plazaFormSeleccionada || plazasOcupadas(plazaFormSeleccionada) >= (plazaFormSeleccionada?.plazas_centro || 0)}
-                  >
-                    Nueva Pasantía
-                  </MUI.Button>
-                </MUI.Grid>
-              )}
+              <MUI.Grid item xs={12} md={3}>
+                <MUI.Button
+                  variant="contained"
+                  color="warning"
+                  startIcon={<Icons.AddCircleOutline sx={{ color: theme.palette.primary.main }} />}
+                  fullWidth
+                  size="large"
+                  sx={{
+                    fontWeight: 'bold',
+                    borderRadius: 3,
+                    boxShadow: 2,
+                    py: 1.5,
+                    color: theme.palette.primary.main,
+                    bgcolor: theme.palette.warning.light,
+                    '&:hover': { bgcolor: theme.palette.warning.main }
+                  }}
+                  onClick={() => setOpenDialog(true)}
+                  disabled={isReadOnly || esEstudiante || !plazaFormSeleccionada || plazasOcupadas(plazaFormSeleccionada) >= (plazaFormSeleccionada?.plazas_centro || 0)}
+                >
+                  Nueva Pasantía
+                </MUI.Button>
+              </MUI.Grid>
             </MUI.Grid>
           </MUI.Paper>
 
@@ -768,7 +766,7 @@ const PasantiaPage = () => {
               variant={mostrarPlazas ? 'contained' : 'outlined'}
               color="primary"
               onClick={() => setMostrarPlazas(!mostrarPlazas)}
-              disabled={isReadOnly || !tallerFiltro}
+              disabled={isReadOnly || esEstudiante || !tallerFiltro}
               sx={{
                 fontWeight: 'bold',
                 borderRadius: 4,
@@ -1067,7 +1065,7 @@ const PasantiaPage = () => {
                                   setPasantiaToRestore(p);
                                   setOpenRestoreDialog(true);
                                 }}
-                                disabled={isReadOnly}
+                                disabled={isReadOnly || esEstudiante}
                               >
                                 <Icons.Restore />
                               </MUI.IconButton>
@@ -1081,7 +1079,7 @@ const PasantiaPage = () => {
                                       size="small"
                                       color="primary"
                                       onClick={() => handleEditClick(p)}
-                                      disabled={isReadOnly}
+                                      disabled={isReadOnly || esEstudiante}
                                     >
                                       <Icons.Edit />
                                     </MUI.IconButton>
@@ -1094,7 +1092,7 @@ const PasantiaPage = () => {
                                         setPasantiaToDelete(p);
                                         setOpenDeleteDialog(true);
                                       }}
-                                      disabled={isReadOnly}
+                                      disabled={isReadOnly || esEstudiante}
                                     >
                                       <Icons.Delete />
                                     </MUI.IconButton>
@@ -1116,7 +1114,7 @@ const PasantiaPage = () => {
           </MUI.Paper>
 
           {/* Diálogos */}
-          {!esEmpresa && (
+          {!esEstudiante && !esEmpresa && (
             <MUI.Dialog
               open={openDialog}
               onClose={() => {
