@@ -9,6 +9,7 @@ import { alpha } from '@mui/material/styles';
 import * as XLSX from 'xlsx'; // Importación para exportar a Excel
 import { authService } from '../../services/authService';
 import { useLocation } from 'react-router-dom';
+import moduloPasantiaService from '../../services/moduloPasantiaService';
 
 // Interfaces
 interface Taller {
@@ -75,6 +76,8 @@ interface EstudianteConEvaluaciones {
   centro: string; // Centro de trabajo/empresa
   pasantia_id: number; // ID de la pasantía
   pasantia_real: boolean; // Indica si la pasantía existe realmente en el backend
+  estado_modulo?: 'Aprobado' | 'Reprobado' | null; // Estado del módulo de pasantía
+  id_modulo?: number | null; // ID del módulo de pasantía
 }
 
 // Datos mock para cuando la API no responde
@@ -92,6 +95,32 @@ const MOCK_TALLERES: Taller[] = [
 interface TutorMin {
   usuario_tutor: number | { id_usuario: number };
   taller_tutor: number | { id_taller: number };
+}
+
+// Utilidad para obtener el id_eval_est de la respuesta
+function getIdEvalEst(data: unknown): number | undefined {
+  if (data && typeof data === 'object') {
+    const d = data as Record<string, unknown>;
+    if ('id_eval_est' in d && typeof d.id_eval_est === 'number') return d.id_eval_est;
+    if ('data' in d && typeof d.data === 'object' && d.data !== null && 'id_eval_est' in (d.data as Record<string, unknown>)) {
+      const inner = d.data as Record<string, unknown>;
+      if (typeof inner.id_eval_est === 'number') return inner.id_eval_est;
+    }
+  }
+  return undefined;
+}
+
+// Utilidad para obtener el id_calificacion de la respuesta
+function getIdCalificacion(data: unknown): number | undefined {
+  if (data && typeof data === 'object') {
+    const d = data as Record<string, unknown>;
+    if ('id_calificacion' in d && typeof d.id_calificacion === 'number') return d.id_calificacion;
+    if ('data' in d && typeof d.data === 'object' && d.data !== null && 'id_calificacion' in (d.data as Record<string, unknown>)) {
+      const inner = d.data as Record<string, unknown>;
+      if (typeof inner.id_calificacion === 'number') return inner.id_calificacion;
+    }
+  }
+  return undefined;
 }
 
 const Calificacion = () => {
@@ -112,7 +141,6 @@ const Calificacion = () => {
   const [evaluacionesOriginales, setEvaluacionesOriginales] = useState<Evaluacion[]>([]);
   const [mostrarLeyenda, setMostrarLeyenda] = useState(true);
   const [loadingAnimation, setLoadingAnimation] = useState(false);
-  const notifications = 4;
   const [mostrarEstadisticas, setMostrarEstadisticas] = useState(false);
   const location = useLocation();
 
@@ -182,7 +210,7 @@ const Calificacion = () => {
         const estudiantes = resEstudiantes.data as Estudiante[];
         console.log('Estudiantes cargados:', estudiantes.length);
         const todasLasEvaluaciones: Evaluacion[] = [];
-        let estudiantesConEvaluaciones: EstudianteConEvaluaciones[] = [];
+        const estudiantesConEvaluaciones: EstudianteConEvaluaciones[] = [];
 
         // Filtrar estudiantes eliminados y por taller seleccionado
         let estudiantesActivos = estudiantes.filter(estudiante => {
@@ -196,7 +224,10 @@ const Calificacion = () => {
 
         // Si es estudiante, solo dejar el suyo
         if (esEstudiante && user) {
-          const estudianteLogueado = estudiantesActivos.find(e => e.usuario_est && e.usuario_est.id_usuario === user.id_usuario);
+          const estudianteLogueado = estudiantesActivos.find(e => {
+            // @ts-expect-error usuario_est puede no tener id_usuario dependiendo del backend
+            return e.usuario_est && e.usuario_est.id_usuario === user.id_usuario;
+          });
           estudiantesActivos = estudianteLogueado ? [estudianteLogueado] : [];
         }
 
@@ -219,21 +250,17 @@ const Calificacion = () => {
                 const resEvaluaciones = await api.get(`/evaluaciones-estudiante/porPasantia/${pasantia.id_pas}`);
                 evaluacionesEstudiante = resEvaluaciones.data as Evaluacion[];
                 console.log(`Evaluaciones encontradas: ${evaluacionesEstudiante.length}`);
-              } catch (err) {
-                console.error(`Error al obtener evaluaciones para ${estudiante.nombre_est}:`, err);
-              }
+              } catch {}
 
               // 3. Procesar las evaluaciones
               const evaluacionesPorRA: { [key: string]: number | null } = {
                 'RA1': null, 'RA2': null, 'RA3': null,
                 'RA4': null, 'RA5': null, 'RA6': null, 'RA7': null
               };
-
               let sumaTotal = 0;
               let contadorNotas = 0;
 
               evaluacionesEstudiante.forEach(evaluacion => {
-                console.log(`Procesando evaluación RA${evaluacion.ra_eval} para estudiante ${estudiante.nombre_est}`);
                 const promedio = (
                   evaluacion.asistencia_eval +
                   evaluacion.desempeño_eval +
@@ -243,7 +270,6 @@ const Calificacion = () => {
                   evaluacion.trabajo_equipo_eval +
                   evaluacion.resolucion_problemas_eval
                 ) / 7;
-
                 evaluacionesPorRA[evaluacion.ra_eval] = Math.round(promedio);
                 sumaTotal += promedio;
                 contadorNotas++;
@@ -254,13 +280,61 @@ const Calificacion = () => {
               const promedioFinal = contadorNotas > 0 ? Math.round(sumaTotal / contadorNotas) : 0;
               console.log(`Promedio final para ${estudiante.nombre_est}: ${promedioFinal}`);
 
+              // --- Obtener el estado del módulo de pasantía ---
+              let estado_modulo: 'Aprobado' | 'Reprobado' | null = null;
+              let id_modulo: number | null = null;
+              let moduloCreado = null;
+              try {
+                const modulos: import('../../services/moduloPasantiaService').ModuloPasantia[] = await moduloPasantiaService.getAll();
+                let modulo = modulos.find((m) => m.pasantia?.id_pas === pasantia.id_pas);
+                if (modulo) {
+                  estado_modulo = modulo.estado_modulo;
+                  id_modulo = modulo.id_modulo;
+                } else if (contadorNotas > 0) {
+                  // Si no existe el módulo pero sí hay evaluaciones, crearlo automáticamente
+                  // 1. Buscar la calificación correspondiente
+                  let idCalificacion: number | undefined;
+                  let calificacionExistente = null;
+                  try {
+                    // Buscar la calificación con el promedio de la última evaluación (o la más alta)
+                    // Usamos la primera evaluación para buscar la calificación
+                    const evalParaCalif = evaluacionesEstudiante[0];
+                    if (evalParaCalif) {
+                      const resCalificaciones = await api.get(`/calificaciones-estudiante/porEvaluacion/${evalParaCalif.id_eval_est}`);
+                      if (Array.isArray(resCalificaciones.data) && resCalificaciones.data.length > 0) {
+                        calificacionExistente = resCalificaciones.data[0];
+                      }
+                    }
+                  } catch {}
+                  if (calificacionExistente && calificacionExistente.id_calificacion) {
+                    idCalificacion = calificacionExistente.id_calificacion;
+                  } else {
+                    // Si no existe, crearla con el promedio actual
+                    const resNuevaCalif = await api.post('/calificaciones-estudiante', { promedio: promedioFinal, evaluacion_estudiante: { id_eval_est: evaluacionesEstudiante[0]?.id_eval_est } });
+                    idCalificacion = getIdCalificacion(resNuevaCalif.data);
+                  }
+                  if (idCalificacion !== undefined) {
+                    const nuevoEstado = promedioFinal >= 70 ? 'Aprobado' : 'Reprobado';
+                    moduloCreado = await moduloPasantiaService.create({
+                      estado_modulo: nuevoEstado,
+                      pasantia: { id_pas: pasantia.id_pas },
+                      calificacion_estudiante: { id_calificacion: idCalificacion }
+                    });
+                    estado_modulo = moduloCreado.estado_modulo;
+                    id_modulo = moduloCreado.id_modulo;
+                  }
+                }
+              } catch {}
+
               estudiantesConEvaluaciones.push({
                 estudiante,
                 evaluaciones: evaluacionesPorRA,
                 promedio: promedioFinal,
                 centro: pasantia.centro_pas.nombre_centro,
                 pasantia_id: pasantia.id_pas,
-                pasantia_real: true
+                pasantia_real: true,
+                estado_modulo,
+                id_modulo
               });
             } else {
               // Si no tiene pasantía, agregar estudiante con valores por defecto
@@ -273,7 +347,9 @@ const Calificacion = () => {
                 promedio: 0,
                 centro: 'Sin asignar',
                 pasantia_id: 0,
-                pasantia_real: false
+                pasantia_real: false,
+                estado_modulo: null,
+                id_modulo: null
               });
             }
           } catch (error) {
@@ -288,7 +364,9 @@ const Calificacion = () => {
               promedio: 0,
               centro: 'Sin asignar',
               pasantia_id: 0,
-              pasantia_real: false
+              pasantia_real: false,
+              estado_modulo: null,
+              id_modulo: null
             });
           }
         }
@@ -318,6 +396,8 @@ const Calificacion = () => {
   };
   
   const handleCellClick = (estudiante: string, ra: string, valorActual: number | null) => {
+    // Solo permitir edición si existe evaluación (valorActual !== null)
+    if (valorActual === null) return;
     setEditCell({
       estudiante,
       ra,
@@ -406,21 +486,45 @@ const Calificacion = () => {
           console.log(`Actualizando evaluación ${evaluacionExistente.id_eval_est} para RA: ${editCell.ra}, valor: ${editCell.valor}`);
           await api.put(`/evaluaciones-estudiante/${evaluacionExistente.id_eval_est}`, valorActualizado);
           
-          // --- INICIO BLOQUE NUEVO ---
+          // --- Buscar o crear calificación ---
+          let idCalificacion: number | undefined;
           let calificacionExistente = null;
           try {
             const resCalificaciones = await api.get(`/calificaciones-estudiante/porEvaluacion/${evaluacionExistente.id_eval_est}`);
             if (Array.isArray(resCalificaciones.data) && resCalificaciones.data.length > 0) {
               calificacionExistente = resCalificaciones.data[0];
             }
-          } catch { /* ignorado */ } // catch vacío para evitar linter
-          if (calificacionExistente) {
+          } catch {}
+          if (calificacionExistente && calificacionExistente.id_calificacion) {
             await api.put(`/calificaciones-estudiante/${calificacionExistente.id_calificacion}`, { promedio: estudianteData.promedio });
+            idCalificacion = calificacionExistente.id_calificacion;
           } else {
-            await api.post('/calificaciones-estudiante', { promedio: estudianteData.promedio, evaluacion_estudiante: { id_eval_est: evaluacionExistente.id_eval_est } });
+            const resNuevaCalif = await api.post('/calificaciones-estudiante', { promedio: estudianteData.promedio, evaluacion_estudiante: { id_eval_est: evaluacionExistente.id_eval_est } });
+            idCalificacion = getIdCalificacion(resNuevaCalif.data);
+            if (idCalificacion === undefined) {
+              toast.error('No se pudo obtener el ID de la calificación');
+              setSaving(false);
+              setEditCell(null);
+              return;
+            }
           }
-          // --- FIN BLOQUE NUEVO ---
-          
+          // --- ACTUALIZAR/CREAR MÓDULO DE PASANTÍA ---
+          const modulos: import('../../services/moduloPasantiaService').ModuloPasantia[] = await moduloPasantiaService.getAll();
+          const moduloGuardado = modulos.find((m) => m.pasantia?.id_pas === estudianteData.pasantia_id);
+          const nuevoEstado = estudianteData.promedio >= 70 ? 'Aprobado' : 'Reprobado';
+          if (moduloGuardado) {
+            await moduloPasantiaService.update(moduloGuardado.id_modulo, { estado_modulo: nuevoEstado, calificacion_estudiante: { id_calificacion: idCalificacion } });
+            nuevosDatos[estudianteIndex].estado_modulo = nuevoEstado;
+            nuevosDatos[estudianteIndex].id_modulo = moduloGuardado.id_modulo;
+          } else {
+            const creado = await moduloPasantiaService.create({
+              estado_modulo: nuevoEstado,
+              pasantia: { id_pas: estudianteData.pasantia_id },
+              calificacion_estudiante: { id_calificacion: idCalificacion }
+            });
+            nuevosDatos[estudianteIndex].estado_modulo = creado.estado_modulo;
+            nuevosDatos[estudianteIndex].id_modulo = creado.id_modulo;
+          }
           // --- NUEVO: Recargar evaluaciones del estudiante ---
           const resEvaluaciones = await api.get(`/evaluaciones-estudiante/porEstudiante/${editCell.estudiante}`);
           const nuevasEvaluaciones = Array.isArray(resEvaluaciones.data) ? resEvaluaciones.data : [];
@@ -430,15 +534,8 @@ const Calificacion = () => {
               ...nuevasEvaluaciones
             ]
           );
-          // --- FIN NUEVO ---
-          
-          // Calificación actualizada con éxito (solo actualizamos la evaluación)
-          console.log(`Evaluación ${evaluacionExistente.id_eval_est} actualizada correctamente`);
-          toast.success('Calificación actualizada correctamente');
-          
-          // Nota: Se ha omitido la actualización/creación en la tabla calificaciones
-          // porque los endpoints necesarios no existen en el backend.
-          // Solo estamos trabajando con la tabla evaluaciones_estudiante.
+          setEstudiantesData(nuevosDatos);
+          toast.success('Calificación y estado del módulo actualizados correctamente');
         } catch (err) {
           console.error('Error al actualizar evaluación:', err);
           toast.error('Error al actualizar la evaluación');
@@ -519,202 +616,101 @@ const Calificacion = () => {
     let actualizaciones = 0;
     let creaciones = 0;
     let pasantiasNoEncontradas = 0;
-    
     try {
       setSaving(true);
-      
-      // Para cada estudiante con evaluaciones
       for (const estudianteData of estudiantesData) {
         const estudiante = estudianteData.estudiante;
         const pasantiaId = estudianteData.pasantia_id;
-        
-        // Verificar si hay alguna evaluación existente para este estudiante
-        const evaluacionesEstudiante = evaluacionesOriginales.filter(
-          evaluacion => evaluacion.pasantia_eval.estudiante_pas.documento_id_est === estudiante.documento_id_est
-        );
-        
-        console.log(`Estudiante ${estudiante.nombre_est} (${estudiante.documento_id_est}): Encontradas ${evaluacionesEstudiante.length} evaluaciones existentes`);
-        
-        // Para cada RA con valor
-        for (const [ra, valor] of Object.entries(estudianteData.evaluaciones)) {
-          if (valor === null) continue; // Si no tiene valor, seguimos con el siguiente
-          
-          // Buscar si ya existe una evaluación para este RA y estudiante
-          const evaluacionExistente = evaluacionesEstudiante.find(
-            evaluacion => evaluacion.ra_eval === ra
-          );
-          
-          if (evaluacionExistente) {
+        const promedio = estudianteData.promedio;
+        if (estudianteData.pasantia_real && pasantiaId > 0) {
+          for (const [ra, valor] of Object.entries(estudianteData.evaluaciones)) {
+            if (valor === null) continue;
             try {
-              // Actualizar evaluación existente
-              const valorActualizado = {
-                asistencia_eval: valor,
-                desempeño_eval: valor,
-                disponibilidad_eval: valor,
-                responsabilidad_eval: valor,
-                limpieza_eval: valor,
-                trabajo_equipo_eval: valor,
-                resolucion_problemas_eval: valor
-              };
-              
-              console.log(`Actualizando evaluación ${evaluacionExistente.id_eval_est} para estudiante ${estudiante.nombre_est}, RA: ${ra}, valor: ${valor}`);
-              await api.put(`/evaluaciones-estudiante/${evaluacionExistente.id_eval_est}`, valorActualizado);
-              actualizaciones++;
-              
-              // --- INICIO BLOQUE NUEVO ---
+              // 1. Buscar evaluación existente para ese RA y pasantía
+              const resEvaluaciones = await api.get(`/evaluaciones-estudiante/porPasantia/${pasantiaId}`);
+              const evaluacionesEstudiante = Array.isArray(resEvaluaciones.data) ? resEvaluaciones.data : [];
+              let evalRA = evaluacionesEstudiante.find((e: any) => e.ra_eval === ra);
+              let idEvaluacion: number | undefined;
+              if (evalRA && evalRA.id_eval_est) {
+                // Actualizar
+                await api.put(`/evaluaciones-estudiante/${evalRA.id_eval_est}`, {
+                  asistencia_eval: valor,
+                  desempeño_eval: valor,
+                  disponibilidad_eval: valor,
+                  responsabilidad_eval: valor,
+                  limpieza_eval: valor,
+                  trabajo_equipo_eval: valor,
+                  resolucion_problemas_eval: valor
+                });
+                idEvaluacion = evalRA.id_eval_est;
+                actualizaciones++;
+              } else {
+                // Crear
+                const resNuevaEval = await api.post('/evaluaciones-estudiante', {
+                  pasantia_eval: { id_pas: pasantiaId },
+                  ra_eval: ra,
+                  asistencia_eval: valor,
+                  desempeño_eval: valor,
+                  disponibilidad_eval: valor,
+                  responsabilidad_eval: valor,
+                  limpieza_eval: valor,
+                  trabajo_equipo_eval: valor,
+                  resolucion_problemas_eval: valor
+                });
+                idEvaluacion = getIdEvalEst(resNuevaEval.data);
+                if (idEvaluacion !== undefined) {
+                  creaciones++;
+                } else {
+                  errores++;
+                  continue;
+                }
+              }
+              // 2. Buscar o crear calificación
+              let idCalificacion: number | undefined;
               let calificacionExistente = null;
               try {
-                const resCalificaciones = await api.get(`/calificaciones-estudiante/porEvaluacion/${evaluacionExistente.id_eval_est}`);
+                const resCalificaciones = await api.get(`/calificaciones-estudiante/porEvaluacion/${idEvaluacion}`);
                 if (Array.isArray(resCalificaciones.data) && resCalificaciones.data.length > 0) {
                   calificacionExistente = resCalificaciones.data[0];
                 }
-              } catch { /* ignorado */ }
-              if (calificacionExistente) {
-                await api.put(`/calificaciones-estudiante/${calificacionExistente.id_calificacion}`, { promedio: estudianteData.promedio });
+              } catch {}
+              if (calificacionExistente && calificacionExistente.id_calificacion) {
+                await api.put(`/calificaciones-estudiante/${calificacionExistente.id_calificacion}`, { promedio });
+                idCalificacion = calificacionExistente.id_calificacion;
               } else {
-                await api.post('/calificaciones-estudiante', { promedio: estudianteData.promedio, evaluacion_estudiante: { id_eval_est: evaluacionExistente.id_eval_est } });
-              }
-              // --- FIN BLOQUE NUEVO ---
-              
-              // Las evaluaciones se actualizaron correctamente
-              console.log(`Evaluación ${evaluacionExistente.id_eval_est} actualizada correctamente`);
-              actualizaciones++;
-              
-              // Nota: Se ha omitido la actualización/creación en la tabla calificaciones
-              // porque los endpoints necesarios no existen en el backend.
-            } catch (err) {
-              console.error(`Error al actualizar evaluación ${evaluacionExistente.id_eval_est}:`, err);
-              errores++;
-            }
-          } else {
-            // IMPORTANTE: Si no existe la evaluación y tenemos el ID de pasantía,
-            // verificamos primero que la pasantía realmente exista en el backend
-            if (pasantiaId && pasantiaId > 0) { // Verificamos cualquier ID de pasantía positivo, incluso si no se marcó como "real"
-              try {
-                // Verificar que la pasantía existe consultando primero
-                console.log(`Verificando si existe la pasantía con ID ${pasantiaId} antes de crear evaluación`);
-                const resPasantia = await api.get(`/pasantias/${pasantiaId}`).catch(() => {
-                  console.warn(`La pasantía con ID ${pasantiaId} no existe en el sistema o no se puede acceder`);
-                  pasantiasNoEncontradas++; // Incrementamos el contador
-                  return { data: null };
-                });
-                
-                // Solo creamos la evaluación si la pasantía existe
-                if (resPasantia.data) {
-                  const nuevaEvaluacion = {
-                    pasantia_eval: { id_pas: pasantiaId },
-                    ra_eval: ra,
-                    asistencia_eval: valor,
-                    desempeño_eval: valor,
-                    disponibilidad_eval: valor,
-                    responsabilidad_eval: valor,
-                    limpieza_eval: valor,
-                    trabajo_equipo_eval: valor,
-                    resolucion_problemas_eval: valor
-                  };
-                  
-                  console.log(`Creando nueva evaluación para estudiante ${estudiante.nombre_est}, RA: ${ra}, valor: ${valor}, pasantía: ${pasantiaId}`);
-                  try {
-                    const resNuevaEval = await api.post('/evaluaciones-estudiante', nuevaEvaluacion);
-                    creaciones++;
-                    // La evaluación se ha creado correctamente
-                    if (resNuevaEval.data && typeof resNuevaEval.data === 'object' && 'id_eval_est' in resNuevaEval.data) {
-                      console.log(`Evaluación creada con éxito: ${resNuevaEval.data.id_eval_est}`);
-                      // --- INICIO BLOQUE NUEVO ---
-                      let calificacionExistente = null;
-                      try {
-                        const resCalificaciones = await api.get(`/calificaciones-estudiante/porEvaluacion/${resNuevaEval.data.id_eval_est}`);
-                        if (Array.isArray(resCalificaciones.data) && resCalificaciones.data.length > 0) {
-                          calificacionExistente = resCalificaciones.data[0];
-                        }
-                      } catch { /* ignorado */ }
-                      if (calificacionExistente) {
-                        await api.put(`/calificaciones-estudiante/${calificacionExistente.id_calificacion}`, { promedio: estudianteData.promedio });
-                      } else {
-                        await api.post('/calificaciones-estudiante', { promedio: estudianteData.promedio, evaluacion_estudiante: { id_eval_est: resNuevaEval.data.id_eval_est } });
-                      }
-                      // --- FIN BLOQUE NUEVO ---
-                    } else {
-                      console.log('Evaluación creada, pero no se pudo obtener el id_eval_est. Respuesta:', resNuevaEval.data);
-                    }
-                  } catch (error) {
-                    console.error('Respuesta de API inválida al crear evaluación:', error);
-                    errores++;
-                  }
-                } else {
-                  console.warn(`Omitiendo creación de evaluación para estudiante ${estudiante.documento_id_est}, RA: ${ra} - La pasantía ${pasantiaId} no existe`);
-                  toast.warning(`No se pudo crear evaluación para ${estudiante.nombre_est} (RA: ${ra}): Pasantía no válida`);
+                const resNuevaCalif = await api.post('/calificaciones-estudiante', { promedio, evaluacion_estudiante: { id_eval_est: idEvaluacion } });
+                idCalificacion = getIdCalificacion(resNuevaCalif.data);
+                if (idCalificacion === undefined) {
                   errores++;
+                  continue;
                 }
-              } catch (err) {
-                console.error(`Error al crear evaluación para estudiante ${estudiante.documento_id_est}:`, err);
-                errores++;
               }
-            } else {
-              // Para pasantías ficticias o sin ID, mostramos un mensaje más claro
-              const razon = !pasantiaId ? "No hay ID de pasantía" : 
-                           pasantiaId <= 0 ? "Pasantía generada localmente" : 
-                           "Pasantía no confirmada";
-              console.warn(`No se puede crear evaluación para ${estudiante.nombre_est}, RA: ${ra}: ${razon}`);
-              toast.warning(`No se puede registrar evaluación para ${estudiante.nombre_est}: El estudiante no tiene una pasantía válida en el sistema`);
-              pasantiasNoEncontradas++; // También incrementamos aquí si no hay ID
+              // 3. Crear o actualizar módulo de pasantía
+              const modulos: import('../../services/moduloPasantiaService').ModuloPasantia[] = await moduloPasantiaService.getAll();
+              const moduloGuardado = modulos.find((m) => m.pasantia?.id_pas === pasantiaId);
+              const nuevoEstado = promedio >= 70 ? 'Aprobado' : 'Reprobado';
+              if (moduloGuardado) {
+                await moduloPasantiaService.update(moduloGuardado.id_modulo, { estado_modulo: nuevoEstado, id_calificacion_estudiante: idCalificacion });
+                estudianteData.estado_modulo = nuevoEstado;
+                estudianteData.id_modulo = moduloGuardado.id_modulo;
+              } else {
+                const creado = await moduloPasantiaService.create({
+                  estado_modulo: nuevoEstado,
+                  pasantia: { id_pas: pasantiaId },
+                  calificacion_estudiante: { id_calificacion: idCalificacion }
+                });
+                estudianteData.estado_modulo = creado.estado_modulo;
+                estudianteData.id_modulo = creado.id_modulo;
+              }
+            } catch (error) {
               errores++;
             }
           }
         }
       }
-      
-      // Personalizar mensajes según el resultado
-      if (errores > 0) {
-        if (actualizaciones > 0 || creaciones > 0) {
-          // Mensaje más descriptivo mencionando pasantías no encontradas
-          const mensajePasantias = pasantiasNoEncontradas > 0 
-            ? `, ${pasantiasNoEncontradas} pasantías no encontradas` 
-            : '';
-          toast.warning(`Se guardaron algunas calificaciones (${actualizaciones} actualizaciones, ${creaciones} nuevos registros), pero ocurrieron ${errores} errores${mensajePasantias}. Revise la consola para más detalles.`);
-        } else {
-          const mensajePasantias = pasantiasNoEncontradas > 0 
-            ? ` (incluye ${pasantiasNoEncontradas} pasantías no encontradas)` 
-            : '';
-          toast.error(`Error al guardar las calificaciones. Ocurrieron ${errores} errores${mensajePasantias}.`);
-        }
-      } else {
-        toast.success(`Calificaciones guardadas correctamente: ${actualizaciones} actualizaciones, ${creaciones} nuevos registros`);
-      }
-      
-      // Actualizar las evaluaciones originales
-      try {
-        console.log('Actualizando evaluaciones originales...');
-        const resPasantias = await api.get('/pasantias');
-        let pasantias = Array.isArray(resPasantias.data) ? resPasantias.data : [];
-        pasantias = pasantias.filter(pasantia => {
-          return pasantia.estudiante_pas && 
-                 pasantia.estudiante_pas.taller_est === selectedTaller;
-        });
-        
-        const nuevasEvaluaciones: Evaluacion[] = [];
-        
-        for (const pasantia of pasantias) {
-          const estudiante = pasantia.estudiante_pas;
-          
-          if (!estudiante || !estudiante.documento_id_est) continue;
-          
-          const resEvaluaciones = await api.get(`/evaluaciones-estudiante/porEstudiante/${estudiante.documento_id_est}`);
-          const evaluacionesEstudiante = Array.isArray(resEvaluaciones.data) ? resEvaluaciones.data : [];
-          
-          nuevasEvaluaciones.push(...evaluacionesEstudiante);
-        }
-        
-        console.log(`Actualizadas ${nuevasEvaluaciones.length} evaluaciones en el estado.`);
-        setEvaluacionesOriginales(nuevasEvaluaciones);
-      } catch (err) {
-        console.error('Error al actualizar las evaluaciones originales:', err);
-        toast.warning('No se pudo actualizar la lista de evaluaciones en memoria.');
-      }
-      
+      toast.success('Calificaciones y estados de módulos guardados correctamente');
     } catch (error) {
-      console.error('Error al guardar todas las calificaciones:', error);
-      toast.error('Se produjo un error al guardar las calificaciones');
+      toast.error('Se produjo un error al guardar las calificaciones y módulos');
     } finally {
       setSaving(false);
     }
@@ -816,7 +812,7 @@ const Calificacion = () => {
           }),
         }}
       >
-        <DashboardAppBar notifications={notifications} toggleDrawer={toggleDrawer} />
+        <DashboardAppBar toggleDrawer={toggleDrawer} />
         
         <MUI.Box 
           sx={{ 
@@ -1236,6 +1232,20 @@ const Calificacion = () => {
                               <Icons.Stars sx={{ mr: 1, verticalAlign: 'middle' }} />
                               Promedio
                             </MUI.TableCell>
+
+                            <MUI.TableCell
+                              align="center"
+                              sx={{
+                                fontWeight: 'bold',
+                                fontSize: { xs: '0.9rem', md: '1.1rem' },
+                                whiteSpace: 'nowrap',
+                                bgcolor: alpha(theme.palette.primary.main, 0.1),
+                                borderBottom: `2px solid ${theme.palette.primary.main}`,
+                              }}
+                            >
+                              <Icons.AssignmentTurnedIn sx={{ mr: 1, verticalAlign: 'middle' }} />
+                              Estado Modulo
+                            </MUI.TableCell>
                           </MUI.TableRow>
                         </MUI.TableHead>
                         
@@ -1275,69 +1285,74 @@ const Calificacion = () => {
                                 {estudianteData.centro}
                               </MUI.TableCell>
 
-                              {['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].map((ra) => (
-                                <MUI.TableCell
-                                  key={ra}
-                                  align="center"
-                                  // Solo permitir click si NO es estudiante
-                                  onClick={!esEstudiante ? () => handleCellClick(estudianteData.estudiante.documento_id_est, ra, estudianteData.evaluaciones[ra]) : undefined}
-                                  sx={{
-                                    cursor: !esEstudiante ? 'pointer' : 'default',
-                                    position: 'relative',
-                                    '&:hover': {
-                                      bgcolor: !esEstudiante ? alpha(theme.palette.primary.light, 0.2) : undefined,
-                                    },
-                                  }}
-                                >
-                                  {/* Si está editando y NO es estudiante, mostrar input, si no, solo mostrar valor */}
-                                  {editCell?.estudiante === estudianteData.estudiante.documento_id_est && editCell?.ra === ra && !esEstudiante ? (
-                                    <MUI.TextField
-                                      type="number"
-                                      value={editCell.valor}
-                                      onChange={handleCellChange}
-                                      onBlur={handleCellBlur}
-                                      onKeyPress={handleKeyPress}
-                                      autoFocus
-                                      inputProps={{
-                                        min: 0,
-                                        max: 100,
-                                        style: { textAlign: 'center' }
-                                      }}
-                                      sx={{
-                                        width: '80px',
-                                        '& input': {
-                                          padding: '8px',
-                                          textAlign: 'center',
-                                        }
-                                      }}
-                                    />
-                                  ) : (
-                                    <MUI.Box
-                                      sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: 0.5,
-                                      }}
-                                    >
-                                      {estudianteData.evaluaciones[ra] !== null ? (
-                                        <>
-                                          {estudianteData.evaluaciones[ra] >= 70 ? (
-                                            <Icons.CheckCircle sx={{ fontSize: 16, color: '#2e7d32' }} />
-                                          ) : (
-                                            <Icons.Cancel sx={{ fontSize: 16, color: '#c62828' }} />
-                                          )}
-                                          {estudianteData.evaluaciones[ra]}
-                                        </>
-                                      ) : (
-                                        <MUI.Typography variant="body2" color="textSecondary">
-                                          N/A
-                                        </MUI.Typography>
-                                      )}
-                                    </MUI.Box>
-                                  )}
-                                </MUI.TableCell>
-                              ))}
+                              {['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].map((ra) => {
+                                const valorRA = estudianteData.evaluaciones[ra];
+                                const isEditable = valorRA !== null && !esEstudiante;
+                                return (
+                                  <MUI.TableCell
+                                    key={ra}
+                                    align="center"
+                                    onClick={isEditable ? () => handleCellClick(estudianteData.estudiante.documento_id_est, ra, valorRA) : undefined}
+                                    sx={{
+                                      cursor: isEditable ? 'pointer' : 'not-allowed',
+                                      position: 'relative',
+                                      opacity: valorRA === null ? 0.5 : 1,
+                                      backgroundColor: valorRA === null ? alpha(theme.palette.action.disabledBackground, 0.1) : undefined,
+                                      '&:hover': {
+                                        bgcolor: isEditable ? alpha(theme.palette.primary.light, 0.2) : undefined,
+                                      },
+                                    }}
+                                  >
+                                    {/* Si está editando y NO es estudiante, mostrar input, si no, solo mostrar valor */}
+                                    {editCell?.estudiante === estudianteData.estudiante.documento_id_est && editCell?.ra === ra && isEditable ? (
+                                      <MUI.TextField
+                                        type="number"
+                                        value={editCell.valor}
+                                        onChange={handleCellChange}
+                                        onBlur={handleCellBlur}
+                                        onKeyPress={handleKeyPress}
+                                        autoFocus
+                                        inputProps={{
+                                          min: 0,
+                                          max: 100,
+                                          style: { textAlign: 'center' }
+                                        }}
+                                        sx={{
+                                          width: '80px',
+                                          '& input': {
+                                            padding: '8px',
+                                            textAlign: 'center',
+                                          }
+                                        }}
+                                      />
+                                    ) : (
+                                      <MUI.Box
+                                        sx={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          gap: 0.5,
+                                        }}
+                                      >
+                                        {valorRA !== null ? (
+                                          <>
+                                            {valorRA >= 70 ? (
+                                              <Icons.CheckCircle sx={{ fontSize: 16, color: '#2e7d32' }} />
+                                            ) : (
+                                              <Icons.Cancel sx={{ fontSize: 16, color: '#c62828' }} />
+                                            )}
+                                            {valorRA}
+                                          </>
+                                        ) : (
+                                          <MUI.Typography variant="body2" color="textSecondary">
+                                            N/A
+                                          </MUI.Typography>
+                                        )}
+                                      </MUI.Box>
+                                    )}
+                                  </MUI.TableCell>
+                                );
+                              })}
 
                               <MUI.TableCell
                                 align="center"
@@ -1348,6 +1363,39 @@ const Calificacion = () => {
                                 }}
                               >
                                 {estudianteData.promedio}
+                              </MUI.TableCell>
+
+                              <MUI.TableCell
+                                align="center"
+                                sx={{
+                                  fontWeight: 'bold',
+                                  color:
+                                    estudianteData.estado_modulo === 'Aprobado'
+                                      ? '#2e7d32'
+                                      : estudianteData.estado_modulo === 'Reprobado'
+                                      ? '#c62828'
+                                      : theme.palette.text.secondary,
+                                  borderLeft: `1px solid ${alpha(theme.palette.divider, 0.3)}`,
+                                }}
+                              >
+                                {estudianteData.estado_modulo ? (
+                                  <MUI.Chip
+                                    label={estudianteData.estado_modulo}
+                                    color={estudianteData.estado_modulo === 'Aprobado' ? 'success' : 'error'}
+                                    icon={
+                                      estudianteData.estado_modulo === 'Aprobado' ? (
+                                        <Icons.CheckCircle />
+                                      ) : (
+                                        <Icons.Cancel />
+                                      )
+                                    }
+                                    sx={{ fontWeight: 'bold', fontSize: '1rem' }}
+                                  />
+                                ) : (
+                                  <MUI.Typography variant="body2" color="textSecondary">
+                                    Sin estado
+                                  </MUI.Typography>
+                                )}
                               </MUI.TableCell>
                             </MUI.TableRow>
                           ))}
