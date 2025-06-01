@@ -133,7 +133,7 @@ const studentService = {
 
   async assignPolicy(id: string, polizaData: PolizaData): Promise<Estudiante> {
     try {
-      const response = await api.put<Estudiante>(`/estudiantes/${id}/poliza`, polizaData);
+      const response = await api.put<Estudiante>(`/estudiantes/poliza/${id}`, polizaData);
       return response.data;
     } catch (error) {
       console.error('Error al asignar póliza:', error);
@@ -170,7 +170,7 @@ const studentService = {
   },
 
   updatePolizaEstudiante: async (documento_id_est: string, id_poliza: number) => {
-    return api.put(`/estudiantes/${documento_id_est}/poliza`, { id_poliza });
+    return api.put(`/estudiantes/poliza/${documento_id_est}`, { id_poliza });
   }
 };
 
