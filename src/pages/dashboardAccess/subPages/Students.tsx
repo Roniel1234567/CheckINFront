@@ -26,6 +26,7 @@ import api from '../../../services/api';
 import { useReadOnlyMode } from '../../../hooks/useReadOnlyMode';
 import { useToast } from '../../../hooks/useToast';
 import emailService from '../../../services/emailService';
+import pasantiaService from '../../../services/pasantiaService';
 
 // Define el tipo para la dirección completa
 interface DireccionCompleta {
@@ -922,20 +923,26 @@ const Students = () => {
   // --- ACTUALIZAR FECHAS Y HORAS DE PASANTÍA ---
   const cargarDatosFechas = async () => {
     try {
-      // Primero obtenemos todos los estudiantes
+      // Obtener todos los estudiantes y todas las pasantías
       const estudiantes = await studentService.getAllStudents();
-      
-      // Transformamos los datos al formato que necesitamos
-      const fechasData = estudiantes.map(est => ({
-        documento_id_est: est.documento_id_est,
-        nombre_completo: `${est.nombre_est} ${est.apellido_est}`,
-        centro: est.centro_trabajo?.nombre_centro || '-',
-        fecha_inicio: est.fecha_inicio_pasantia,
-        fecha_fin: est.fecha_fin_pasantia,
-        horas_realizadas: est.horaspasrealizadas_est || 0,
-        tipo_documento_est: est.tipo_documento_est,
-        pasaporte_codigo_pais: est.pasaporte_codigo_pais
-      }));
+      const pasantias = await pasantiaService.getAllPasantias();
+
+      const fechasData = estudiantes.map(est => {
+        // Buscar la pasantía activa o la más reciente del estudiante
+        const pasantiasEst = pasantias.filter(p => p.estudiante_pas.documento_id_est === est.documento_id_est);
+        const pasantia = pasantiasEst.find(p => p.estado_pas === 'En Proceso') || pasantiasEst[0];
+
+        return {
+          documento_id_est: est.documento_id_est,
+          nombre_completo: `${est.nombre_est} ${est.apellido_est}`,
+          centro: pasantia ? pasantia.centro_pas.nombre_centro : '-',
+          fecha_inicio: est.fecha_inicio_pasantia || '',
+          fecha_fin: est.fecha_fin_pasantia || '',
+          horas_realizadas: Number(est.horaspasrealizadas_est ?? 0),
+          tipo_documento_est: est.tipo_documento_est,
+          pasaporte_codigo_pais: est.pasaporte_codigo_pais
+        };
+      });
 
       setFechasData(fechasData);
       setFechasRows(fechasData);
@@ -971,7 +978,7 @@ const Students = () => {
           await studentService.updateFechasPasantia(estudiante.documento_id_est, {
             fecha_inicio_pasantia: estudiante.fecha_inicio,
             fecha_fin_pasantia: estudiante.fecha_fin,
-            horas_realizadas: estudiante.horas_realizadas
+            horaspasrealizadas_est: estudiante.horas_realizadas
           });
         })
       );
@@ -1593,7 +1600,7 @@ const Students = () => {
                     </MUI.TableRow>
                   </MUI.TableHead>
                   <MUI.TableBody>
-                    {filtrarDatosFechas(fechasRows).map((row) => (
+                    {filtrarDatosFechas(fechasData).map((row) => (
                       <MUI.TableRow key={row.documento_id_est}>
                         <MUI.TableCell>
                           {row.tipo_documento_est === 'Pasaporte' ? 
