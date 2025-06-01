@@ -312,41 +312,41 @@ const Students = () => {
 
       // 1. Crear el contacto primero
       const contactoResponse = await api.post('/contactos', {
-        telefono_contacto: formData.telefono,
-        email_contacto: formData.email
-      });
+              telefono_contacto: formData.telefono,
+              email_contacto: formData.email
+            });
 
       const contactoId = contactoResponse.data.id_contacto;
 
       // 2. Crear la dirección
       const direccionResponse = await api.post('/direcciones', {
-        sector_dir: Number(formData.sector),
-        calle_dir: formData.calle,
-        num_res_dir: formData.numero
-      });
+          sector_dir: Number(formData.sector),
+          calle_dir: formData.calle,
+          num_res_dir: formData.numero
+        });
 
       const direccionId = direccionResponse.data.id_dir;
 
       // 3. Crear el usuario primero
-      const nuevoUsuario = await userService.createUser({
+        const nuevoUsuario = await userService.createUser({
         dato_usuario: usuario,
         contrasena_usuario: contrasena,
         rol_usuario: 1 // Rol de estudiante
       });
 
       // 4. Crear el estudiante con el ID del usuario
-      const nuevoEstudiante = {
-        tipo_documento_est: formData.tipoDocumento,
-        documento_id_est: formData.documento,
-        nombre_est: formData.nombre,
+        const nuevoEstudiante = {
+          tipo_documento_est: formData.tipoDocumento,
+          documento_id_est: formData.documento,
+          nombre_est: formData.nombre,
         seg_nombre_est: formData.segNombre || null,
-        apellido_est: formData.apellido,
+          apellido_est: formData.apellido,
         seg_apellido_est: formData.segApellido || null,
-        fecha_nac_est: formData.fechaNacimiento,
+          fecha_nac_est: formData.fechaNacimiento,
         sexo_est: formData.sexo_est as "Masculino" | "Femenino",
-        nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
+          nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
         pasaporte_codigo_pais: formData.pasaporte_codigo_pais || null,
-        taller_est: formData.taller ? Number(formData.taller) : null,
+          taller_est: formData.taller ? Number(formData.taller) : null,
         usuario_est: nuevoUsuario.id_usuario, // Usar el ID del usuario creado
         contacto_est: contactoId,
         direccion_id: direccionId,
@@ -951,10 +951,10 @@ const Students = () => {
   const handleFechaCellChange = (estudiante: string, field: 'fecha_inicio' | 'fecha_fin' | 'horas_realizadas', value: string | number) => {
     setFechasData(prev => {
       const newData = prev.map(row => {
-        if (row.documento_id_est === estudiante) {
-          return { ...row, [field]: value };
-        }
-        return row;
+      if (row.documento_id_est === estudiante) {
+        return { ...row, [field]: value };
+      }
+      return row;
       });
       setFechasModificadas(true); // Marcar que hay cambios
       return newData;
@@ -964,7 +964,7 @@ const Students = () => {
   const handleGuardarFechas = async () => {
     if (!fechasModificadas) return;
     
-    setLoading(true);
+      setLoading(true);
     try {
       await Promise.all(
         fechasData.map(async (estudiante) => {
@@ -1282,15 +1282,15 @@ const Students = () => {
                             size="small" 
                             color="success" 
                             onClick={async () => {
-                              setRestaurando(estudiante.documento_id_est);
-                              try {
-                                await userService.updateUser(estudiante.usuario_est.id_usuario, { estado_usuario: 'Activo' });
-                                setSnackbar({ open: true, message: 'Estudiante restablecido correctamente', severity: 'success' });
-                                loadData();
-                              } catch {
-                                setSnackbar({ open: true, message: 'Error al restablecer estudiante', severity: 'error' });
-                              }
-                              setRestaurando(null);
+                            setRestaurando(estudiante.documento_id_est);
+                            try {
+                              await userService.updateUser(estudiante.usuario_est.id_usuario, { estado_usuario: 'Activo' });
+                              setSnackbar({ open: true, message: 'Estudiante restablecido correctamente', severity: 'success' });
+                              loadData();
+                            } catch {
+                              setSnackbar({ open: true, message: 'Error al restablecer estudiante', severity: 'error' });
+                            }
+                            setRestaurando(null);
                             }} 
                             disabled={isReadOnly || restaurando === estudiante.documento_id_est}
                           >
@@ -1419,15 +1419,15 @@ const Students = () => {
                           size="small" 
                           color="success" 
                           onClick={async () => {
-                            setRestaurando(estudiante.documento_id_est);
-                            try {
-                              await userService.updateUser(estudiante.usuario_est.id_usuario, { estado_usuario: 'Activo' });
-                              setSnackbar({ open: true, message: 'Estudiante restablecido correctamente', severity: 'success' });
-                              loadData();
-                            } catch {
-                              setSnackbar({ open: true, message: 'Error al restablecer estudiante', severity: 'error' });
-                            }
-                            setRestaurando(null);
+                          setRestaurando(estudiante.documento_id_est);
+                          try {
+                            await userService.updateUser(estudiante.usuario_est.id_usuario, { estado_usuario: 'Activo' });
+                            setSnackbar({ open: true, message: 'Estudiante restablecido correctamente', severity: 'success' });
+                            loadData();
+                          } catch {
+                            setSnackbar({ open: true, message: 'Error al restablecer estudiante', severity: 'error' });
+                          }
+                          setRestaurando(null);
                           }} 
                           disabled={isReadOnly || restaurando === estudiante.documento_id_est}
                         >

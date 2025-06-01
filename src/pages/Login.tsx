@@ -75,12 +75,10 @@ function Login() {
     }
 
     try {
-      const response = await authService.login(formData);
+      await authService.login(formData);
       const user = authService.getCurrentUser();
-      
-      // Verificar el estado del usuario
-      if (user.estado_usuario === 'Inactivo') {
-        toast.error('Tu cuenta está inactiva. Por favor, contacta al administrador.', {
+      if (!user) {
+        toast.error('No se pudo obtener la información del usuario.', {
           position: "top-center",
           autoClose: false
         });
@@ -93,7 +91,11 @@ function Login() {
       });
 
       // Redirigir según el rol
-      if (user.rol === 5) { // Observador
+      if (user.rol === 1 || user.rol === 3) { // Estudiante o Tutor
+        navigate('/pasantias');
+      } else if (user.rol === 2) { // Empresa
+        navigate('/plazas');
+      } else if (user.rol === 4 || user.rol === 5) { // Administrador u Observador
         navigate('/dashboard');
       } else {
         navigate(location.state?.from?.pathname || '/dashboard');

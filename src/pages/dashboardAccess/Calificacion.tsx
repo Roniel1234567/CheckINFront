@@ -625,7 +625,7 @@ const Calificacion = () => {
         const pasantiaId = estudianteData.pasantia_id;
         const promedio = estudianteData.promedio;
         if (estudianteData.pasantia_real && pasantiaId > 0) {
-          for (const [ra, valor] of Object.entries(estudianteData.evaluaciones)) {
+        for (const [ra, valor] of Object.entries(estudianteData.evaluaciones)) {
             if (valor === null) continue;
             try {
               // 1. Buscar evaluación existente para ese RA y pasantía
@@ -636,32 +636,32 @@ const Calificacion = () => {
               if (evalRA && evalRA.id_eval_est) {
                 // Actualizar
                 await api.put(`/evaluaciones-estudiante/${evalRA.id_eval_est}`, {
-                  asistencia_eval: valor,
-                  desempeño_eval: valor,
-                  disponibilidad_eval: valor,
-                  responsabilidad_eval: valor,
-                  limpieza_eval: valor,
-                  trabajo_equipo_eval: valor,
-                  resolucion_problemas_eval: valor
+                asistencia_eval: valor,
+                desempeño_eval: valor,
+                disponibilidad_eval: valor,
+                responsabilidad_eval: valor,
+                limpieza_eval: valor,
+                trabajo_equipo_eval: valor,
+                resolucion_problemas_eval: valor
                 });
                 idEvaluacion = evalRA.id_eval_est;
-                actualizaciones++;
+              actualizaciones++;
               } else {
                 // Crear
                 const resNuevaEval = await api.post('/evaluaciones-estudiante', {
-                  pasantia_eval: { id_pas: pasantiaId },
-                  ra_eval: ra,
-                  asistencia_eval: valor,
-                  desempeño_eval: valor,
-                  disponibilidad_eval: valor,
-                  responsabilidad_eval: valor,
-                  limpieza_eval: valor,
-                  trabajo_equipo_eval: valor,
-                  resolucion_problemas_eval: valor
+                    pasantia_eval: { id_pas: pasantiaId },
+                    ra_eval: ra,
+                    asistencia_eval: valor,
+                    desempeño_eval: valor,
+                    disponibilidad_eval: valor,
+                    responsabilidad_eval: valor,
+                    limpieza_eval: valor,
+                    trabajo_equipo_eval: valor,
+                    resolucion_problemas_eval: valor
                 });
                 idEvaluacion = getIdEvalEst(resNuevaEval.data);
                 if (idEvaluacion !== undefined) {
-                  creaciones++;
+                    creaciones++;
                 } else {
                   errores++;
                   continue;
@@ -669,17 +669,17 @@ const Calificacion = () => {
               }
               // 2. Buscar o crear calificación
               let idCalificacion: number | undefined;
-              let calificacionExistente = null;
-              try {
+                      let calificacionExistente = null;
+                      try {
                 const resCalificaciones = await api.get(`/calificaciones-estudiante/porEvaluacion/${idEvaluacion}`);
-                if (Array.isArray(resCalificaciones.data) && resCalificaciones.data.length > 0) {
-                  calificacionExistente = resCalificaciones.data[0];
-                }
+                        if (Array.isArray(resCalificaciones.data) && resCalificaciones.data.length > 0) {
+                          calificacionExistente = resCalificaciones.data[0];
+                        }
               } catch {}
               if (calificacionExistente && calificacionExistente.id_calificacion) {
                 await api.put(`/calificaciones-estudiante/${calificacionExistente.id_calificacion}`, { promedio });
                 idCalificacion = calificacionExistente.id_calificacion;
-              } else {
+                      } else {
                 const resNuevaCalif = await api.post('/calificaciones-estudiante', { promedio, evaluacion_estudiante: { id_eval_est: idEvaluacion } });
                 idCalificacion = getIdCalificacion(resNuevaCalif.data);
                 if (idCalificacion === undefined) {
@@ -695,7 +695,7 @@ const Calificacion = () => {
                 await moduloPasantiaService.update(moduloGuardado.id_modulo, { estado_modulo: nuevoEstado, id_calificacion_estudiante: idCalificacion });
                 estudianteData.estado_modulo = nuevoEstado;
                 estudianteData.id_modulo = moduloGuardado.id_modulo;
-              } else {
+                    } else {
                 const creado = await moduloPasantiaService.create({
                   estado_modulo: nuevoEstado,
                   pasantia: { id_pas: pasantiaId },
@@ -703,10 +703,10 @@ const Calificacion = () => {
                 });
                 estudianteData.estado_modulo = creado.estado_modulo;
                 estudianteData.id_modulo = creado.id_modulo;
-              }
-            } catch (error) {
-              errores++;
-            }
+                    }
+                  } catch (error) {
+                    errores++;
+                  }
           }
         }
       }
@@ -1291,69 +1291,69 @@ const Calificacion = () => {
                                 const valorRA = estudianteData.evaluaciones[ra];
                                 const isEditable = valorRA !== null && !esEstudiante;
                                 return (
-                                  <MUI.TableCell
-                                    key={ra}
-                                    align="center"
+                                <MUI.TableCell
+                                  key={ra}
+                                  align="center"
                                     onClick={isEditable ? () => handleCellClick(estudianteData.estudiante.documento_id_est, ra, valorRA) : undefined}
-                                    sx={{
+                                  sx={{
                                       cursor: isEditable ? 'pointer' : 'not-allowed',
-                                      position: 'relative',
+                                    position: 'relative',
                                       opacity: valorRA === null ? 0.5 : 1,
                                       backgroundColor: valorRA === null ? alpha(theme.palette.action.disabledBackground, 0.1) : undefined,
-                                      '&:hover': {
+                                    '&:hover': {
                                         bgcolor: isEditable ? alpha(theme.palette.primary.light, 0.2) : undefined,
-                                      },
-                                    }}
-                                  >
-                                    {/* Si está editando y NO es estudiante, mostrar input, si no, solo mostrar valor */}
+                                    },
+                                  }}
+                                >
+                                  {/* Si está editando y NO es estudiante, mostrar input, si no, solo mostrar valor */}
                                     {editCell?.estudiante === estudianteData.estudiante.documento_id_est && editCell?.ra === ra && isEditable ? (
-                                      <MUI.TextField
-                                        type="number"
-                                        value={editCell.valor}
-                                        onChange={handleCellChange}
-                                        onBlur={handleCellBlur}
-                                        onKeyPress={handleKeyPress}
-                                        autoFocus
-                                        inputProps={{
-                                          min: 0,
-                                          max: 100,
-                                          style: { textAlign: 'center' }
-                                        }}
-                                        sx={{
-                                          width: '80px',
-                                          '& input': {
-                                            padding: '8px',
-                                            textAlign: 'center',
-                                          }
-                                        }}
+                                    <MUI.TextField
+                                      type="number"
+                                      value={editCell.valor}
+                                      onChange={handleCellChange}
+                                      onBlur={handleCellBlur}
+                                      onKeyPress={handleKeyPress}
+                                      autoFocus
+                                      inputProps={{
+                                        min: 0,
+                                        max: 100,
+                                        style: { textAlign: 'center' }
+                                      }}
+                                      sx={{
+                                        width: '80px',
+                                        '& input': {
+                                          padding: '8px',
+                                          textAlign: 'center',
+                                        }
+                                      }}
                                         disabled={isReadOnly}
-                                      />
-                                    ) : (
-                                      <MUI.Box
-                                        sx={{
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          gap: 0.5,
-                                        }}
-                                      >
+                                    />
+                                  ) : (
+                                    <MUI.Box
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 0.5,
+                                      }}
+                                    >
                                         {valorRA !== null ? (
-                                          <>
+                                        <>
                                             {valorRA >= 70 ? (
-                                              <Icons.CheckCircle sx={{ fontSize: 16, color: '#2e7d32' }} />
-                                            ) : (
-                                              <Icons.Cancel sx={{ fontSize: 16, color: '#c62828' }} />
-                                            )}
+                                            <Icons.CheckCircle sx={{ fontSize: 16, color: '#2e7d32' }} />
+                                          ) : (
+                                            <Icons.Cancel sx={{ fontSize: 16, color: '#c62828' }} />
+                                          )}
                                             {valorRA}
-                                          </>
-                                        ) : (
-                                          <MUI.Typography variant="body2" color="textSecondary">
-                                            N/A
-                                          </MUI.Typography>
-                                        )}
-                                      </MUI.Box>
-                                    )}
-                                  </MUI.TableCell>
+                                        </>
+                                      ) : (
+                                        <MUI.Typography variant="body2" color="textSecondary">
+                                          N/A
+                                        </MUI.Typography>
+                                      )}
+                                    </MUI.Box>
+                                  )}
+                                </MUI.TableCell>
                                 );
                               })}
 

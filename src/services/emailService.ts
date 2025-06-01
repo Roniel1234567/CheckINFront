@@ -16,7 +16,7 @@ export const sendValidacionEmail = async (
         console.error('Error enviando email de validación:', error);
         return { success: false, error };
     }
-};
+}; 
 
 export const sendDocumentosEmail = async (
     emailDestino: string,
@@ -49,7 +49,7 @@ export const sendCredencialesEmail = async (params: {
         console.error('Error enviando email de credenciales:', error);
         return { success: false, error };
     }
-};
+}; 
 
 const emailService = {
     sendValidacionEmail,
