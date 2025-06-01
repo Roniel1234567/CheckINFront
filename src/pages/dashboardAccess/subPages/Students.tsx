@@ -927,22 +927,24 @@ const Students = () => {
       const estudiantes = await studentService.getAllStudents();
       const pasantias = await pasantiaService.getAllPasantias();
 
-      const fechasData = estudiantes.map(est => {
-        // Buscar la pasantía activa o la más reciente del estudiante
-        const pasantiasEst = pasantias.filter(p => p.estudiante_pas.documento_id_est === est.documento_id_est);
-        const pasantia = pasantiasEst.find(p => p.estado_pas === 'En Proceso') || pasantiasEst[0];
+      const fechasData = estudiantes
+        .filter(est => est.usuario_est?.estado_usuario === 'Activo')
+        .map(est => {
+          // Buscar la pasantía activa o la más reciente del estudiante
+          const pasantiasEst = pasantias.filter(p => p.estudiante_pas.documento_id_est === est.documento_id_est);
+          const pasantia = pasantiasEst.find(p => p.estado_pas === 'En Proceso') || pasantiasEst[0];
 
-        return {
-          documento_id_est: est.documento_id_est,
-          nombre_completo: `${est.nombre_est} ${est.apellido_est}`,
-          centro: pasantia ? pasantia.centro_pas.nombre_centro : '-',
-          fecha_inicio: est.fecha_inicio_pasantia || '',
-          fecha_fin: est.fecha_fin_pasantia || '',
-          horas_realizadas: Number(est.horaspasrealizadas_est ?? 0),
-          tipo_documento_est: est.tipo_documento_est,
-          pasaporte_codigo_pais: est.pasaporte_codigo_pais
-        };
-      });
+          return {
+            documento_id_est: est.documento_id_est,
+            nombre_completo: `${est.nombre_est} ${est.apellido_est}`,
+            centro: pasantia ? pasantia.centro_pas.nombre_centro : '-',
+            fecha_inicio: est.fecha_inicio_pasantia || '',
+            fecha_fin: est.fecha_fin_pasantia || '',
+            horas_realizadas: Number(est.horaspasrealizadas_est ?? 0),
+            tipo_documento_est: est.tipo_documento_est,
+            pasaporte_codigo_pais: est.pasaporte_codigo_pais
+          };
+        });
 
       setFechasData(fechasData);
       setFechasRows(fechasData);
