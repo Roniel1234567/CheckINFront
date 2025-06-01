@@ -65,6 +65,7 @@ function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setLoading(true);
 
     if (!formData.dato_usuario || !formData.contrasena_usuario) {
@@ -75,9 +76,10 @@ function Login() {
 
     try {
       const response = await authService.login(formData);
+      const user = authService.getCurrentUser();
       
       // Verificar el estado del usuario
-      if (response.user.estado_usuario === 'Inactivo') {
+      if (user.estado_usuario === 'Inactivo') {
         toast.error('Tu cuenta está inactiva. Por favor, contacta al administrador.', {
           position: "top-center",
           autoClose: false
@@ -90,22 +92,11 @@ function Login() {
         autoClose: 2000
       });
 
-      // Redirigir según el rol del usuario
-      switch(response.user.rol) {
-        case 4: // Administrador
-          navigate('/dashboard/companies');
-          break;
-        case 1: // Estudiante
-          navigate('/subir-documentos');
-          break;
-        case 2: // Empresa
-          navigate('/plazas');
-          break;
-        case 3: // Tutor
-          navigate('/pasantias');
-          break;
-        default:
-          navigate('/acceso-denegado');
+      // Redirigir según el rol
+      if (user.rol === 5) { // Observador
+        navigate('/dashboard');
+      } else {
+        navigate(location.state?.from?.pathname || '/dashboard');
       }
     } catch (error: unknown) {
       console.error('Error en login:', error);

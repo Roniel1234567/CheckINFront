@@ -7,6 +7,7 @@ import SideBar from '../../components/SideBar';
 import DashboardAppBar from '../../components/DashboardAppBar';
 import api from '../../services/api';
 import { FamiliaProfesional, NuevaFamilia } from '../../services/tallerService';
+import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
 
 // Interfaces
 interface Taller {
@@ -62,6 +63,8 @@ function TallerPage() {
   });
   
   const notifications = 4;
+
+  const isReadOnly = useReadOnlyMode();
 
   // Cargar datos
   useEffect(() => {
@@ -144,6 +147,7 @@ function TallerPage() {
   };
 
   const handleSaveTaller = async () => {
+    if (isReadOnly) return;
     if (!validateForm()) return;
     
     try {
@@ -204,6 +208,7 @@ function TallerPage() {
   
   // Función para mostrar el diálogo de confirmación de desactivación
   const handleDesactivarClick = (taller: Taller) => {
+    if (isReadOnly) return;
     setTallerADesactivar(taller);
     setConfirmDesactivar(true);
   };
@@ -307,6 +312,7 @@ function TallerPage() {
   
   // Función para manejar nueva familia profesional
   const handleNuevaFamilia = async (e: React.FormEvent) => {
+    if (isReadOnly) return;
     e.preventDefault();
     if (!nuevaFamilia.id_fam || !nuevaFamilia.nombre_fam) {
       setSnackbar({
@@ -457,7 +463,13 @@ function TallerPage() {
                 variant="contained"
                 color="primary"
                 startIcon={<Icons.Add />}
-                onClick={() => setActiveTab('2')} // Cambiar a la pestaña de Nuevo Taller
+                onClick={() => {
+                  if (!isReadOnly) {
+                    setSelectedTaller(null);
+                    setActiveTab('2');
+                  }
+                }}
+                disabled={isReadOnly}
                 sx={{
                   transition: 'all 0.3s ease',
                   '&:hover': {
@@ -521,6 +533,7 @@ function TallerPage() {
                                 color="primary"
                                 onClick={() => handleOpenDialog(taller)}
                                 size="small"
+                                disabled={isReadOnly}
                                 sx={{
                                   transition: 'all 0.3s ease',
                                   '&:hover': {
@@ -538,6 +551,7 @@ function TallerPage() {
                                 color={taller.estado_taller === 'Activo' ? 'warning' : 'success'}
                                 onClick={() => handleChangeStatus(taller)}
                                 size="small"
+                                disabled={isReadOnly}
                                 sx={{
                                   transition: 'all 0.3s ease',
                                   '&:hover': {
@@ -711,6 +725,7 @@ function TallerPage() {
                   color="primary"
                   startIcon={<Icons.Save />}
                   onClick={handleSaveTaller}
+                  disabled={isReadOnly || loading}
                   sx={{
                     transition: 'all 0.3s ease',
                     '&:hover': {
@@ -742,6 +757,7 @@ function TallerPage() {
                       onChange={e => setNuevaFamilia({ ...nuevaFamilia, id_fam: e.target.value.toUpperCase() })}
                       inputProps={{ maxLength: 3 }}
                       placeholder="Ej: ADM, INF, MEC"
+                      disabled={isReadOnly}
                     />
                   </MUI.Grid>
                   <MUI.Grid item xs={12} sm={6}>
@@ -752,6 +768,7 @@ function TallerPage() {
                       value={nuevaFamilia.nombre_fam} 
                       onChange={e => setNuevaFamilia({ ...nuevaFamilia, nombre_fam: e.target.value })} 
                       placeholder="Ej: Informática, Mecánica"
+                      disabled={isReadOnly}
                     />
                   </MUI.Grid>
                 </MUI.Grid>
@@ -762,6 +779,7 @@ function TallerPage() {
                     color="primary" 
                     size="large" 
                     startIcon={<Icons.Save />} 
+                    disabled={isReadOnly}
                     sx={{ borderRadius: 2, fontWeight: 'bold', px: 4, transition: 'all 0.3s', '&:hover': { transform: 'scale(1.05)' } }}
                   >
                     Registrar

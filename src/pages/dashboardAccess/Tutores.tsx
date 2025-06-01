@@ -6,6 +6,7 @@ import { TabContext, TabList, TabPanel } from '@mui/lab';
 import SideBar from '../../components/SideBar';
 import DashboardAppBar from '../../components/DashboardAppBar';
 import api from '../../services/api';
+import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
 
 // Interfaces
 interface Usuario {
@@ -108,6 +109,8 @@ function TutoresPage() {
   // Estados para manejo de errores específicos
   const [tutoresError, setTutoresError] = useState(false);
   const [talleresError, setTalleresError] = useState(false);
+
+  const isReadOnly = useReadOnlyMode();
 
   // Cargar datos
   useEffect(() => {
@@ -332,6 +335,7 @@ function TutoresPage() {
   };
 
   const handleSaveTutor = async () => {
+    if (isReadOnly) return;
     if (!validateForm()) return;
     
     // Verificar si el usuario está disponible cuando es un tutor nuevo
@@ -770,7 +774,13 @@ function TutoresPage() {
                     variant="contained"
                     color="primary"
                     startIcon={<Icons.Add />}
-                    onClick={() => handleOpenDialog()}
+                    onClick={() => {
+                      if (!isReadOnly) {
+                        setSelectedTutor(null);
+                        setActiveTab('2');
+                      }
+                    }}
+                    disabled={isReadOnly}
                     sx={{
                       transition: 'all 0.3s ease',
                       '&:hover': {
@@ -902,7 +912,12 @@ function TutoresPage() {
                                 <MUI.Tooltip title="Editar">
                                   <MUI.IconButton
                                     color="primary"
-                                    onClick={() => handleOpenDialog(tutor)}
+                                    onClick={() => {
+                                      if (!isReadOnly) {
+                                        handleOpenDialog(tutor);
+                                      }
+                                    }}
+                                    disabled={isReadOnly}
                                     size="small"
                                   >
                                     <Icons.Edit />
@@ -915,7 +930,12 @@ function TutoresPage() {
                                   <MUI.Tooltip title="Eliminar">
                                     <MUI.IconButton
                                       color="error"
-                                      onClick={() => handleDesactivarClick(tutor)}
+                                      onClick={() => {
+                                        if (!isReadOnly) {
+                                          handleDesactivarClick(tutor);
+                                        }
+                                      }}
+                                      disabled={isReadOnly}
                                       size="small"
                                     >
                                       <Icons.Delete />
@@ -930,6 +950,7 @@ function TutoresPage() {
                                       onClick={() => {
                                         // Lógica para reactivar usuario
                                       }}
+                                      disabled={isReadOnly}
                                       size="small"
                                     >
                                       <Icons.CheckCircle />
@@ -941,7 +962,12 @@ function TutoresPage() {
                                   <MUI.Tooltip title="Restaurar tutor">
                                     <MUI.IconButton
                                       color="success"
-                                      onClick={() => handleRestaurarClick(tutor)}
+                                      onClick={() => {
+                                        if (!isReadOnly) {
+                                          handleRestaurarClick(tutor);
+                                        }
+                                      }}
+                                      disabled={isReadOnly}
                                       size="small"
                                     >
                                       <Icons.RestoreFromTrash />
@@ -1201,6 +1227,7 @@ function TutoresPage() {
                           color="primary"
                           startIcon={<Icons.Save />}
                           onClick={handleSaveTutor}
+                          disabled={isReadOnly || loading}
                         >
                           {selectedTutor ? 'Actualizar' : 'Guardar'}
                         </MUI.Button>

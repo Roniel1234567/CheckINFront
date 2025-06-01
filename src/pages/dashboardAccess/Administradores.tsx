@@ -8,6 +8,7 @@ import DashboardAppBar from '../../components/DashboardAppBar';
 import { administradorService, type Administrador } from '../../services/administradorService';
 import { userService, type NuevoUsuario } from '../../services/userService';
 import contactService, { type NuevoContacto } from '../../services/contactService';
+import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
 
 interface FormData {
   nombre_adm: string;
@@ -71,6 +72,8 @@ function Administradores() {
   const [usuarioDisponible, setUsuarioDisponible] = useState(true);
   const [telefonoDisponible, setTelefonoDisponible] = useState(true);
   const [emailDisponible, setEmailDisponible] = useState(true);
+
+  const isReadOnly = useReadOnlyMode();
 
   useEffect(() => {
     loadAdministradores();
@@ -143,6 +146,7 @@ function Administradores() {
   };
 
   const handleSave = async () => {
+    if (isReadOnly) return;
     // Validar campos requeridos
     const errors = {
       nombre_adm: !formData.nombre_adm,
@@ -302,6 +306,7 @@ function Administradores() {
   };
 
   const handleOpenDialog = (administrador?: Administrador) => {
+    if (isReadOnly) return;
     if (administrador) {
       setSelectedAdministrador(administrador);
       setFormData({
@@ -329,6 +334,7 @@ function Administradores() {
   };
 
   const handleDesactivarClick = (administrador: Administrador) => {
+    if (isReadOnly) return;
     setAdministradorADesactivar(administrador);
     setConfirmDesactivar(true);
   };
@@ -553,7 +559,13 @@ function Administradores() {
                 <MUI.Button
                   variant="contained"
                   startIcon={<Icons.Add />}
-                  onClick={() => handleOpenDialog()}
+                  onClick={() => {
+                    if (!isReadOnly) {
+                      setSelectedAdministrador(null);
+                      setActiveTab('2');
+                    }
+                  }}
+                  disabled={isReadOnly}
                   sx={{ 
                     borderRadius: 2,
                     textTransform: 'none',
@@ -636,6 +648,7 @@ function Administradores() {
                                 color="primary"
                                 onClick={() => handleOpenDialog(admin)}
                                 size="small"
+                                disabled={isReadOnly}
                                 sx={{ 
                                   transition: 'all 0.2s',
                                   '&:hover': {
@@ -653,6 +666,7 @@ function Administradores() {
                                   color="error"
                                   onClick={() => handleDesactivarClick(admin)}
                                   size="small"
+                                  disabled={isReadOnly}
                                   sx={{ 
                                     transition: 'all 0.2s',
                                     '&:hover': {
@@ -670,6 +684,7 @@ function Administradores() {
                                   color="success"
                                   onClick={() => handleRestaurarClick(admin)}
                                   size="small"
+                                  disabled={isReadOnly}
                                   sx={{ 
                                     transition: 'all 0.2s',
                                     '&:hover': {
@@ -889,7 +904,7 @@ function Administradores() {
                       variant="contained"
                       onClick={handleSave}
                       startIcon={<Icons.Save />}
-                      disabled={!usuarioDisponible || !telefonoDisponible || !emailDisponible}
+                      disabled={isReadOnly || !usuarioDisponible || !telefonoDisponible || !emailDisponible}
                       sx={{ 
                         borderRadius: 2,
                         textTransform: 'none',

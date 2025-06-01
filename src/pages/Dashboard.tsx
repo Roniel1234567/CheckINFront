@@ -9,6 +9,7 @@ import { authService } from '../services/authService';
 import { internshipService } from '../services/internshipService';
 import documentoService, { EstadoDocumento } from '../services/documentoService';
 import studentService from '../services/studentService';
+import { useReadOnlyMode } from '../hooks/useReadOnlyMode';
 
 function Dashboard() {
   const theme = MUI.useTheme();
@@ -17,6 +18,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const user = authService.getCurrentUser();
+  const isReadOnly = useReadOnlyMode();
 
   const [activeStudents, setActiveStudents] = useState(0);
   const [activeCompanies, setActiveCompanies] = useState(0);
@@ -160,14 +162,15 @@ function Dashboard() {
                     boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
                     transition: 'transform 0.3s, box-shadow 0.3s',
                     '&:hover': {
-                      transform: 'translateY(-5px)',
-                      boxShadow: '0 12px 20px rgba(0,0,0,0.15)',
-                      cursor: 'pointer',
+                      transform: isReadOnly ? 'none' : 'translateY(-5px)',
+                      boxShadow: isReadOnly ? '0 8px 16px rgba(0,0,0,0.1)' : '0 12px 20px rgba(0,0,0,0.15)',
+                      cursor: isReadOnly ? 'not-allowed' : 'pointer',
                     },
                     position: 'relative',
                     overflow: 'hidden',
                     border: card.title === 'Pasantías' ? `2px solid ${theme.palette.success.main}` : undefined,
                   }}
+                  onClick={isReadOnly ? undefined : () => navigate(card.path)}
                 >
                   <MUI.Box
                     sx={{

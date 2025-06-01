@@ -21,6 +21,7 @@ import direccionService from '../../services/direccionService';
 import axios from 'axios';
 import { authService } from '../../services/authService';
 import { internshipService } from '../../services/internshipService';
+import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
 
 // Estado inicial del formulario
 interface FormData {
@@ -117,6 +118,8 @@ function Companies() {
   const user = authService.getCurrentUser();
   const esEmpresa = user && user.rol === 2;
 
+  const isReadOnly = useReadOnlyMode();
+
   // 2. Función para chequear usuario de empresa
   const checkUsuarioEmpresa = async (usuario: string) => {
     if (!usuario) return;
@@ -186,6 +189,7 @@ function Companies() {
 
   // Crear o editar centro
   const handleSaveCentro = async () => {
+    if (isReadOnly) return;
     try {
       setLoading(true);
       if (editMode && editingCentro) {
@@ -290,6 +294,7 @@ function Companies() {
 
   // 2. Handler para editar
   const handleEditClick = async (centro: unknown) => {
+    if (isReadOnly) return;
     setEditMode(true);
     setEditingCentro(centro);
     setOpenDialog(true);
@@ -371,6 +376,7 @@ function Companies() {
 
   // 4. Handler para eliminar
   const handleDeleteClick = (centro: unknown) => {
+    if (isReadOnly) return;
     setCentroToDelete(centro);
     setDeleteDialogOpen(true);
   };
@@ -691,29 +697,32 @@ function Companies() {
                     '&:hover': { bgcolor: '#0d1b60' }
                   }}
                   onClick={() => {
-                    setOpenDialog(true);
-                    setEditMode(false);
-                    setEditingCentro(null);
-                    setFormData({
-                      nombre_centro: '',
-                      telefono_contacto: '',
-                      email_contacto: '',
-                      calle_dir: '',
-                      num_res_dir: '',
-                      sector_dir: 0,
-                      estado_centro: 'Activo',
-                      nombre_persona_contacto: '',
-                      apellido_persona_contacto: '',
-                      telefono_persona_contacto: '',
-                      extension_persona_contacto: '',
-                      departamento_persona_contacto: '',
-                      usuario_empresa: '',
-                      contrasena_empresa: '',
-                    });
-                    setSelectedProvincia('');
-                    setSelectedCiudad('');
-                    setSelectedSector('');
+                    if (!isReadOnly) {
+                      setOpenDialog(true);
+                      setEditMode(false);
+                      setEditingCentro(null);
+                      setFormData({
+                        nombre_centro: '',
+                        telefono_contacto: '',
+                        email_contacto: '',
+                        calle_dir: '',
+                        num_res_dir: '',
+                        sector_dir: 0,
+                        estado_centro: 'Activo',
+                        nombre_persona_contacto: '',
+                        apellido_persona_contacto: '',
+                        telefono_persona_contacto: '',
+                        extension_persona_contacto: '',
+                        departamento_persona_contacto: '',
+                        usuario_empresa: '',
+                        contrasena_empresa: '',
+                      });
+                      setSelectedProvincia('');
+                      setSelectedCiudad('');
+                      setSelectedSector('');
+                    }
                   }}
+                  disabled={isReadOnly}
                 >
                   Registrar Nuevo Centro de Trabajo
                 </MUI.Button>
@@ -1162,7 +1171,7 @@ function Companies() {
               variant="contained"
               sx={{ bgcolor: '#1a237e', '&:hover': { bgcolor: '#0d1b60' } }}
               onClick={handleSaveCentro}
-              disabled={!usuarioEmpresaDisponible || direccionInvalida}
+              disabled={isReadOnly || !usuarioEmpresaDisponible || direccionInvalida}
             >
               {editMode ? 'Editar' : 'Registrar'}
             </MUI.Button>

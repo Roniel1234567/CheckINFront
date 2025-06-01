@@ -5,6 +5,7 @@ import * as MUI from "@mui/material";
 import * as Icons from "@mui/icons-material";
 import SideBar from '../../components/SideBar';
 import DashboardAppBar from '../../components/DashboardAppBar';
+import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
 
 // Interfaz para la relación visita-estudiante
 interface VisitaEstudiante {
@@ -37,6 +38,7 @@ function Visits() {
   const [searchTerm, setSearchTerm] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
   const notifications=4; 
+  const isReadOnly = useReadOnlyMode();
 
   // Datos de ejemplo
   const [visitas] = useState<Visit[]>([
@@ -102,7 +104,8 @@ function Visits() {
     setSelectedVisit(null);
   };
 
-  const handleSaveVisit = () => {
+  const handleSaveVisit = async () => {
+    if (isReadOnly) return;
     // Aquí iría la lógica para guardar la visita
     handleCloseDialog();
   };
@@ -165,6 +168,17 @@ function Visits() {
 
   const toggleDrawer = () => {
     setDrawerOpen(!drawerOpen);
+  };
+
+  const handleEditClick = (visit: Visit) => {
+    if (isReadOnly) return;
+    handleOpenDialog(visit);
+  };
+
+  const handleDeleteClick = (visit: Visit) => {
+    if (isReadOnly) return;
+    // Aquí iría la lógica para eliminar la visita
+    handleCloseDialog();
   };
 
   return (
@@ -254,7 +268,13 @@ function Visits() {
                   <MUI.Button
                     variant="contained"
                     startIcon={<Icons.Add />}
-                    onClick={() => handleOpenDialog(null)}
+                    onClick={() => {
+                      if (!isReadOnly) {
+                        setSelectedVisit(null);
+                        setOpenDialog(true);
+                      }
+                    }}
+                    disabled={isReadOnly}
                     sx={{ 
                       mb: { xs: 2, md: 0 },
                       borderRadius: 2,
@@ -371,7 +391,8 @@ function Visits() {
                         <MUI.Tooltip title="Ver detalles">
                           <MUI.IconButton 
                             size="small" 
-                            onClick={() => handleOpenDialog(visita)}
+                            onClick={() => handleEditClick(visita)}
+                            disabled={isReadOnly}
                             sx={{
                               color: theme.palette.primary.main,
                               '&:hover': {
@@ -385,6 +406,8 @@ function Visits() {
                         <MUI.Tooltip title="Editar">
                           <MUI.IconButton 
                             size="small"
+                            onClick={() => handleEditClick(visita)}
+                            disabled={isReadOnly}
                             sx={{
                               color: theme.palette.warning.main,
                               '&:hover': {
@@ -398,6 +421,8 @@ function Visits() {
                         <MUI.Tooltip title="Eliminar">
                           <MUI.IconButton 
                             size="small"
+                            onClick={() => handleDeleteClick(visita)}
+                            disabled={isReadOnly}
                             sx={{
                               color: theme.palette.error.main,
                               '&:hover': {
@@ -673,6 +698,7 @@ function Visits() {
               <MUI.Button 
                 variant="contained" 
                 onClick={handleSaveVisit}
+                disabled={isReadOnly || loading}
                 sx={{
                   borderRadius: 2,
                   textTransform: 'none',

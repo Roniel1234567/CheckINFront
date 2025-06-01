@@ -8,6 +8,7 @@ import DashboardAppBar from '../../components/DashboardAppBar';
 import supervisorService, { Supervisor, CentroDeTrabajo } from '../../services/supervisorService';
 import api from '../../services/api';
 import Autocomplete from '@mui/material/Autocomplete';
+import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
 
 interface ContactoResponse {
   id_contacto: number;
@@ -54,6 +55,8 @@ function SupervisoresPage() {
   // Confirmaciones
   const [confirmInactivar, setConfirmInactivar] = useState(false);
   const [supervisorAInactivar, setSupervisorAInactivar] = useState<Supervisor | null>(null);
+
+  const isReadOnly = useReadOnlyMode();
 
   // Cargar datos
   useEffect(() => {
@@ -130,6 +133,7 @@ function SupervisoresPage() {
   };
 
   const handleSaveSupervisor = async () => {
+    if (isReadOnly) return;
     if (!validateForm()) return;
     try {
       setLoading(true);
@@ -385,7 +389,13 @@ function SupervisoresPage() {
                       variant="contained"
                       color="primary"
                       startIcon={<Icons.Add />}
-                      onClick={() => handleOpenDialog()}
+                      onClick={() => {
+                        if (!isReadOnly) {
+                          setSelectedSupervisor(null);
+                          setActiveTab('2');
+                        }
+                      }}
+                      disabled={isReadOnly}
                     >
                       Nuevo
                     </MUI.Button>
@@ -496,7 +506,12 @@ function SupervisoresPage() {
                                   <MUI.IconButton 
                                     color="primary"
                                     size="small"
-                                    onClick={() => handleOpenDialog(supervisor)}
+                                    onClick={() => {
+                                      if (!isReadOnly) {
+                                        handleOpenDialog(supervisor);
+                                      }
+                                    }}
+                                    disabled={isReadOnly}
                                   >
                                     <Icons.Edit />
                                   </MUI.IconButton>
@@ -506,7 +521,12 @@ function SupervisoresPage() {
                                     <MUI.IconButton 
                                       color="error"
                                       size="small"
-                                      onClick={() => handleInactivarClick(supervisor)}
+                                      onClick={() => {
+                                        if (!isReadOnly) {
+                                          handleInactivarClick(supervisor);
+                                        }
+                                      }}
+                                      disabled={isReadOnly}
                                     >
                                       <Icons.PersonOff />
                                     </MUI.IconButton>
@@ -516,7 +536,12 @@ function SupervisoresPage() {
                                     <MUI.IconButton 
                                       color="success"
                                       size="small"
-                                      onClick={() => handleReactivar(supervisor)}
+                                      onClick={() => {
+                                        if (!isReadOnly) {
+                                          handleReactivar(supervisor);
+                                        }
+                                      }}
+                                      disabled={isReadOnly}
                                     >
                                       <Icons.PersonAdd />
                                     </MUI.IconButton>
@@ -656,6 +681,7 @@ function SupervisoresPage() {
                         color="primary" 
                         startIcon={<Icons.Save />} 
                         onClick={handleSaveSupervisor}
+                        disabled={isReadOnly || loading}
                       >
                         {selectedSupervisor ? 'Actualizar' : 'Guardar'}
                       </MUI.Button>

@@ -10,6 +10,7 @@ import axios from 'axios';
 import { authService } from '../../services/authService';
 import studentService from '../../services/studentService';
 import { useLocation } from 'react-router-dom';
+import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
 
 // Interfaces
 interface Usuario {
@@ -137,6 +138,7 @@ function Evaluaciones() {
   const [editingEvaluacionEstudianteId, setEditingEvaluacionEstudianteId] = useState<number | null>(null);
   const notifications = 4;
   const location = useLocation();
+  const isReadOnly = useReadOnlyMode();
 
   // Obtener usuario actual
   console.log('Usuario logueado:', user);
@@ -336,6 +338,7 @@ function Evaluaciones() {
   };
 
   const handleSubmitCentro = async (event: React.FormEvent) => {
+    if (isReadOnly) return;
     event.preventDefault();
     
     if (!selectedPasantia || selectedPasantia <= 0) {
@@ -650,6 +653,7 @@ function Evaluaciones() {
   };
 
   const handleSubmitEstudiante = async (event: React.FormEvent) => {
+    if (isReadOnly) return;
     event.preventDefault();
     
     if (!selectedPasantia || selectedPasantia <= 0) {

@@ -23,6 +23,7 @@ import * as Icons from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import { authService } from '../../../services/authService';
 import api from '../../../services/api';
+import { useReadOnlyMode } from '../../../hooks/useReadOnlyMode';
 
 // Define el tipo para la dirección completa
 interface DireccionCompleta {
@@ -171,6 +172,8 @@ const Students = () => {
   const esTutor = user && user.rol === 3;
   const [tallerTutor, setTallerTutor] = useState<number | null>(null);
 
+  const isReadOnly = useReadOnlyMode();
+
   // Obtener el taller del tutor al cargar
   useEffect(() => {
     const fetchTallerTutor = async () => {
@@ -231,6 +234,7 @@ const Students = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    if (isReadOnly) return;
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -600,6 +604,7 @@ const Students = () => {
   }
 
   const handleEditClick = async (estudiante: Estudiante) => {
+    if (isReadOnly) return;
     setEditMode(true);
     setOpenForm(true);
 
@@ -719,6 +724,7 @@ const Students = () => {
   };
 
   const handleDeleteClick = (estudiante: Estudiante) => {
+    if (isReadOnly) return;
     setEstudianteToDelete(estudiante);
     setDeleteDialogOpen(true);
   };
@@ -740,6 +746,7 @@ const Students = () => {
 
   // Función para abrir el formulario de registro (nuevo estudiante)
   const handleOpenNewForm = () => {
+    if (isReadOnly) return;
     console.log('handleOpenNewForm ejecutado'); // DEBUG
     setEditMode(false);
     setDocsEstudiante(null);
@@ -1171,6 +1178,7 @@ const Students = () => {
                 startIcon={<AddIcon />}
                 onClick={handleOpenNewForm}
                 sx={{ borderRadius: 3, boxShadow: 3, bgcolor: '#1976d2', color: '#fff', '&:hover': { bgcolor: '#115293' } }}
+                disabled={isReadOnly}
               >
                 Nuevo Estudiante
               </MUI.Button>
@@ -1340,6 +1348,7 @@ const Students = () => {
                               size="small" 
                               onClick={() => handleEditClick(estudiante)}
                               sx={{ color: theme.palette.primary.main }}
+                              disabled={isReadOnly}
                             >
                               <EditIcon />
                             </MUI.IconButton>
@@ -1347,6 +1356,7 @@ const Students = () => {
                               size="small" 
                               onClick={() => handleDeleteClick(estudiante)}
                               sx={{ color: theme.palette.error.main }}
+                              disabled={isReadOnly}
                             >
                               <DeleteIcon />
                             </MUI.IconButton>

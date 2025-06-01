@@ -9,6 +9,7 @@ import { Taller as TallerIS } from '../../services/internshipService';
 import api from '../../services/api';
 import { authService } from '../../services/authService';
 import { internshipService } from '../../services/internshipService';
+import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
 // Importar íconos explícitamente
 
 
@@ -58,6 +59,7 @@ function PlazasCentro() {
   const [showInactive, setShowInactive] = useState(false);
   const user = authService.getCurrentUser();
   const esEmpresa = user && user.rol === 2;
+  const isReadOnly = useReadOnlyMode();
 
   // useEffect para cargar datos iniciales SOLO una vez
   useEffect(() => {
@@ -227,6 +229,7 @@ function PlazasCentro() {
   };
 
   const handleGuardarPlaza = async () => {
+    if (isReadOnly) return;
     // Crear payload con los objetos completos en lugar de solo IDs
     const payload = {
       centro_plaza: { id_centro: Number(formCentro) },
@@ -271,6 +274,16 @@ function PlazasCentro() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditClick = (plaza: Plaza) => {
+    if (isReadOnly) return;
+    handleOpenDialog(plaza);
+  };
+
+  const handleDeleteClick = (plaza: Plaza) => {
+    if (isReadOnly) return;
+    handleDeleteConfirmation(plaza);
   };
 
   const filteredPlazas = plazasEmpresa.filter(plaza => 
@@ -358,7 +371,13 @@ function PlazasCentro() {
             variant="contained"
             color="primary"
             startIcon={<Icons.Add />}
-            onClick={() => handleOpenDialog()}
+            onClick={() => {
+              if (!isReadOnly) {
+                setSelectedPlaza(null);
+                setOpenDialog(true);
+              }
+            }}
+            disabled={isReadOnly}
             sx={{
               transition: 'all 0.3s ease',
               '&:hover': {
@@ -453,7 +472,8 @@ function PlazasCentro() {
                         <>
                       <MUI.IconButton
                         color="primary"
-                        onClick={() => handleOpenDialog(plaza)}
+                        onClick={() => handleEditClick(plaza)}
+                        disabled={isReadOnly}
                         sx={{
                           transition: 'all 0.3s ease',
                           '&:hover': {
@@ -466,7 +486,8 @@ function PlazasCentro() {
                       </MUI.IconButton>
                       <MUI.IconButton
                         color="error"
-                            onClick={() => handleDeleteConfirmation(plaza)}
+                        onClick={() => handleDeleteClick(plaza)}
+                        disabled={isReadOnly}
                         sx={{
                           transition: 'all 0.3s ease',
                           '&:hover': {
@@ -663,6 +684,7 @@ function PlazasCentro() {
               color="primary"
               startIcon={<Icons.Save />}
               onClick={handleGuardarPlaza}
+              disabled={isReadOnly || loading}
               sx={{
                 transition: 'all 0.3s ease',
                 '&:hover': {
