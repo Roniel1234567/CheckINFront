@@ -107,6 +107,13 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
       'pasantias'  // Pasantías
     ].includes(item.id));
   }
+  else if (userInfo.rol === 'Administrador') {
+    // Agregar Observadores solo para administradores
+    filteredMenuItems = [
+      ...menuItems,
+      { id: 'observadores', text: 'Gestión de Observadores', icon: <Icons.Visibility />, path: '/observadores' }
+    ];
+  }
 
   const activeMenu = menuItems.find(item => location.pathname === item.path)?.id || '';
 

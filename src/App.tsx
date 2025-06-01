@@ -16,7 +16,7 @@ import Features from './pages/Features';
 import Visits from './pages/dashboardAccess/Visits';
 import Students from './pages/dashboardAccess/subPages/Students';
 import Administrators from './pages/dashboardAccess/subPages/Administrators';
-import Observers from './pages/dashboardAccess/subPages/Observers';
+import ObservadoresPage from './pages/dashboardAccess/Observadores';
 import Supervisors from './pages/dashboardAccess/subPages/Supervisors';
 import Tutors from './pages/dashboardAccess/subPages/Tutors';
 import PlazasCentro from './pages/dashboardAccess/PlazasCentro';
@@ -45,14 +45,6 @@ const ROLES = {
   ADMINISTRADOR: 4
 };
 
-// Centraliza los accesos por rol
-const ACCESOS_POR_ROL: Record<number, string[]> = {
-  1: ['calificacion', 'pasantias', 'evaluaciones', 'subirdoc'], // Estudiante
-  2: ['companies', 'plazas', 'evaluaciones', 'pasantias'],      // Empresa
-  3: ['pasantias', 'estudiante', 'calificacion', 'reports', 'supervisores'], // Tutor
-  4: ['*'] // Admin: acceso total
-};
-
 function App() {
   return (
     <ThemeProvider theme={theme}>
@@ -78,7 +70,7 @@ function App() {
           <Route path="usuarios/tutores" element={<ProtectedRoute routeId="tutores"><Tutors /></ProtectedRoute>} />
           <Route path="usuarios/supervisores" element={<ProtectedRoute routeId="supervisores"><Supervisors /></ProtectedRoute>} />
           <Route path="usuarios/administradores" element={<ProtectedRoute routeId="administradores"><Administrators /></ProtectedRoute>} />
-          <Route path="usuarios/observadores" element={<ProtectedRoute routeId="observadores"><Observers /></ProtectedRoute>} />
+          <Route path="observadores" element={<ProtectedRoute routeId="observadores"><ObservadoresPage /></ProtectedRoute>} />
           <Route path="visitas" element={<ProtectedRoute routeId="visits"><Visits /></ProtectedRoute>} />
           <Route path="pasantias" element={<ProtectedRoute routeId="pasantias"><PasantiaPage key={window.location.pathname} /></ProtectedRoute>} />
           <Route path="centros-trabajo" element={<ProtectedRoute routeId="companies"><Companies /></ProtectedRoute>} />
