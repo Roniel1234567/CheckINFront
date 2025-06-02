@@ -77,8 +77,7 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
     { id: 'evaluaciones', text: 'Evaluaciones', icon: <Icons.Assessment />, path: '/evaluaciones' },
     { id: 'calificacion', text: 'Calificaciones', icon: <Icons.Grade />, path: '/dashboard/calificacion' },
     { id: 'reports', text: 'Reportes', icon: <Icons.Assessment />, path: '/Reportes' },
-    { id: 'cierre', text: 'Cierre de Pasantías', icon: <Icons.PowerSettingsNew />, path: '/cierre-pasantia' },
-    { id: 'enviarExcusa', text: 'Enviar Excusa', icon: <Icons.EventBusy />, path: '/enviar-excusa' },
+    { id: 'cierre', text: 'Cierre de Pasantías', icon: <Icons.PowerSettingsNew />, path: '/cierre-pasantia' }
   ];
 
   // Filtrar menú según el rol del usuario
