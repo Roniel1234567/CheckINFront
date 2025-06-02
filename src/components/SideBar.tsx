@@ -38,7 +38,8 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
         1: 'Estudiante',
         2: 'Centro de Trabajo',
         3: 'Tutor',
-        4: 'Administrador'
+        4: 'Administrador',
+        5: 'Observador'
       };
 
       setUserInfo({
@@ -88,7 +89,8 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
       'calificacion',
       'pasantias',
       'evaluaciones',
-      'subirdoc'
+      'subirdoc',
+      'enviarExcusa'
     ].includes(item.id));
   }
   else if (userInfo.rol === 'Tutor') {
@@ -97,7 +99,8 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
       'estudiante',
       'calificacion',
       'reports',
-      'supervisores'
+      'supervisores',
+      'enviarExcusa'
     ].includes(item.id));
   }
   else if (userInfo.rol === 'Centro de Trabajo') {
@@ -108,8 +111,17 @@ const SideBar = ({ drawerOpen, toggleDrawer }: SideBarProps) => {
       'pasantias'  // Pasantías
     ].includes(item.id));
   }
+  else if (userInfo.rol === 'Observador') {
+    filteredMenuItems = menuItems.filter(item => [
+      'pasantias',
+      'estudiante',
+      'evaluaciones',
+      'reports',
+      'enviarExcusa'
+    ].includes(item.id));
+  }
   else if (userInfo.rol === 'Administrador') {
-    // Agregar Observadores solo para administradores
+    // Mantener todos los items y agregar Observadores
     filteredMenuItems = [
       ...menuItems,
       { id: 'observadores', text: 'Gestión de Observadores', icon: <Icons.Visibility />, path: '/observadores' }

@@ -7,6 +7,7 @@ import api from '../../../services/api';
 import excusaEstudianteService, { ExcusaEstudiante } from '../../../services/excusaEstudianteService';
 import SideBar from '../../../components/SideBar';
 import DashboardAppBar from '../../../components/DashboardAppBar';
+import { authService } from '../../../services/authService';
 
 interface Tutor {
   id_tutor: number;
@@ -27,7 +28,7 @@ interface TallerResponse {
   estado_taller: string;
 }
 
-interface ExcusaConRelaciones extends ExcusaEstudiante {
+interface ExcusaConRelaciones extends Omit<ExcusaEstudiante, 'tutor' | 'estudiante'> {
   estudiante: EstudianteExcusa;
   tutor: Tutor;
 }
@@ -50,6 +51,7 @@ const EnviarExcusa = () => {
   const [searchEstudiante, setSearchEstudiante] = useState('');
   const [selectedTallerFilter, setSelectedTallerFilter] = useState<string>('');
   const [talleres, setTalleres] = useState<TallerResponse[]>([]);
+  const [isEstudiante, setIsEstudiante] = useState(false);
 
   const toggleDrawer = () => setDrawerOpen(!drawerOpen);
 
@@ -57,37 +59,79 @@ const EnviarExcusa = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        console.log('Iniciando carga de datos...');
-        
-        // Cargar talleres directamente desde la API
-        console.log('Solicitando talleres...');
-        const talleresResponse = await api.get<TallerResponse[]>('/talleres', {
-          params: {
-            estado: 'Activo'
+        const currentUser = authService.getCurrentUser();
+        const esEstudiante = currentUser?.rol === 1;
+        setIsEstudiante(esEstudiante);
+
+        if (esEstudiante && currentUser) {
+          // 1. Obtener datos del estudiante logueado por id_usuario
+          const estudiante = await studentService.getStudentByUsuarioId(currentUser.id_usuario);
+          setSelectedEstudiante(estudiante.documento_id_est);
+
+          // 2. Obtener todas las pasantías y filtrar la del estudiante activa
+          const pasantiasData = await pasantiaService.getAllPasantias();
+          const pasantiaActiva = pasantiasData.find(
+            p => p.estudiante_pas.documento_id_est === estudiante.documento_id_est && p.estado_pas === 'En Proceso'
+          );
+          setPasantias(pasantiaActiva ? [pasantiaActiva] : []);
+          setSelectedPasantia(pasantiaActiva ? pasantiaActiva.id_pas : null);
+
+          // 3. Obtener tutores SOLO del taller del estudiante
+          let tutoresFiltrados: Tutor[] = [];
+          if (estudiante.taller_est && estudiante.taller_est.id_taller) {
+            const response = await api.get<Tutor[]>(`/tutores/taller/${estudiante.taller_est.id_taller}`);
+            tutoresFiltrados = Array.isArray(response.data) ? response.data : [];
           }
-        });
-        console.log('Talleres recibidos:', talleresResponse.data);
-        setTalleres(talleresResponse.data);
+          setTutores(tutoresFiltrados);
 
-        // Cargar el resto de los datos
-        const [pasantiasData, estudiantesData, tutoresData, excusasData] = await Promise.all([
-          pasantiaService.getAllPasantias(),
-          studentService.getAllStudents(),
-          api.get<Tutor[]>('/tutores').then(res => res.data),
-          excusaEstudianteService.getAll(),
-        ]);
+          // 4. Preseleccionar el primer tutor si hay alguno
+          if (tutoresFiltrados.length > 0) {
+            setSelectedTutor(tutoresFiltrados[0].id_tutor);
+          } else {
+            setSelectedTutor(null);
+          }
 
-        setPasantias(pasantiasData);
-        setEstudiantes(estudiantesData);
-        setTutores(tutoresData);
-        if (Array.isArray(excusasData)) setExcusas(excusasData);
+          // 5. Obtener excusas y filtrar solo las del estudiante
+          const excusasData = await excusaEstudianteService.getAll();
+          const excusasEstudiante = Array.isArray(excusasData)
+            ? excusasData.filter(excusa =>
+                (typeof excusa.estudiante === 'object'
+                  ? excusa.estudiante.documento_id_est
+                  : excusa.estudiante) === estudiante.documento_id_est
+              )
+            : [];
+          setExcusas(excusasEstudiante);
 
-        console.log('Todos los datos cargados exitosamente');
-      } catch (error) {
-        console.error('Error detallado al cargar datos:', error);
-        setSnackbar({ open: true, message: 'Error al cargar datos', severity: 'error' });
-      } finally {
+          // 6. Obtener talleres activos (por si necesitas el filtro)
+          const talleresResponse = await api.get<TallerResponse[]>('/talleres', { params: { estado: 'Activo' } });
+          setTalleres(talleresResponse.data);
+
+          setEstudiantes([estudiante]); // Solo el estudiante logueado
+        } else {
+          // Lógica para otros roles (igual que antes)
+          const [pasantiasData, estudiantesData, tutoresData, excusasData, talleresResponse] = await Promise.all([
+            pasantiaService.getAllPasantias(),
+            studentService.getAllStudents(),
+            api.get<Tutor[]>('/tutores').then(res => res.data),
+            excusaEstudianteService.getAll(),
+            api.get<TallerResponse[]>('/talleres', { params: { estado: 'Activo' } })
+          ]);
+          setPasantias(pasantiasData);
+          setEstudiantes(estudiantesData);
+          setTutores(tutoresData);
+          setTalleres(talleresResponse.data);
+          if (Array.isArray(excusasData)) {
+            setExcusas(excusasData);
+          }
+        }
         setLoading(false);
+      } catch {
+        setLoading(false);
+        setSnackbar({
+          open: true,
+          message: 'Error al cargar los datos. Por favor, intenta de nuevo.',
+          severity: 'error'
+        });
       }
     };
     fetchData();
@@ -179,6 +223,19 @@ const EnviarExcusa = () => {
     return searchMatch;
   });
 
+  // Filtrar las pasantías mostradas en el select si es estudiante
+  const pasantiasFiltradas = isEstudiante 
+    ? pasantias.filter(p => typeof p.id_pas === 'number')
+    : pasantias;
+
+  // Filtrar los estudiantes mostrados en el select si es estudiante
+  const estudiantesFiltrados = isEstudiante
+    ? estudiantes
+    : estudiantes;
+
+  // Filtrar tutores por taller si es estudiante (ya se hace en el useEffect)
+  const tutoresFiltrados = tutores;
+
   return (
     <MUI.Box sx={{ display: 'flex', width: '100vw', minHeight: '100vh', bgcolor: MUI.alpha(theme.palette.background.paper, 0.6), p: 0 }}>
       {/* Sidebar */}
@@ -197,15 +254,16 @@ const EnviarExcusa = () => {
                   <MUI.FormControl fullWidth required>
                     <MUI.InputLabel>Pasantía</MUI.InputLabel>
                     <MUI.Select
-                      value={selectedPasantia || ''}
-                      onChange={e => setSelectedPasantia(Number(e.target.value))}
+                      value={selectedPasantia !== null ? selectedPasantia : ''}
+                      onChange={e => !isEstudiante && setSelectedPasantia(Number(e.target.value))}
                       label="Pasantía"
+                      disabled={isEstudiante}
                     >
-                      {pasantias.map(p => (
+                      {pasantiasFiltradas.length > 0 ? pasantiasFiltradas.map(p => (
                         <MUI.MenuItem key={p.id_pas} value={p.id_pas}>
                           {p.id_pas} - {p.estudiante_pas.nombre_est} {p.estudiante_pas.apellido_est} / {p.centro_pas.nombre_centro}
                         </MUI.MenuItem>
-                      ))}
+                      )) : <MUI.MenuItem value="">Sin pasantía activa</MUI.MenuItem>}
                     </MUI.Select>
                   </MUI.FormControl>
                 </MUI.Grid>
@@ -214,10 +272,11 @@ const EnviarExcusa = () => {
                     <MUI.InputLabel>Estudiante</MUI.InputLabel>
                     <MUI.Select
                       value={selectedEstudiante}
-                      onChange={e => setSelectedEstudiante(e.target.value)}
+                      onChange={e => !isEstudiante && setSelectedEstudiante(e.target.value)}
                       label="Estudiante"
+                      disabled={isEstudiante}
                     >
-                      {estudiantes.map(e => (
+                      {estudiantesFiltrados.map(e => (
                         <MUI.MenuItem key={e.documento_id_est} value={e.documento_id_est}>
                           {e.nombre_est} {e.apellido_est} ({e.documento_id_est})
                         </MUI.MenuItem>
@@ -232,8 +291,9 @@ const EnviarExcusa = () => {
                       value={selectedTutor || ''}
                       onChange={e => setSelectedTutor(Number(e.target.value))}
                       label="Tutor"
+                      required
                     >
-                      {tutores.map(t => (
+                      {tutoresFiltrados.map(t => (
                         <MUI.MenuItem key={t.id_tutor} value={t.id_tutor}>
                           {t.nombre_tutor} {t.apellido_tutor}
                         </MUI.MenuItem>

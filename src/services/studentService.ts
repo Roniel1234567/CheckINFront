@@ -187,6 +187,11 @@ const studentService = {
 
   updatePolizaEstudiante: async (documento_id_est: string, id_poliza: number) => {
     return api.put(`/estudiantes/poliza/${documento_id_est}`, { id_poliza });
+  },
+
+  async getStudentByUsuarioId(id_usuario: number): Promise<Estudiante> {
+    const response = await api.get<Estudiante>(`/estudiantes/by-usuario/${id_usuario}`);
+    return response.data;
   }
 };
 

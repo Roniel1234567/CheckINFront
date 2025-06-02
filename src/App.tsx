@@ -45,7 +45,8 @@ const ROLES = {
   ESTUDIANTE: 1,
   EMPRESA: 2,
   TUTOR: 3,
-  ADMINISTRADOR: 4
+  ADMINISTRADOR: 4,
+  OBSERVADOR: 5
 };
 
 function App() {
@@ -138,8 +139,15 @@ function App() {
               {/* Ruta por defecto - redirige a login */}
               <Route path="*" element={<Navigate to="/Login" replace />} />
 
-              {/* Nueva ruta para EnviarExcusa */}
-              <Route path="/enviar-excusa" element={<EnviarExcusa />} />
+              {/* Ruta protegida para EnviarExcusa */}
+              <Route 
+                path="/enviar-excusa" 
+                element={
+                  <ProtectedRoute allowedRoles={[ROLES.ESTUDIANTE, ROLES.TUTOR, ROLES.ADMINISTRADOR, ROLES.OBSERVADOR]}>
+                    <EnviarExcusa />
+                  </ProtectedRoute>
+                } 
+              />
             </Routes>
           </BrowserRouter>
           {/* Configuración del ToastContainer para mostrar notificaciones */}
