@@ -34,10 +34,12 @@ const tallerService = {
   // Talleres
   getAllTalleres: async (): Promise<Taller[]> => {
     try {
+      console.log('TallerService: Iniciando getAllTalleres...');
       const response = await api.get<Taller[]>('/talleres');
+      console.log('TallerService: Respuesta de talleres:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error al obtener talleres:', error);
+      console.error('TallerService: Error al obtener talleres:', error);
       throw new Error('No se pudieron cargar los talleres');
     }
   },

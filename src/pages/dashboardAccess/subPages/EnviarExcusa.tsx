@@ -14,6 +14,24 @@ interface Tutor {
   apellido_tutor: string;
 }
 
+interface EstudianteExcusa {
+  documento_id_est: string;
+  nombre_est: string;
+  apellido_est: string;
+}
+
+interface TallerResponse {
+  id_taller: number;
+  nombre_taller: string;
+  cod_titulo_taller: string;
+  estado_taller: string;
+}
+
+interface ExcusaConRelaciones extends ExcusaEstudiante {
+  estudiante: EstudianteExcusa;
+  tutor: Tutor;
+}
+
 const EnviarExcusa = () => {
   const theme = MUI.useTheme();
   const isMobile = MUI.useMediaQuery(theme.breakpoints.down('md'));
@@ -21,7 +39,7 @@ const EnviarExcusa = () => {
   const [pasantias, setPasantias] = useState<Pasantia[]>([]);
   const [estudiantes, setEstudiantes] = useState<Estudiante[]>([]);
   const [tutores, setTutores] = useState<Tutor[]>([]);
-  const [excusas, setExcusas] = useState<ExcusaEstudiante[]>([]);
+  const [excusas, setExcusas] = useState<ExcusaConRelaciones[]>([]);
   const [selectedPasantia, setSelectedPasantia] = useState<number | null>(null);
   const [selectedEstudiante, setSelectedEstudiante] = useState<string>('');
   const [selectedTutor, setSelectedTutor] = useState<number | null>(null);
@@ -29,6 +47,9 @@ const EnviarExcusa = () => {
   const [editId, setEditId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState<{open: boolean, message: string, severity: 'success'|'error'}>({open: false, message: '', severity: 'success'});
+  const [searchEstudiante, setSearchEstudiante] = useState('');
+  const [selectedTallerFilter, setSelectedTallerFilter] = useState<string>('');
+  const [talleres, setTalleres] = useState<TallerResponse[]>([]);
 
   const toggleDrawer = () => setDrawerOpen(!drawerOpen);
 
@@ -36,17 +57,34 @@ const EnviarExcusa = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        console.log('Iniciando carga de datos...');
+        
+        // Cargar talleres directamente desde la API
+        console.log('Solicitando talleres...');
+        const talleresResponse = await api.get<TallerResponse[]>('/talleres', {
+          params: {
+            estado: 'Activo'
+          }
+        });
+        console.log('Talleres recibidos:', talleresResponse.data);
+        setTalleres(talleresResponse.data);
+
+        // Cargar el resto de los datos
         const [pasantiasData, estudiantesData, tutoresData, excusasData] = await Promise.all([
           pasantiaService.getAllPasantias(),
           studentService.getAllStudents(),
           api.get<Tutor[]>('/tutores').then(res => res.data),
-          excusaEstudianteService.getAll()
+          excusaEstudianteService.getAll(),
         ]);
+
         setPasantias(pasantiasData);
         setEstudiantes(estudiantesData);
         setTutores(tutoresData);
         if (Array.isArray(excusasData)) setExcusas(excusasData);
-      } catch {
+
+        console.log('Todos los datos cargados exitosamente');
+      } catch (error) {
+        console.error('Error detallado al cargar datos:', error);
         setSnackbar({ open: true, message: 'Error al cargar datos', severity: 'error' });
       } finally {
         setLoading(false);
@@ -101,11 +139,11 @@ const EnviarExcusa = () => {
     }
   };
 
-  const handleEdit = (excusa: ExcusaEstudiante) => {
+  const handleEdit = (excusa: ExcusaConRelaciones) => {
     setEditId(excusa.id_excusa!);
     setSelectedPasantia(excusa.pasantia);
-    setSelectedEstudiante(excusa.estudiante);
-    setSelectedTutor(excusa.tutor);
+    setSelectedEstudiante(excusa.estudiante.documento_id_est);
+    setSelectedTutor(excusa.tutor.id_tutor);
     setJustificacion(excusa.justificacion_excusa);
   };
 
@@ -124,6 +162,22 @@ const EnviarExcusa = () => {
       setLoading(false);
     }
   };
+
+  // Función para filtrar excusas
+  const filteredExcusas = excusas.filter(excusa => {
+    // Obtener el nombre del estudiante para la búsqueda
+    const nombreEstudiante = `${excusa.estudiante.nombre_est} ${excusa.estudiante.apellido_est}`.toLowerCase();
+    const searchMatch = nombreEstudiante.includes(searchEstudiante.toLowerCase());
+    
+    if (selectedTallerFilter) {
+      // Buscar el estudiante completo
+      const estudianteCompleto = estudiantes.find(e => e.documento_id_est === excusa.estudiante.documento_id_est);
+      const tallerMatch = estudianteCompleto?.taller_est?.id_taller === parseInt(selectedTallerFilter);
+      return searchMatch && tallerMatch;
+    }
+    
+    return searchMatch;
+  });
 
   return (
     <MUI.Box sx={{ display: 'flex', width: '100vw', minHeight: '100vh', bgcolor: MUI.alpha(theme.palette.background.paper, 0.6), p: 0 }}>
@@ -220,10 +274,38 @@ const EnviarExcusa = () => {
           </MUI.Paper>
 
           {/* Tabla de excusas */}
-          <MUI.Paper elevation={2} sx={{ p: 3, borderRadius: 3 }}>
+          <MUI.Paper elevation={3} sx={{ p: 3, borderRadius: 3 }}>
             <MUI.Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
               Excusas Registradas
             </MUI.Typography>
+
+            {/* Filtros */}
+            <MUI.Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+              <MUI.TextField
+                label="Buscar por estudiante"
+                variant="outlined"
+                size="small"
+                value={searchEstudiante}
+                onChange={(e) => setSearchEstudiante(e.target.value)}
+                sx={{ flexGrow: 1 }}
+              />
+              <MUI.FormControl size="small" sx={{ minWidth: 200 }}>
+                <MUI.InputLabel>Filtrar por taller</MUI.InputLabel>
+                <MUI.Select
+                  value={selectedTallerFilter}
+                  onChange={(e) => setSelectedTallerFilter(e.target.value)}
+                  label="Filtrar por taller"
+                >
+                  <MUI.MenuItem value="">Todos</MUI.MenuItem>
+                  {talleres.map(taller => (
+                    <MUI.MenuItem key={taller.id_taller} value={taller.id_taller}>
+                      {taller.nombre_taller}
+                    </MUI.MenuItem>
+                  ))}
+                </MUI.Select>
+              </MUI.FormControl>
+            </MUI.Box>
+
             <MUI.TableContainer>
               <MUI.Table>
                 <MUI.TableHead>
@@ -233,11 +315,12 @@ const EnviarExcusa = () => {
                     <MUI.TableCell>Estudiante</MUI.TableCell>
                     <MUI.TableCell>Tutor</MUI.TableCell>
                     <MUI.TableCell>Justificación</MUI.TableCell>
+                    <MUI.TableCell>Fecha</MUI.TableCell>
                     <MUI.TableCell>Acciones</MUI.TableCell>
                   </MUI.TableRow>
                 </MUI.TableHead>
                 <MUI.TableBody>
-                  {excusas.map((excusa) => {
+                  {filteredExcusas.map((excusa) => {
                     // Buscar la pasantía por id (soporta ambos formatos: objeto o id)
                     let centroNombre = 'No encontrado';
                     const pasId = typeof excusa.pasantia === 'object' && excusa.pasantia !== null ? excusa.pasantia.id_pas : excusa.pasantia;
@@ -260,6 +343,11 @@ const EnviarExcusa = () => {
                             : 'No encontrado'}
                         </MUI.TableCell>
                         <MUI.TableCell>{excusa.justificacion_excusa}</MUI.TableCell>
+                        <MUI.TableCell>
+                          {excusa.fecha_creacion_excusa 
+                            ? new Date(excusa.fecha_creacion_excusa).toLocaleDateString()
+                            : 'No disponible'}
+                        </MUI.TableCell>
                         <MUI.TableCell>
                           <MUI.IconButton color="primary" onClick={() => handleEdit(excusa)}><Icons.Edit /></MUI.IconButton>
                           <MUI.IconButton color="error" onClick={() => handleDelete(excusa.id_excusa!)}><Icons.Delete /></MUI.IconButton>
