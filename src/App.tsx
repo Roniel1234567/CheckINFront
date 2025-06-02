@@ -38,6 +38,7 @@ import AccesoDenegado from './pages/AccesoDenegado';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ReadOnlyProvider } from './context/ReadOnlyContext';
 import { SnackbarProvider } from 'notistack';
+import EnviarExcusa from './pages/dashboardAccess/subPages/EnviarExcusa';
 
 // Roles
 const ROLES = {
@@ -136,6 +137,9 @@ function App() {
 
               {/* Ruta por defecto - redirige a login */}
               <Route path="*" element={<Navigate to="/Login" replace />} />
+
+              {/* Nueva ruta para EnviarExcusa */}
+              <Route path="/enviar-excusa" element={<EnviarExcusa />} />
             </Routes>
           </BrowserRouter>
           {/* Configuración del ToastContainer para mostrar notificaciones */}
