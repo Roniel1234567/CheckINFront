@@ -335,7 +335,7 @@ const Students = () => {
 
       // 3. Crear el usuario primero
       if (editMode && formData.id_usuario) {
-        // Actualizar estudiante
+        // Definir camposActualizables antes de los try/catch
         const camposActualizables = {
           nombre_est: formData.nombre,
           seg_nombre_est: formData.segNombre || undefined,
@@ -350,8 +350,65 @@ const Students = () => {
           taller_est: { id_taller: Number(formData.taller) },
           ...(formData.cicloEscolarId ? { ciclo_escolar_est: formData.cicloEscolarId } : {})
         };
-        await studentService.updateStudent(formData.documento, camposActualizables);
-        setSnackbar({ open: true, message: 'Estudiante actualizado correctamente', severity: 'success' });
+        try {
+          // Generar nueva contraseña
+          const nuevaContrasena = generateSecurePassword();
+          // Calcular el usuario final según el tipo de documento
+          const usuarioFinal = formData.tipoDocumento === 'Pasaporte'
+            ? `${formData.pasaporte_codigo_pais}-${formData.documento}`
+            : formData.documento;
+          // Log antes de actualizar usuario
+          console.log('Intentando actualizar usuario:', formData.id_usuario, { contrasena_usuario: nuevaContrasena, dato_usuario: usuarioFinal });
+          try {
+            await userService.updateUser(formData.id_usuario, {
+              contrasena_usuario: nuevaContrasena,
+              dato_usuario: usuarioFinal
+            });
+            console.log('Usuario actualizado');
+          } catch (error) {
+            console.error('Error al actualizar usuario:', error);
+            throw error;
+          }
+
+          // Actualizar el estudiante
+          try {
+            await studentService.updateStudent(formData.documento, camposActualizables);
+          } catch (firstError) {
+            console.log('Primer intento falló, reintentando en 2 segundos...', firstError);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            await studentService.updateStudent(formData.documento, camposActualizables);
+          }
+
+          // Enviar credenciales por email después de actualizar
+          if (formData.email) {
+            try {
+              await emailService.sendCredencialesEmail({
+                correoEstudiante: formData.email,
+                nombreEstudiante: `${formData.nombre} ${formData.apellido}`,
+                usuario: usuarioFinal,
+                contrasena: nuevaContrasena
+              });
+              setSnackbar({ open: true, message: 'Estudiante actualizado y credenciales enviadas por email', severity: 'success' });
+            } catch (emailError) {
+              console.error('Error al enviar el email:', emailError);
+              setSnackbar({ open: true, message: 'Estudiante actualizado pero hubo un error al enviar las credenciales por email', severity: 'error' });
+            }
+          } else {
+            setSnackbar({ open: true, message: 'Estudiante actualizado correctamente', severity: 'success' });
+          }
+
+          await loadData();
+          setOpenForm(false);
+          return;
+        } catch (error) {
+          console.error('Error al actualizar estudiante:', error);
+          setSnackbar({
+            open: true,
+            message: 'Error al actualizar el estudiante',
+            severity: 'error'
+          });
+          return;
+        }
       } else {
         // Crear estudiante
         const nuevoUsuario = await userService.createUser({
