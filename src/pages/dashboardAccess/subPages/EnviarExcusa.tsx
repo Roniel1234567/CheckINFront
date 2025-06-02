@@ -13,6 +13,7 @@ interface Tutor {
   id_tutor: number;
   nombre_tutor: string;
   apellido_tutor: string;
+  taller_tutor?: number | { id_taller: number };
 }
 
 interface EstudianteExcusa {
@@ -64,22 +65,17 @@ const EnviarExcusa = () => {
         setIsEstudiante(esEstudiante);
 
         if (esEstudiante && currentUser) {
-          // 1. Obtener datos del estudiante logueado por id_usuario
+          // 1. Obtener el estudiante por id_usuario
           const estudiante = await studentService.getStudentByUsuarioId(currentUser.id_usuario);
           setSelectedEstudiante(estudiante.documento_id_est);
 
-          // 2. Obtener todas las pasantías y filtrar la del estudiante activa
-          const pasantiasData = await pasantiaService.getAllPasantias();
-          const pasantiaActiva = pasantiasData.find(
-            p => p.estudiante_pas.documento_id_est === estudiante.documento_id_est && p.estado_pas === 'En Proceso'
-          );
-          setPasantias(pasantiaActiva ? [pasantiaActiva] : []);
-          setSelectedPasantia(pasantiaActiva ? pasantiaActiva.id_pas : null);
+          // 2. Obtener el taller del estudiante
+          const idTaller = estudiante.taller_est?.id_taller;
 
-          // 3. Obtener tutores SOLO del taller del estudiante
+          // 3. Obtener tutores SOLO de ese taller
           let tutoresFiltrados: Tutor[] = [];
-          if (estudiante.taller_est && estudiante.taller_est.id_taller) {
-            const response = await api.get<Tutor[]>(`/tutores/taller/${estudiante.taller_est.id_taller}`);
+          if (idTaller) {
+            const response = await api.get<Tutor[]>(`/tutores/taller/${idTaller}`);
             tutoresFiltrados = Array.isArray(response.data) ? response.data : [];
           }
           setTutores(tutoresFiltrados);
@@ -91,7 +87,15 @@ const EnviarExcusa = () => {
             setSelectedTutor(null);
           }
 
-          // 5. Obtener excusas y filtrar solo las del estudiante
+          // 5. Obtener todas las pasantías y filtrar la del estudiante activa
+          const pasantiasData = await pasantiaService.getAllPasantias();
+          const pasantiaActiva = pasantiasData.find(
+            p => p.estudiante_pas.documento_id_est === estudiante.documento_id_est && p.estado_pas === 'En Proceso'
+          );
+          setPasantias(pasantiaActiva ? [pasantiaActiva] : []);
+          setSelectedPasantia(pasantiaActiva ? pasantiaActiva.id_pas : null);
+
+          // 6. Obtener excusas y filtrar solo las del estudiante
           const excusasData = await excusaEstudianteService.getAll();
           const excusasEstudiante = Array.isArray(excusasData)
             ? excusasData.filter(excusa =>
@@ -102,7 +106,7 @@ const EnviarExcusa = () => {
             : [];
           setExcusas(excusasEstudiante);
 
-          // 6. Obtener talleres activos (por si necesitas el filtro)
+          // 7. Obtener talleres activos (por si necesitas el filtro)
           const talleresResponse = await api.get<TallerResponse[]>('/talleres', { params: { estado: 'Activo' } });
           setTalleres(talleresResponse.data);
 
@@ -224,9 +228,9 @@ const EnviarExcusa = () => {
   });
 
   // Filtrar las pasantías mostradas en el select si es estudiante
-  const pasantiasFiltradas = isEstudiante 
-    ? pasantias.filter(p => typeof p.id_pas === 'number')
-    : pasantias;
+  const pasantiasFiltradas: Pasantia[] = isEstudiante 
+    ? (pasantias.filter(p => typeof p.id_pas === 'number') as Pasantia[])
+    : (pasantias as Pasantia[]);
 
   // Filtrar los estudiantes mostrados en el select si es estudiante
   const estudiantesFiltrados = isEstudiante
@@ -234,7 +238,18 @@ const EnviarExcusa = () => {
     : estudiantes;
 
   // Filtrar tutores por taller si es estudiante (ya se hace en el useEffect)
-  const tutoresFiltrados = tutores;
+  let tutoresFiltrados = tutores;
+  if (isEstudiante && estudiantes.length > 0) {
+    const estudiante = estudiantes[0];
+    const idTallerEstudiante = estudiante.taller_est?.id_taller;
+    if (idTallerEstudiante) {
+      tutoresFiltrados = tutores.filter(t => {
+        // Si el tutor tiene taller_tutor como número
+        // o como objeto con id_taller
+        return t.taller_tutor === idTallerEstudiante || (typeof t.taller_tutor === 'object' && t.taller_tutor?.id_taller === idTallerEstudiante);
+      });
+    }
+  }
 
   return (
     <MUI.Box sx={{ display: 'flex', width: '100vw', minHeight: '100vh', bgcolor: MUI.alpha(theme.palette.background.paper, 0.6), p: 0 }}>
@@ -293,11 +308,17 @@ const EnviarExcusa = () => {
                       label="Tutor"
                       required
                     >
-                      {tutoresFiltrados.map(t => (
-                        <MUI.MenuItem key={t.id_tutor} value={t.id_tutor}>
-                          {t.nombre_tutor} {t.apellido_tutor}
+                      {tutoresFiltrados.length > 0 ? (
+                        tutoresFiltrados.map(t => (
+                          <MUI.MenuItem key={t.id_tutor} value={t.id_tutor}>
+                            {t.nombre_tutor} {t.apellido_tutor}
+                          </MUI.MenuItem>
+                        ))
+                      ) : (
+                        <MUI.MenuItem value="" disabled>
+                          No hay tutores disponibles para tu taller
                         </MUI.MenuItem>
-                      ))}
+                      )}
                     </MUI.Select>
                   </MUI.FormControl>
                 </MUI.Grid>
@@ -384,7 +405,7 @@ const EnviarExcusa = () => {
                     // Buscar la pasantía por id (soporta ambos formatos: objeto o id)
                     let centroNombre = 'No encontrado';
                     const pasId = typeof excusa.pasantia === 'object' && excusa.pasantia !== null ? excusa.pasantia.id_pas : excusa.pasantia;
-                    const pasantiaObj = pasantias.find(p => p.id_pas === pasId);
+                    const pasantiaObj = (pasantias as Pasantia[]).find(p => p.id_pas === pasId);
                     if (pasantiaObj && pasantiaObj.centro_pas && pasantiaObj.centro_pas.nombre_centro) {
                       centroNombre = pasantiaObj.centro_pas.nombre_centro;
                     }
