@@ -123,6 +123,8 @@ interface FormData {
   numeroPoliza: string;
   fechaInicioPasantia: string;
   fechaFinPasantia: string;
+  cicloEscolarId?: number | null;
+  id_usuario?: number | null;
 }
 
 const Students = () => {
@@ -222,7 +224,8 @@ const Students = () => {
     nombrePoliza: '',
     numeroPoliza: '',
     fechaInicioPasantia: '',
-    fechaFinPasantia: ''
+    fechaFinPasantia: '',
+    cicloEscolarId: null,
   });
 
   // Obtener el taller del tutor al cargar
@@ -300,6 +303,8 @@ const Students = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (isReadOnly) return;
+    // Log para depuración
+    console.log('editMode:', editMode, 'id_usuario:', formData.id_usuario);
 
     try {
       setLoading(true);
@@ -329,6 +334,26 @@ const Students = () => {
       const direccionId = direccionResponse.data.id_dir;
 
       // 3. Crear el usuario primero
+      if (editMode && formData.id_usuario) {
+        // Actualizar estudiante
+        const camposActualizables = {
+          nombre_est: formData.nombre,
+          seg_nombre_est: formData.segNombre || undefined,
+          apellido_est: formData.apellido,
+          seg_apellido_est: formData.segApellido || undefined,
+          fecha_nac_est: formData.fechaNacimiento,
+          sexo_est: formData.sexo_est as "Masculino" | "Femenino",
+          nacionalidad: formData.nacionalidad === 'Otra' ? formData.nacionalidadOtra : formData.nacionalidad,
+          pasaporte_codigo_pais: formData.pasaporte_codigo_pais || undefined,
+          usuario_est: Number(formData.id_usuario),
+          direccion_id: Number(formData.direccionId),
+          taller_est: { id_taller: Number(formData.taller) },
+          ...(formData.cicloEscolarId ? { ciclo_escolar_est: formData.cicloEscolarId } : {})
+        };
+        await studentService.updateStudent(formData.documento, camposActualizables);
+        setSnackbar({ open: true, message: 'Estudiante actualizado correctamente', severity: 'success' });
+      } else {
+        // Crear estudiante
         const nuevoUsuario = await userService.createUser({
         dato_usuario: usuario,
         contrasena_usuario: contrasena,
@@ -385,6 +410,7 @@ const Students = () => {
             severity: 'error' 
           });
         }
+      }
       }
 
       setOpenForm(false);
@@ -611,14 +637,16 @@ const Students = () => {
 
   const handleEditClick = async (estudiante: Estudiante) => {
     if (isReadOnly) return;
-    setEditMode(true);
+    setEditMode(true); // <-- asegurar que siempre se setea
     setOpenForm(true);
 
     // Obtener dirección completa
     let direccionCompleta: DireccionCompleta | null = null;
     try {
       direccionCompleta = await direccionService.getDireccionByEstudianteDocumento(estudiante.documento_id_est) as DireccionCompleta;
-    } catch {
+      console.log('Dirección cargada:', direccionCompleta); // Añadir log para debug
+    } catch (error) {
+      console.error('Error al cargar la dirección:', error);
       direccionCompleta = null;
     }
 
@@ -626,10 +654,12 @@ const Students = () => {
     let provinciaId = '';
     let ciudadId = '';
     let sectorId = '';
+    let direccionId = '';
     if (direccionCompleta && direccionCompleta.sector_dir) {
       sectorId = String(direccionCompleta.sector_dir.id_sec);
       ciudadId = String(direccionCompleta.sector_dir.ciudad_sec);
       provinciaId = String(direccionCompleta.sector_dir.ciudad.provincia_ciu);
+      direccionId = String(direccionCompleta.id_dir);
     }
 
     // Obtener datos de contacto y documentos
@@ -653,21 +683,16 @@ const Students = () => {
     }
 
     // Normalizar la nacionalidad
-    console.log("Estudiante completo:", estudiante); // Debug para ver el objeto completo
-
     const nacionalidadOriginal = estudiante.nacionalidad || '';
-    console.log("Nacionalidad directa del estudiante:", nacionalidadOriginal); // Debug
-
-    // Si la nacionalidad está vacía, asumimos que es dominicana (valor por defecto)
     const esDominicano = !nacionalidadOriginal || nacionalidadOriginal.trim().toLowerCase() === 'dominicana';
-    
+
     const datosFormulario = {
       provincia: String(provinciaId || ''),
       ciudad: String(ciudadId || ''),
       sector: String(sectorId || ''),
       calle: direccionCompleta ? direccionCompleta.calle_dir : '',
       numero: direccionCompleta ? direccionCompleta.num_res_dir : '',
-      direccionId: direccionCompleta ? String(direccionCompleta.id_dir) : '',
+      direccionId: direccionId,
       nacionalidad: esDominicano ? 'Dominicana' : 'Otra',
       nacionalidadOtra: esDominicano ? '' : (nacionalidadOriginal || '').trim(),
       tipoDocumento: estudiante.tipo_documento_est || (esDominicano ? 'Cédula' : 'Pasaporte'),
@@ -703,17 +728,10 @@ const Students = () => {
       nombrePoliza: '',
       numeroPoliza: '',
       fechaInicioPasantia: estudiante.fecha_inicio_pasantia || '',
-      fechaFinPasantia: estudiante.fecha_fin_pasantia || ''
+      fechaFinPasantia: estudiante.fecha_fin_pasantia || '',
+      id_usuario: estudiante.usuario_est?.id_usuario || null, // <-- asegurar que siempre se setea
+      cicloEscolarId: estudiante.ciclo_escolar_est?.id_ciclo || null,
     };
-
-    console.log("Datos de nacionalidad:", {
-      original: nacionalidadOriginal,
-      esDominicano,
-      nacionalidad: datosFormulario.nacionalidad,
-      nacionalidadOtra: datosFormulario.nacionalidadOtra
-    }); // Debug
-
-    console.log("Datos del formulario a cargar:", datosFormulario); // Debug
     setFormData(datosFormulario);
 
     if (provinciaId && ciudadId) {
@@ -798,7 +816,8 @@ const Students = () => {
       nombrePoliza: '',
       numeroPoliza: '',
       fechaInicioPasantia: '',
-      fechaFinPasantia: ''
+      fechaFinPasantia: '',
+      cicloEscolarId: null,
     });
     setOpenForm(true);
   };
@@ -850,7 +869,8 @@ const Students = () => {
       nombrePoliza: '',
       numeroPoliza: '',
       fechaInicioPasantia: '',
-      fechaFinPasantia: ''
+      fechaFinPasantia: '',
+      cicloEscolarId: null,
     });
   };
 
