@@ -70,4 +70,10 @@ api.interceptors.request.use(
   }
 );
 
+// Obtener tutor por id_usuario
+export const getTutorByUsuario = async (id_usuario: number) => {
+  const response = await api.get(`/tutores/usuario/${id_usuario}`);
+  return response.data;
+};
+
 export default api; 
