@@ -49,7 +49,7 @@ const Principal = () => {
     { 
       text: 'Sobre Nosotros', 
       icon: <Icons.School />, 
-      path: '/Sobre_nosotros',
+      path: '/SobreNosotros',
       description: 'Conoce más sobre nuestra institución',
       color: theme.palette.secondary.main,
       mobileIcon: <Icons.Groups />,
