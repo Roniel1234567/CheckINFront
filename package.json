@@ -14,9 +14,9 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^7.1.0",
+    "@mui/icons-material": "^7.1.1",
     "@mui/lab": "^7.0.0-beta.12",
-    "@mui/material": "^7.1.0",
+    "@mui/material": "^7.1.1",
     "@types/exceljs": "^0.5.3",
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^18.0.0",
