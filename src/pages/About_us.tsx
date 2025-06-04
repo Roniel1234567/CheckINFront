@@ -159,7 +159,7 @@ const AboutUs = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          mt: { xs: 4, sm: 6, md: 8 },
+          mt: { xs: '80px', sm: '90px', md: '100px' },
           px: { xs: 2, sm: 3, md: 3 },
           width: "100%",
           maxWidth: "1200px",
