@@ -22,6 +22,8 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [typedText, setTypedText] = useState('');
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [portalPosition, setPortalPosition] = useState({ x: 0, y: 0 });
   const welcomeText = '¡Bienvenido!';
 
   useEffect(() => {
@@ -141,12 +143,28 @@ const Login = () => {
     }
   };
 
-  const handleForgotPassword = () => {
-    navigate('/recuperar-contrasena');
+  const handleForgotPassword = (event: React.MouseEvent) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setPortalPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2
+    });
+    setIsNavigating(true);
+    setTimeout(() => {
+      navigate('/recuperar-contrasena');
+    }, 1000);
   };
 
-  const handleCompanyRegister = () => {
-    navigate('/registro-centro');
+  const handleCompanyRegister = (event: React.MouseEvent) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setPortalPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2
+    });
+    setIsNavigating(true);
+    setTimeout(() => {
+      navigate('/registro-centro');
+    }, 1000);
   };
 
   const parallaxOffset = scrollPosition * 0.3;
@@ -453,19 +471,7 @@ const Login = () => {
               <MUI.Stack spacing={2}>
                 <MUI.Typography
                   variant="body2"
-                  sx={{
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '& a': {
-                      color: '#ffffff',
-                      textDecoration: 'none',
-                      fontWeight: 'bold',
-                      transition: 'color 0.3s ease',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        color: 'rgba(255, 255, 255, 0.8)',
-                      },
-                    },
-                  }}
+                  sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
                 >
                   ¿Olvidaste tu contraseña?{' '}
                   <MUI.Link 
@@ -473,6 +479,10 @@ const Login = () => {
                     onClick={handleForgotPassword}
                     sx={{ 
                       color: '#ffffff !important',
+                      cursor: 'pointer',
+                      textDecoration: 'none',
+                      fontWeight: 'bold',
+                      position: 'relative',
                       '&:hover': {
                         color: 'rgba(255, 255, 255, 0.8) !important'
                       }
@@ -492,6 +502,10 @@ const Login = () => {
                     onClick={handleCompanyRegister}
                     sx={{ 
                       color: '#ffffff !important',
+                      cursor: 'pointer',
+                      textDecoration: 'none',
+                      fontWeight: 'bold',
+                      position: 'relative',
                       '&:hover': {
                         color: 'rgba(255, 255, 255, 0.8) !important'
                       }
@@ -506,6 +520,46 @@ const Login = () => {
         </MUI.Fade>
       </MUI.Box>
       <Footer />
+
+      {/* Portal animation overlay */}
+      <MUI.Fade in={isNavigating}>
+        <MUI.Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            pointerEvents: 'none',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: portalPosition.y,
+              left: portalPosition.x,
+              width: isNavigating ? '300vw' : '0',
+              height: isNavigating ? '300vh' : '0',
+              background: `radial-gradient(circle at center, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 50%, ${theme.palette.primary.main} 100%)`,
+              transform: 'translate(-50%, -50%)',
+              borderRadius: '50%',
+              transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)',
+            },
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: portalPosition.y,
+              left: portalPosition.x,
+              width: isNavigating ? '200vw' : '0',
+              height: isNavigating ? '200vh' : '0',
+              background: `radial-gradient(circle at center, transparent 0%, ${theme.palette.secondary.main} 100%)`,
+              transform: 'translate(-50%, -50%)',
+              borderRadius: '50%',
+              transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+              opacity: 0.3,
+            }
+          }}
+        />
+      </MUI.Fade>
     </MUI.Box>
   );
 };
