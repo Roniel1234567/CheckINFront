@@ -305,45 +305,128 @@ function RegistroCentro() {
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: '#f5f5f5',
-        overflow: 'auto'
+        background: 'linear-gradient(135deg, #1a365d 0%, #2a4a7f 100%)',
+        overflow: 'auto',
+        position: 'relative'
       }}
     >
+      {/* Elementos decorativos de fondo */}
+      {[...Array(5)].map((_, i) => (
+        <MUI.Box
+          key={i}
+          sx={{
+            position: 'absolute',
+            width: { xs: '200px', md: '400px' },
+            height: { xs: '200px', md: '400px' },
+            borderRadius: '50%',
+            background: `radial-gradient(circle, ${MUI.alpha('#ffffff', 0.03)} 0%, ${MUI.alpha('#ffffff', 0)} 70%)`,
+            top: `${Math.random() * 100}%`,
+            left: `${Math.random() * 100}%`,
+            transform: 'translate(-50%, -50%)',
+            animation: 'float 30s infinite',
+            animationDelay: `${i * 4}s`,
+            pointerEvents: 'none',
+            zIndex: 0,
+            '@keyframes float': {
+              '0%, 100%': {
+                transform: 'translate(-50%, -50%)',
+              },
+              '50%': {
+                transform: 'translate(-50%, calc(-50% + 40px))',
+              },
+            },
+          }}
+        />
+      ))}
+
       <MUI.Container 
         maxWidth="md" 
         sx={{ 
-          py: 4,
+          py: 6,
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          position: 'relative',
+          zIndex: 1
         }}
       >
         <MUI.Paper 
-          elevation={3} 
+          elevation={24} 
           sx={{ 
-            p: { xs: 2, sm: 4 }, 
-            borderRadius: 2,
+            p: { xs: 3, sm: 6 }, 
+            borderRadius: 4,
             width: '100%',
             maxWidth: '100%',
             mx: 'auto',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            background: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            position: 'relative',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '4px',
+              background: 'linear-gradient(90deg, #1a237e, #3949ab)',
+            }
           }}
         >
-          <MUI.Box sx={{ mb: 4, textAlign: 'center' }}>
+          <MUI.Box sx={{ mb: 5, textAlign: 'center' }}>
             <MUI.Avatar
               src="https://storage.googleapis.com/educoco2020/82/foto_empresa/logo_821663703399_1663703399V19BCd9KY1u6alR.png"
-              sx={{ width: 80, height: 80, mx: 'auto', mb: 2 }}
+              sx={{ 
+                width: 120, 
+                height: 120, 
+                mx: 'auto', 
+                mb: 2,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+              }}
             />
-            <MUI.Typography variant="h4" sx={{ color: '#1a237e', fontWeight: 600 }}>
+            <MUI.Typography 
+              variant="h4" 
+              sx={{ 
+                color: '#1a237e', 
+                fontWeight: 700,
+                mb: 1
+              }}
+            >
               IPISA
             </MUI.Typography>
-            <MUI.Typography variant="body1" sx={{ color: 'text.secondary' }}>
+            <MUI.Typography 
+              variant="body1" 
+              sx={{ 
+                color: 'text.secondary',
+                fontSize: '1.1rem'
+              }}
+            >
               Instituto Politécnico Industrial de Santiago
             </MUI.Typography>
           </MUI.Box>
 
-          <MUI.Typography variant="h4" sx={{ mb: 4, color: '#1a237e', textAlign: 'center' }}>
+          <MUI.Typography 
+            variant="h4" 
+            sx={{ 
+              mb: 4, 
+              color: '#1a237e', 
+              textAlign: 'center',
+              fontWeight: 600,
+              position: 'relative',
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: '-10px',
+                left: '50%',
+                width: '60px',
+                height: '4px',
+                background: 'linear-gradient(90deg, #1a237e, #3949ab)',
+                transform: 'translateX(-50%)',
+                borderRadius: '2px'
+              }
+            }}
+          >
             Registro de Centro de Trabajo
           </MUI.Typography>
 
@@ -354,272 +437,524 @@ function RegistroCentro() {
               '& .MuiGrid-container': {
                 width: '100%',
                 margin: 0
+              },
+              '& .MuiTextField-root, & .MuiFormControl-root': {
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#1a237e',
+                    }
+                  },
+                  '&.Mui-focused': {
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderWidth: '2px',
+                      borderColor: '#1a237e',
+                    }
+                  }
+                },
+                '& .MuiInputLabel-root': {
+                  '&.Mui-focused': {
+                    color: '#1a237e'
+                  }
+                }
               }
             }}
           >
-            <MUI.Grid container spacing={3}>
-              {/* Información General */}
-              <MUI.Grid item xs={12}>
-                <MUI.Typography variant="h6" sx={{ color: '#1a237e', mb: 1 }}>
+            <MUI.Grid container spacing={4} component="div">
+              {/* Sección: Información General */}
+              <MUI.Grid item xs={12} component="div">
+                <MUI.Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: '#1a365d',
+                    mb: 3,
+                    fontWeight: 600,
+                    borderBottom: '2px solid #1a365d',
+                    paddingBottom: 1
+                  }}
+                >
                   Información General
                 </MUI.Typography>
+                <MUI.Grid container spacing={3} component="div">
+                  <MUI.Grid item xs={12} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Nombre del Centro"
+                      name="nombre_centro"
+                      value={formData.nombre_centro}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      error={!nombreCentroDisponible && !!formData.nombre_centro}
+                      helperText={!nombreCentroDisponible && !!formData.nombre_centro ? 'Ya existe un centro con ese nombre' : ''}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          fontSize: '1.1rem',
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12} md={6} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Teléfono"
+                      name="telefono_contacto"
+                      value={formData.telefono_contacto}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      error={!telefonoDisponible && !!formData.telefono_contacto}
+                      helperText={!telefonoDisponible && !!formData.telefono_contacto ? 'Ya existe un contacto con ese teléfono' : ''}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+                  <MUI.Grid item xs={12} md={6} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Email"
+                      name="email_contacto"
+                      type="email"
+                      value={formData.email_contacto}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      error={!emailDisponible && !!formData.email_contacto}
+                      helperText={!emailDisponible && !!formData.email_contacto ? 'Ya existe un contacto con ese email' : ''}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+                </MUI.Grid>
               </MUI.Grid>
 
-              <MUI.Grid item xs={12}>
-                <MUI.TextField
-                  fullWidth
-                  label="Nombre del Centro"
-                  name="nombre_centro"
-                  value={formData.nombre_centro}
-                  onChange={handleFormChange}
-                  variant="outlined"
-                  error={!nombreCentroDisponible && !!formData.nombre_centro}
-                  helperText={!nombreCentroDisponible && !!formData.nombre_centro ? 'Ya existe un centro con ese nombre' : ''}
-                  required
-                />
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Teléfono"
-                  name="telefono_contacto"
-                  value={formData.telefono_contacto}
-                  onChange={handleFormChange}
-                  variant="outlined"
-                  error={!telefonoDisponible && !!formData.telefono_contacto}
-                  helperText={!telefonoDisponible && !!formData.telefono_contacto ? 'Ya existe un contacto con ese teléfono' : ''}
-                  required
-                />
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Email"
-                  name="email_contacto"
-                  type="email"
-                  value={formData.email_contacto}
-                  onChange={handleFormChange}
-                  variant="outlined"
-                  error={!emailDisponible && !!formData.email_contacto}
-                  helperText={!emailDisponible && !!formData.email_contacto ? 'Ya existe un contacto con ese email' : ''}
-                  required
-                />
-              </MUI.Grid>
-
-              {/* Dirección */}
-              <MUI.Grid item xs={12}>
-                <MUI.Typography variant="h6" sx={{ color: '#1a237e', mb: 1, mt: 2 }}>
+              {/* Sección: Dirección */}
+              <MUI.Grid item xs={12} component="div">
+                <MUI.Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: '#1a365d',
+                    mb: 3,
+                    fontWeight: 600,
+                    borderBottom: '2px solid #1a365d',
+                    paddingBottom: 1
+                  }}
+                >
                   Dirección
                 </MUI.Typography>
+                <MUI.Grid container spacing={3} component="div">
+                  <MUI.Grid item xs={12} md={4} component="div">
+                    <MUI.FormControl 
+                      fullWidth 
+                      required
+                      sx={{
+                        minWidth: '300px',
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#1a365d',
+                            borderWidth: '2px'
+                          },
+                          '& .MuiSelect-select': {
+                            padding: '16px 14px',
+                            minHeight: '25px',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: '#1a365d',
+                          '&.Mui-focused': {
+                            color: '#1a365d'
+                          }
+                        }
+                      }}
+                    >
+                      <MUI.InputLabel>Provincia</MUI.InputLabel>
+                      <MUI.Select
+                        value={selectedProvincia}
+                        onChange={handleProvinciaChange}
+                        label="Provincia"
+                        MenuProps={{
+                          PaperProps: {
+                            sx: {
+                              maxHeight: 300,
+                              width: '350px',
+                              '& .MuiMenuItem-root': {
+                                padding: '12px 24px',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(26, 54, 93, 0.08)'
+                                },
+                                '&.Mui-selected': {
+                                  backgroundColor: 'rgba(26, 54, 93, 0.15)',
+                                  '&:hover': {
+                                    backgroundColor: 'rgba(26, 54, 93, 0.2)'
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }}
+                      >
+                        <MUI.MenuItem value="">
+                          <em>Seleccione una provincia</em>
+                        </MUI.MenuItem>
+                        {provincias.map((provincia) => (
+                          <MUI.MenuItem key={provincia.id_prov} value={provincia.id_prov}>
+                            {provincia.provincia}
+                          </MUI.MenuItem>
+                        ))}
+                      </MUI.Select>
+                    </MUI.FormControl>
+                  </MUI.Grid>
+                  
+                  <MUI.Grid item xs={12} md={4} component="div">
+                    <MUI.FormControl 
+                      fullWidth 
+                      required
+                      sx={{
+                        minWidth: '300px',
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#1a365d',
+                            borderWidth: '2px'
+                          },
+                          '& .MuiSelect-select': {
+                            padding: '16px 14px',
+                            minHeight: '25px',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: '#1a365d',
+                          '&.Mui-focused': {
+                            color: '#1a365d'
+                          }
+                        }
+                      }}
+                    >
+                      <MUI.InputLabel>Ciudad</MUI.InputLabel>
+                      <MUI.Select
+                        value={selectedCiudad}
+                        onChange={handleCiudadChange}
+                        label="Ciudad"
+                        disabled={!selectedProvincia}
+                        MenuProps={{
+                          PaperProps: {
+                            sx: {
+                              maxHeight: 300,
+                              width: '350px',
+                              '& .MuiMenuItem-root': {
+                                padding: '12px 24px',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(26, 54, 93, 0.08)'
+                                },
+                                '&.Mui-selected': {
+                                  backgroundColor: 'rgba(26, 54, 93, 0.15)',
+                                  '&:hover': {
+                                    backgroundColor: 'rgba(26, 54, 93, 0.2)'
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }}
+                      >
+                        <MUI.MenuItem value="">
+                          <em>Seleccione una ciudad</em>
+                        </MUI.MenuItem>
+                        {ciudades.map((ciudad) => (
+                          <MUI.MenuItem key={ciudad.id_ciu} value={ciudad.id_ciu}>
+                            {ciudad.ciudad}
+                          </MUI.MenuItem>
+                        ))}
+                      </MUI.Select>
+                    </MUI.FormControl>
+                  </MUI.Grid>
+
+                  <MUI.Grid item xs={12} md={4} component="div">
+                    <MUI.FormControl 
+                      fullWidth 
+                      required
+                      sx={{
+                        minWidth: '300px',
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#1a365d',
+                            borderWidth: '2px'
+                          },
+                          '& .MuiSelect-select': {
+                            padding: '16px 14px',
+                            minHeight: '25px',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: '#1a365d',
+                          '&.Mui-focused': {
+                            color: '#1a365d'
+                          }
+                        }
+                      }}
+                    >
+                      <MUI.InputLabel>Sector</MUI.InputLabel>
+                      <MUI.Select
+                        value={selectedSector}
+                        onChange={handleSectorChange}
+                        label="Sector"
+                        disabled={!selectedCiudad}
+                        MenuProps={{
+                          PaperProps: {
+                            sx: {
+                              maxHeight: 300,
+                              width: '350px',
+                              '& .MuiMenuItem-root': {
+                                padding: '12px 24px',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(26, 54, 93, 0.08)'
+                                },
+                                '&.Mui-selected': {
+                                  backgroundColor: 'rgba(26, 54, 93, 0.15)',
+                                  '&:hover': {
+                                    backgroundColor: 'rgba(26, 54, 93, 0.2)'
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }}
+                      >
+                        <MUI.MenuItem value="">
+                          <em>Seleccione un sector</em>
+                        </MUI.MenuItem>
+                        {sectores.map((sector) => (
+                          <MUI.MenuItem key={sector.id_sec} value={sector.id_sec}>
+                            {sector.sector}
+                          </MUI.MenuItem>
+                        ))}
+                      </MUI.Select>
+                    </MUI.FormControl>
+                  </MUI.Grid>
+
+                  <MUI.Grid item xs={12} md={6} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Calle"
+                      name="calle_dir"
+                      value={formData.calle_dir}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      required
+                      inputProps={{ maxLength: MAX_CALLE }}
+                      error={formData.calle_dir.length > MAX_CALLE}
+                      helperText={
+                        formData.calle_dir.length > MAX_CALLE
+                          ? `Máximo ${MAX_CALLE} caracteres`
+                          : `${formData.calle_dir.length}/${MAX_CALLE}`
+                      }
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+
+                  <MUI.Grid item xs={12} md={6} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Residencia"
+                      name="num_res_dir"
+                      value={formData.num_res_dir}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      required
+                      inputProps={{ maxLength: MAX_NUM_RES }}
+                      error={formData.num_res_dir.length > MAX_NUM_RES}
+                      helperText={
+                        formData.num_res_dir.length > MAX_NUM_RES
+                          ? `Máximo ${MAX_NUM_RES} caracteres`
+                          : `${formData.num_res_dir.length}/${MAX_NUM_RES}`
+                      }
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+                </MUI.Grid>
               </MUI.Grid>
 
-              <MUI.Grid item xs={12} md={4}>
-                <MUI.FormControl fullWidth required>
-                  <MUI.InputLabel>Provincia</MUI.InputLabel>
-                  <MUI.Select
-                    value={selectedProvincia}
-                    onChange={handleProvinciaChange}
-                    label="Provincia"
-                  >
-                    <MUI.MenuItem value="">
-                      <em>Seleccione una provincia</em>
-                    </MUI.MenuItem>
-                    {provincias.map((provincia) => (
-                      <MUI.MenuItem key={provincia.id_prov} value={provincia.id_prov}>
-                        {provincia.provincia}
-                      </MUI.MenuItem>
-                    ))}
-                  </MUI.Select>
-                </MUI.FormControl>
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12} md={4}>
-                <MUI.FormControl fullWidth required>
-                  <MUI.InputLabel>Ciudad</MUI.InputLabel>
-                  <MUI.Select
-                    value={selectedCiudad}
-                    onChange={handleCiudadChange}
-                    label="Ciudad"
-                    disabled={!selectedProvincia}
-                  >
-                    <MUI.MenuItem value="">
-                      <em>Seleccione una ciudad</em>
-                    </MUI.MenuItem>
-                    {ciudades.map((ciudad) => (
-                      <MUI.MenuItem key={ciudad.id_ciu} value={ciudad.id_ciu}>
-                        {ciudad.ciudad}
-                      </MUI.MenuItem>
-                    ))}
-                  </MUI.Select>
-                </MUI.FormControl>
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12} md={4}>
-                <MUI.FormControl fullWidth required>
-                  <MUI.InputLabel>Sector</MUI.InputLabel>
-                  <MUI.Select
-                    value={selectedSector}
-                    onChange={handleSectorChange}
-                    label="Sector"
-                    disabled={!selectedCiudad}
-                  >
-                    <MUI.MenuItem value="">
-                      <em>Seleccione un sector</em>
-                    </MUI.MenuItem>
-                    {sectores.map((sector) => (
-                      <MUI.MenuItem key={sector.id_sec} value={sector.id_sec}>
-                        {sector.sector}
-                      </MUI.MenuItem>
-                    ))}
-                  </MUI.Select>
-                </MUI.FormControl>
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Calle"
-                  name="calle_dir"
-                  value={formData.calle_dir}
-                  onChange={handleFormChange}
-                  variant="outlined"
-                  required
-                  inputProps={{ maxLength: MAX_CALLE }}
-                  error={formData.calle_dir.length > MAX_CALLE}
-                  helperText={
-                    formData.calle_dir.length > MAX_CALLE
-                      ? `Máximo ${MAX_CALLE} caracteres`
-                      : `${formData.calle_dir.length}/${MAX_CALLE}`
-                  }
-                />
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Residencia"
-                  name="num_res_dir"
-                  value={formData.num_res_dir}
-                  onChange={handleFormChange}
-                  variant="outlined"
-                  required
-                  inputProps={{ maxLength: MAX_NUM_RES }}
-                  error={formData.num_res_dir.length > MAX_NUM_RES}
-                  helperText={
-                    formData.num_res_dir.length > MAX_NUM_RES
-                      ? `Máximo ${MAX_NUM_RES} caracteres`
-                      : `${formData.num_res_dir.length}/${MAX_NUM_RES}`
-                  }
-                />
-              </MUI.Grid>
-
-              {/* Usuario de la Empresa */}
-              <MUI.Grid item xs={12}>
-                <MUI.Typography variant="h6" sx={{ color: '#1a237e', mb: 1, mt: 2 }}>
+              {/* Sección: Usuario de la Empresa */}
+              <MUI.Grid item xs={12} component="div">
+                <MUI.Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: '#1a365d',
+                    mb: 3,
+                    fontWeight: 600,
+                    borderBottom: '2px solid #1a365d',
+                    paddingBottom: 1
+                  }}
+                >
                   Usuario de la Empresa
                 </MUI.Typography>
+                <MUI.Grid container spacing={3} component="div">
+                  <MUI.Grid item xs={12} md={6} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Usuario"
+                      name="usuario_empresa"
+                      value={formData.usuario_empresa}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      error={!usuarioEmpresaDisponible}
+                      helperText={!usuarioEmpresaDisponible ? "Este usuario ya existe" : ""}
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+
+                  <MUI.Grid item xs={12} md={6} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Contraseña"
+                      name="contrasena_empresa"
+                      type="password"
+                      value={formData.contrasena_empresa}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+                </MUI.Grid>
               </MUI.Grid>
 
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Usuario"
-                  name="usuario_empresa"
-                  value={formData.usuario_empresa}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    handleFormChange(e);
-                    checkUsuarioEmpresa(e.target.value);
+              {/* Sección: Persona de Contacto */}
+              <MUI.Grid item xs={12} component="div">
+                <MUI.Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: '#1a365d',
+                    mb: 3,
+                    fontWeight: 600,
+                    borderBottom: '2px solid #1a365d',
+                    paddingBottom: 1
                   }}
-                  onBlur={e => checkUsuarioEmpresa(e.target.value)}
-                  variant="outlined"
-                  error={!usuarioEmpresaDisponible}
-                  helperText={!usuarioEmpresaDisponible ? "Este usuario ya existe" : ""}
-                  required
-                />
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Contraseña"
-                  name="contrasena_empresa"
-                  type="password"
-                  value={formData.contrasena_empresa}
-                  onChange={handleFormChange}
-                  variant="outlined"
-                  required
-                />
-              </MUI.Grid>
-
-              {/* Persona de Contacto Empresa */}
-              <MUI.Grid item xs={12}>
-                <MUI.Typography variant="h6" sx={{ color: '#1a237e', mb: 1, mt: 2 }}>
-                  Persona de Contacto de la Empresa
+                >
+                  Persona de Contacto
                 </MUI.Typography>
+                <MUI.Grid container spacing={3} component="div">
+                  <MUI.Grid item xs={12} md={6} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Nombre"
+                      name="nombre_persona_contacto"
+                      value={formData.nombre_persona_contacto}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+
+                  <MUI.Grid item xs={12} md={6} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Apellido"
+                      name="apellido_persona_contacto"
+                      value={formData.apellido_persona_contacto}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+
+                  <MUI.Grid item xs={12} md={6} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Teléfono"
+                      name="telefono_persona_contacto"
+                      value={formData.telefono_persona_contacto}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+
+                  <MUI.Grid item xs={12} md={3} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Extensión"
+                      name="extension_persona_contacto"
+                      value={formData.extension_persona_contacto}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+
+                  <MUI.Grid item xs={12} md={3} component="div">
+                    <MUI.TextField
+                      fullWidth
+                      label="Departamento"
+                      name="departamento_persona_contacto"
+                      value={formData.departamento_persona_contacto}
+                      onChange={handleFormChange}
+                      variant="outlined"
+                      required
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                        }
+                      }}
+                    />
+                  </MUI.Grid>
+                </MUI.Grid>
               </MUI.Grid>
 
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Nombre"
-                  name="nombre_persona_contacto"
-                  value={formData.nombre_persona_contacto}
-                  onChange={handleFormChange}
-                  variant="outlined"
-                  required
-                />
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Apellido"
-                  name="apellido_persona_contacto"
-                  value={formData.apellido_persona_contacto}
-                  onChange={handleFormChange}
-                  variant="outlined"
-                  required
-                />
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12} md={6}>
-                <MUI.TextField
-                  fullWidth
-                  label="Teléfono"
-                  name="telefono_persona_contacto"
-                  value={formData.telefono_persona_contacto}
-                  onChange={handleFormChange}
-                  variant="outlined"
-                  required
-                />
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12} md={3}>
-                <MUI.TextField
-                  fullWidth
-                  label="Extensión"
-                  name="extension_persona_contacto"
-                  value={formData.extension_persona_contacto}
-                  onChange={handleFormChange}
-                  variant="outlined"
-                />
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12} md={3}>
-                <MUI.TextField
-                  fullWidth
-                  label="Departamento"
-                  name="departamento_persona_contacto"
-                  value={formData.departamento_persona_contacto}
-                  onChange={handleFormChange}
-                  variant="outlined"
-                  required
-                />
-              </MUI.Grid>
-
-              <MUI.Grid item xs={12}>
+              <MUI.Grid item xs={12} component="div">
                 <MUI.Button
                   type="submit"
                   variant="contained"
@@ -627,10 +962,18 @@ function RegistroCentro() {
                   size="large"
                   disabled={loading || !nombreCentroDisponible || !telefonoDisponible || !emailDisponible || !usuarioEmpresaDisponible || direccionInvalida}
                   sx={{ 
-                    mt: 3,
-                    bgcolor: '#1a237e',
+                    mt: 4,
+                    py: 2,
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    background: 'linear-gradient(45deg, #1a365d, #2a4a7f)',
+                    boxShadow: '0 4px 20px rgba(26, 54, 93, 0.4)',
+                    transition: 'all 0.3s ease',
                     '&:hover': {
-                      bgcolor: '#0d1b60'
+                      background: 'linear-gradient(45deg, #142849, #1f3861)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 6px 25px rgba(26, 54, 93, 0.5)',
                     }
                   }}
                 >
@@ -646,22 +989,30 @@ function RegistroCentro() {
         </MUI.Paper>
       </MUI.Container>
 
-      {/* Loading overlay */}
+      {/* Loading overlay mejorado */}
       {loading && (
-        <MUI.Box sx={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          bgcolor: 'rgba(255,255,255,0.8)',
-          zIndex: 9999
-        }}>
-          <MUI.CircularProgress />
-        </MUI.Box>
+        <MUI.Backdrop
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: 'rgba(26, 35, 126, 0.8)',
+            zIndex: 9999,
+            gap: 2
+          }}
+          open={loading}
+        >
+          <MUI.CircularProgress sx={{ color: 'white' }} />
+          <MUI.Typography variant="h6" sx={{ color: 'white', mt: 2 }}>
+            Procesando registro...
+          </MUI.Typography>
+        </MUI.Backdrop>
       )}
       <Footer />
     </MUI.Box>
