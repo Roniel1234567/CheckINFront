@@ -11,6 +11,17 @@
     "prebuild": "chmod +x ./node_modules/.bin/tsc || true",
     "start": "vite"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Roniel1234567/CheckINFront.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Roniel1234567/CheckINFront/issues"
+  },
+  "homepage": "https://github.com/Roniel1234567/CheckINFront#readme",
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
@@ -53,6 +64,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.15.0",
     "sass-embedded": "^1.86.0",
-    "typescript-eslint": "^8.24.1"
+    "@typescript-eslint/eslint-plugin": "^8.24.1",
+    "@typescript-eslint/parser": "^8.24.1"
   }
 }
