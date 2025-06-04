@@ -2,14 +2,14 @@ import axios from 'axios';
 import { authService } from './authService';
 
 // Determinar la URL de la API dependiendo del entorno
-let API_URL = 'http://localhost:5000/api'; // Valor por defecto
+let API_URL = 'https://checkinback-production.up.railway.app/api'; // Valor por defecto
 
 // Intenta obtener la URL según el entorno
 try {
   if (import.meta.env.DEV) {
-    API_URL = 'http://localhost:5000/api';
+    API_URL = 'https://checkinback-production.up.railway.app/api';
   } else {
-    API_URL = '/api'; // URL relativa para despliegue en el mismo servidor
+    API_URL = 'https://checkinback-production.up.railway.app/api'; // URL relativa para despliegue en el mismo servidor
   }
 } catch {
   // Si hay algún error, se usa el valor por defecto
