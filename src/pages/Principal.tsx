@@ -14,6 +14,8 @@ const Principal = () => {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [activeCard, setActiveCard] = useState<number | null>(null);
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [portalPosition, setPortalPosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     setShowHero(true);
@@ -34,6 +36,26 @@ const Principal = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  const handleLoginNavigation = (path: string, event?: React.MouseEvent) => {
+    if (event) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setPortalPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      });
+    } else {
+      setPortalPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2
+      });
+    }
+    
+    setIsNavigating(true);
+    setTimeout(() => {
+      navigate(path);
+    }, 1000); // Tiempo de la animación
+  };
 
   const menuItems = [
     { 
@@ -214,7 +236,7 @@ const Principal = () => {
               variant="contained"
               color="primary"
               size="large"
-              onClick={() => navigate('/Login')}
+              onClick={(e) => handleLoginNavigation('/Login', e)}
               sx={{
                 py: { xs: 1.5, sm: 2 },
                 px: { xs: 4, sm: 6 },
@@ -291,7 +313,7 @@ const Principal = () => {
                     }}
                   >
                     <MUI.CardActionArea 
-                      onClick={() => navigate(item.path)}
+                      onClick={(e) => item.path === '/Login' ? handleLoginNavigation(item.path, e) : navigate(item.path)}
                       sx={{
                         height: '100%',
                         p: { xs: 3, sm: 4 },
@@ -411,6 +433,46 @@ const Principal = () => {
         </MUI.Fade>
       </MUI.Box>
       <Footer />
+
+      {/* Portal animation overlay */}
+      <MUI.Fade in={isNavigating}>
+        <MUI.Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            pointerEvents: 'none',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: portalPosition.y,
+              left: portalPosition.x,
+              width: isNavigating ? '300vw' : '0',
+              height: isNavigating ? '300vh' : '0',
+              background: `radial-gradient(circle at center, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 50%, ${theme.palette.primary.main} 100%)`,
+              transform: 'translate(-50%, -50%)',
+              borderRadius: '50%',
+              transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)',
+            },
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              top: portalPosition.y,
+              left: portalPosition.x,
+              width: isNavigating ? '200vw' : '0',
+              height: isNavigating ? '200vh' : '0',
+              background: `radial-gradient(circle at center, transparent 0%, ${theme.palette.secondary.main} 100%)`,
+              transform: 'translate(-50%, -50%)',
+              borderRadius: '50%',
+              transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+              opacity: 0.3,
+            }
+          }}
+        />
+      </MUI.Fade>
     </MUI.Box>
   );
 };

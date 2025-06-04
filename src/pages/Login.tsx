@@ -1,46 +1,60 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import '../styles/index.scss';
 import * as MUI from "@mui/material";
 import * as Icons from "@mui/icons-material";
-import '../styles/login.scss';
-import Footer from '../components/Footer';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import MainAppBar from '../components/MainAppBar';
+import Footer from '../components/Footer';
 import { authService } from '../services/authService';
 
-const features = [
-  {
-    icon: <Icons.EmojiEvents sx={{ fontSize: 40, color: '#1a237e' }} />,
-    title: 'Excelencia Académica',
-    description: 'Programas de estudio reconocidos y certificados'
-  },
-  {
-    icon: <Icons.Groups sx={{ fontSize: 40, color: '#1a237e' }} />,
-    title: 'Comunidad Activa',
-    description: 'Ambiente colaborativo y de apoyo mutuo'
-  },
-  {
-    icon: <Icons.Engineering sx={{ fontSize: 40, color: '#1a237e' }} />,
-    title: 'Formación Práctica',
-    description: 'Talleres y laboratorios equipados'
-  }
-];
-
-function Login() {
+const Login = () => {
+  const theme = MUI.useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [scrollPosition, setScrollPosition] = useState(0);
   const [formData, setFormData] = useState({
     dato_usuario: '',
     contrasena_usuario: ''
   });
-  const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [typedText, setTypedText] = useState('');
+  const welcomeText = '¡Bienvenido!';
 
   useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+
+    const handleScroll = () => {
+      setScrollPosition(window.scrollY);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('scroll', handleScroll);
+
+    // Iniciar animaciones
+    setTimeout(() => setShowContent(true), 100);
+
+    // Efecto de typing
+    let currentIndex = 0;
+    const typeInterval = setInterval(() => {
+      if (currentIndex <= welcomeText.length) {
+        setTypedText(welcomeText.slice(0, currentIndex));
+        currentIndex++;
+      } else {
+        clearInterval(typeInterval);
+      }
+    }, 150);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('scroll', handleScroll);
+      clearInterval(typeInterval);
+    };
   }, []);
 
   // Redirigir a /Principal si el usuario está en /Login y presiona atrás
@@ -60,17 +74,18 @@ function Login() {
       ...prev,
       [name]: value
     }));
-    setError('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setIsLoading(true);
 
     if (!formData.dato_usuario || !formData.contrasena_usuario) {
-      setError('Por favor, complete todos los campos');
-      setLoading(false);
+      toast.error('Por favor, complete todos los campos', {
+        position: "top-center",
+        autoClose: 3000
+      });
+      setIsLoading(false);
       return;
     }
 
@@ -122,7 +137,7 @@ function Login() {
         }
       }
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -130,126 +145,226 @@ function Login() {
     navigate('/recuperar-contrasena');
   };
 
+  const handleCompanyRegister = () => {
+    navigate('/registro-centro');
+  };
+
+  const parallaxOffset = scrollPosition * 0.3;
+
   return (
-    <div className="login-container" style={{ maxWidth: '100vw', overflow: 'hidden' }}>
-      <MUI.Container 
-        maxWidth="lg" 
-        sx={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
+    <MUI.Box sx={{ 
+      width: '100vw',
+      display: 'flex', 
+      flexDirection: 'column', 
+      minHeight: '100vh', 
+      background: '#1a365d',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      <MainAppBar />
+
+      {/* Elementos decorativos animados con parallax */}
+      {[...Array(5)].map((_, i) => (
+        <MUI.Box
+          key={i}
+          sx={{
+            position: 'absolute',
+            width: { xs: '200px', md: '400px' },
+            height: { xs: '200px', md: '400px' },
+            borderRadius: '50%',
+            background: `radial-gradient(circle, ${MUI.alpha(theme.palette.primary.main, 0.03)} 0%, ${MUI.alpha(theme.palette.primary.main, 0)} 70%)`,
+            top: `${Math.random() * 100}%`,
+            left: `${Math.random() * 100}%`,
+            transform: `translate(-50%, calc(-50% + ${parallaxOffset * (i + 1)}px))`,
+            transition: 'transform 0.3s ease-out',
+            animation: 'float 30s infinite',
+            animationDelay: `${i * 4}s`,
+            pointerEvents: 'none',
+            zIndex: 0,
+            '@keyframes float': {
+              '0%, 100%': {
+                transform: `translate(-50%, calc(-50% + ${parallaxOffset * (i + 1)}px))`,
+              },
+              '50%': {
+                transform: `translate(-50%, calc(-50% + ${parallaxOffset * (i + 1) + 40}px))`,
+              },
+            },
+          }}
+        />
+      ))}
+
+      {/* Efecto de estela del cursor */}
+      <MUI.Box
+        sx={{
+          position: 'fixed',
+          width: { xs: '200px', md: '300px' },
+          height: { xs: '200px', md: '300px' },
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${MUI.alpha('#F7E8AB', 0.15)} 0%, rgba(255,255,255,0) 70%)`,
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none',
+          zIndex: 1,
+          transition: 'all 0.5s ease',
+          left: mousePosition.x,
+          top: mousePosition.y,
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            border: `2px solid ${MUI.alpha('#F7E8AB', 0.1)}`,
+            animation: 'pulse 2s infinite',
+          },
+          '@keyframes pulse': {
+            '0%': {
+              transform: 'scale(1)',
+              opacity: 1,
+            },
+            '100%': {
+              transform: 'scale(1.5)',
+              opacity: 0,
+            },
+          },
+        }}
+      />
+
+      <MUI.Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          mt: { xs: '80px', sm: '90px', md: '100px' },
+          px: { xs: 2, sm: 3, md: 3 },
+          width: "100%",
+          maxWidth: "1200px",
+          mx: "auto",
+          position: 'relative',
+          zIndex: 2,
+          display: 'flex',
           alignItems: 'center',
-          minHeight: '100vh',
-          py: 6,
-          px: { xs: 2, sm: 3, md: 4 },
-          maxWidth: '100%',
-          boxSizing: 'border-box'
+          justifyContent: 'center',
         }}
       >
-        {/* Header con Logo */}
-        <MUI.Box sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 2, 
-          mb: 5,
-          textAlign: 'center'
-        }}>
-          <MUI.Avatar
-            src="https://storage.googleapis.com/educoco2020/82/foto_empresa/logo_821663703399_1663703399V19BCd9KY1u6alR.png"
-            sx={{ width: 80, height: 80 }}
-          />
-          <MUI.Box>
-            <MUI.Typography variant="h4" sx={{ color: '#1a237e', fontWeight: 600 }}>
-              IPISA
-            </MUI.Typography>
-            <MUI.Typography variant="body1" sx={{ color: 'text.secondary' }}>
-              Instituto Politécnico Industrial de Santiago
-            </MUI.Typography>
-          </MUI.Box>
-        </MUI.Box>
+        <MUI.Fade in={showContent} timeout={1000}>
+          <MUI.Box
+            component="form"
+            onSubmit={handleLogin}
+            sx={{
+              width: '100%',
+              maxWidth: '450px',
+              p: { xs: 3, sm: 4, md: 5 },
+              borderRadius: { xs: '1rem', md: '2rem' },
+              background: `linear-gradient(135deg, ${MUI.alpha(theme.palette.primary.main, 0.15)} 0%, ${MUI.alpha(theme.palette.primary.light, 0.2)} 100%)`,
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              transform: `translateY(${-parallaxOffset * 0.2}px)`,
+              transition: 'transform 0.3s ease-out',
+            }}
+          >
+            <MUI.Box sx={{ textAlign: 'center', mb: 4 }}>
+              <MUI.Typography
+                variant="h3"
+                sx={{
+                  color: '#ffffff',
+                  fontWeight: 'bold',
+                  mb: 2,
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
+                  position: 'relative',
+                  display: 'inline-block',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: '-10px',
+                    left: '50%',
+                    width: '50px',
+                    height: '4px',
+                    background: '#ffffff',
+                    transform: 'translateX(-50%)',
+                    borderRadius: '2px',
+                  }
+                }}
+              >
+                {typedText}
+                <span 
+                  style={{ 
+                    borderRight: '0.15em solid #fff',
+                    animation: 'blink-caret 0.75s step-end infinite',
+                  }}
+                >
+                  &nbsp;
+                </span>
+              </MUI.Typography>
+              <style>
+                {`
+                  @keyframes blink-caret {
+                    from, to { border-color: transparent }
+                    50% { border-color: #fff }
+                  }
+                `}
+              </style>
+              <MUI.Typography
+                variant="h5"
+                sx={{
+                  color: '#ffffff',
+                  opacity: 0.9,
+                  mb: 3,
+                  mt: 4
+                }}
+              >
+                Accede a tu cuenta para gestionar las pasantías
+              </MUI.Typography>
+            </MUI.Box>
 
-        {/* Mensaje de Bienvenida */}
-        <MUI.Typography 
-          variant="h3" 
-          sx={{ 
-            color: '#1a237e', 
-            fontWeight: 'bold', 
-            mb: 2,
-            textAlign: 'center'
-          }}
-        >
-          Bienvenido
-        </MUI.Typography>
-        <MUI.Typography 
-          variant="body1" 
-          sx={{ 
-            color: 'text.secondary',
-            maxWidth: '600px',
-            textAlign: 'center',
-            mb: 4
-          }}
-        >
-          El Instituto Politécnico Industrial de Santiago es una institución educativa comprometida con la excelencia académica y la formación integral de profesionales técnicos.
-        </MUI.Typography>
-
-        {/* Formulario de Login */}
-        <MUI.Paper 
-          elevation={3} 
-          sx={{ 
-            p: 5, 
-            borderRadius: 4, 
-            width: '100%', 
-            maxWidth: '500px',
-            mb: 8,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-          }}
-        >
-          <MUI.Box component="form" onSubmit={handleSubmit}>
-            <MUI.Typography 
-              variant="h5" 
-              sx={{ 
-                mb: 3, 
-                color: '#1a237e',
-                textAlign: 'center'
-              }}
-            >
-              Iniciar Sesión
-            </MUI.Typography>
-
-            {error && (
-              <MUI.Alert severity="error" sx={{ mb: 3 }}>
-                {error}
-              </MUI.Alert>
-            )}
-
-            <MUI.Stack spacing={3}>
+            <MUI.Box sx={{ mb: 3 }}>
               <MUI.TextField
                 fullWidth
                 label="Usuario"
                 name="dato_usuario"
+                variant="outlined"
                 value={formData.dato_usuario}
                 onChange={handleChange}
-                required
                 InputProps={{
                   startAdornment: (
                     <MUI.InputAdornment position="start">
-                      <Icons.Person sx={{ color: '#1a237e' }} />
+                      <Icons.Person sx={{ color: 'white' }} />
                     </MUI.InputAdornment>
                   ),
                 }}
+                sx={{
+                  mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                    color: 'white',
+                    '& fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.3)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.5)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'white',
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: 'rgba(255, 255, 255, 0.7)',
+                  },
+                  '& .Mui-focused .MuiInputLabel-root': {
+                    color: 'white',
+                  },
+                }}
               />
-
               <MUI.TextField
                 fullWidth
                 label="Contraseña"
                 name="contrasena_usuario"
                 type={showPassword ? 'text' : 'password'}
+                variant="outlined"
                 value={formData.contrasena_usuario}
                 onChange={handleChange}
-                required
                 InputProps={{
                   startAdornment: (
                     <MUI.InputAdornment position="start">
-                      <Icons.Lock sx={{ color: '#1a237e' }} />
+                      <Icons.Lock sx={{ color: 'white' }} />
                     </MUI.InputAdornment>
                   ),
                   endAdornment: (
@@ -257,344 +372,142 @@ function Login() {
                       <MUI.IconButton
                         onClick={() => setShowPassword(!showPassword)}
                         edge="end"
+                        sx={{ color: 'white' }}
                       >
-                        {showPassword ? <Icons.VisibilityOff /> : <Icons.Visibility/>}
+                        {showPassword ? <Icons.VisibilityOff /> : <Icons.Visibility />}
                       </MUI.IconButton>
                     </MUI.InputAdornment>
                   ),
                 }}
-              />
-
-              <MUI.Button
-                type="button"
-                fullWidth
-                variant="text"
-                onClick={handleForgotPassword}
-                sx={{ mt: 1, mb: 2 }}
-                disabled={loading}
-              >
-                ¿Olvidaste tu contraseña?
-              </MUI.Button>
-
-              <MUI.Button
-                type="submit"
-                fullWidth
-                variant="contained"
-                disabled={loading}
                 sx={{
-                  mt: 3,
-                  mb: 2,
-                  py: 2,
-                  fontSize: '1.1rem',
-                  position: 'relative'
+                  '& .MuiOutlinedInput-root': {
+                    color: 'white',
+                    '& fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.3)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.5)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: 'white',
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: 'rgba(255, 255, 255, 0.7)',
+                  },
+                  '& .Mui-focused .MuiInputLabel-root': {
+                    color: 'white',
+                  },
                 }}
-              >
-                {loading ? (
-                  <MUI.CircularProgress
-                    size={24}
-                    sx={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      marginTop: '-12px',
-                      marginLeft: '-12px'
-                    }}
-                  />
-                ) : (
-                  'Iniciar Sesión'
-                )}
-              </MUI.Button>
+              />
+            </MUI.Box>
 
-              <MUI.Typography variant="body1" sx={{ textAlign: 'center', mt: 2 }}>
-                ¿Eres una empresa? 
-                <MUI.Link
-                  component="button"
-                  variant="body1"
-                  onClick={() => navigate('/registro-centro')}
-                  sx={{ ml: 1, color: '#1a237e', textDecoration: 'underline' }}
+            <MUI.Button
+              fullWidth
+              type="submit"
+              variant="contained"
+              disabled={isLoading}
+              sx={{
+                py: 1.5,
+                borderRadius: '2rem',
+                fontSize: '1.1rem',
+                background: `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                position: 'relative',
+                overflow: 'hidden',
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 6px 25px rgba(0,0,0,0.2)',
+                },
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: '-100%',
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                  animation: isLoading ? 'loading 1.5s infinite' : 'none',
+                },
+                '@keyframes loading': {
+                  '0%': {
+                    transform: 'translateX(0)',
+                  },
+                  '100%': {
+                    transform: 'translateX(200%)',
+                  },
+                },
+              }}
+            >
+              {isLoading ? (
+                <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <MUI.CircularProgress size={20} color="inherit" />
+                  <span>Iniciando sesión...</span>
+                </MUI.Box>
+              ) : (
+                'Iniciar Sesión'
+              )}
+            </MUI.Button>
+
+            <MUI.Box sx={{ mt: 3, textAlign: 'center' }}>
+              <MUI.Stack spacing={2}>
+                <MUI.Typography
+                  variant="body2"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.7)',
+                    '& a': {
+                      color: '#ffffff',
+                      textDecoration: 'none',
+                      fontWeight: 'bold',
+                      transition: 'color 0.3s ease',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        color: 'rgba(255, 255, 255, 0.8)',
+                      },
+                    },
+                  }}
                 >
-                  Regístrate aquí
-                </MUI.Link>
-              </MUI.Typography>
-            </MUI.Stack>
+                  ¿Olvidaste tu contraseña?{' '}
+                  <MUI.Link 
+                    component="span" 
+                    onClick={handleForgotPassword}
+                    sx={{ 
+                      color: '#ffffff !important',
+                      '&:hover': {
+                        color: 'rgba(255, 255, 255, 0.8) !important'
+                      }
+                    }}
+                  >
+                    Recupérala aquí
+                  </MUI.Link>
+                </MUI.Typography>
+
+                <MUI.Typography
+                  variant="body2"
+                  sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                >
+                  ¿Eres una empresa?{' '}
+                  <MUI.Link 
+                    component="span" 
+                    onClick={handleCompanyRegister}
+                    sx={{ 
+                      color: '#ffffff !important',
+                      '&:hover': {
+                        color: 'rgba(255, 255, 255, 0.8) !important'
+                      }
+                    }}
+                  >
+                    Regístrate aquí
+                  </MUI.Link>
+                </MUI.Typography>
+              </MUI.Stack>
+            </MUI.Box>
           </MUI.Box>
-        </MUI.Paper>
-
-        {/* Sección de Imágenes */}
-        <MUI.Grid 
-          container 
-          spacing={{ xs: 2, md: 4 }} 
-          sx={{ 
-            mb: 8,
-            width: '100%',
-            maxWidth: '100%',
-            margin: 0,
-            boxSizing: 'border-box'
-          }}
-        >
-          <MUI.Grid item xs={12} md={4}>
-            <MUI.Paper 
-              elevation={2} 
-              sx={{ 
-                height: '300px',
-                overflow: 'hidden',
-                position: 'relative',
-                '&:hover': {
-                  '& .image-overlay': {
-                    opacity: 0.8,
-                  },
-                },
-              }}
-            >
-              <img
-                src="https://a.storyblok.com/f/272924/6000x4000/ff74b6c2f9/img_6364.JPG/m/4400x0/filters:format(webp):quality(auto:best)"
-                alt="Excelencia Académica"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-              />
-              <MUI.Box
-                className="image-overlay"
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  bgcolor: 'rgba(26, 35, 126, 0.7)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  opacity: 0,
-                  transition: 'opacity 0.3s ease',
-                  p: 3,
-                }}
-              >
-                <Icons.School sx={{ fontSize: 40, color: 'white', mb: 2 }} />
-                <MUI.Typography variant="h6" sx={{ color: 'white', textAlign: 'center' }}>
-                  Excelencia Académica
-                </MUI.Typography>
-                <MUI.Typography variant="body2" sx={{ color: 'white', textAlign: 'center', mt: 1 }}>
-                  Formando profesionales técnicos de alto nivel
-                </MUI.Typography>
-              </MUI.Box>
-            </MUI.Paper>
-          </MUI.Grid>
-          <MUI.Grid item xs={12} md={4}>
-            <MUI.Paper 
-              elevation={2} 
-              sx={{ 
-                height: '300px',
-                overflow: 'hidden',
-                position: 'relative',
-                '&:hover': {
-                  '& .image-overlay': {
-                    opacity: 0.8,
-                  },
-                },
-              }}
-            >
-              <img
-                src="https://a.storyblok.com/f/272924/6000x4000/821f974af7/img_6392.JPG/m/4400x0/filters:format(webp):quality(auto:best)"
-                alt="Innovación Educativa"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-              />
-              <MUI.Box
-                className="image-overlay"
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  bgcolor: 'rgba(26, 35, 126, 0.7)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  opacity: 0,
-                  transition: 'opacity 0.3s ease',
-                  p: 3,
-                }}
-              >
-                <Icons.Lightbulb sx={{ fontSize: 40, color: 'white', mb: 2 }} />
-                <MUI.Typography variant="h6" sx={{ color: 'white', textAlign: 'center' }}>
-                  Innovación Educativa
-                </MUI.Typography>
-                <MUI.Typography variant="body2" sx={{ color: 'white', textAlign: 'center', mt: 1 }}>
-                  Tecnología de vanguardia en nuestras instalaciones
-                </MUI.Typography>
-              </MUI.Box>
-            </MUI.Paper>
-          </MUI.Grid>
-          <MUI.Grid item xs={12} md={4}>
-            <MUI.Paper 
-              elevation={2} 
-              sx={{ 
-                height: '300px',
-                overflow: 'hidden',
-                position: 'relative',
-                '&:hover': {
-                  '& .image-overlay': {
-                    opacity: 0.8,
-                  },
-                },
-              }}
-            >
-              <img
-                src="https://a.storyblok.com/f/272924/6000x4000/ba2ae85481/portrait-2.jpg/m/2400x0/filters:format(webp):quality(auto:best)"
-                alt="Futuro Profesional"
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-              />
-              <MUI.Box
-                className="image-overlay"
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  bgcolor: 'rgba(26, 35, 126, 0.7)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  opacity: 0,
-                  transition: 'opacity 0.3s ease',
-                  p: 3,
-                }}
-              >
-                <Icons.Star sx={{ fontSize: 40, color: 'white', mb: 2 }} />
-                <MUI.Typography variant="h6" sx={{ color: 'white', textAlign: 'center' }}>
-                  Futuro Profesional
-                </MUI.Typography>
-                <MUI.Typography variant="body2" sx={{ color: 'white', textAlign: 'center', mt: 1 }}>
-                  Preparando líderes para el mañana
-                </MUI.Typography>
-              </MUI.Box>
-            </MUI.Paper>
-          </MUI.Grid>
-        </MUI.Grid>
-
-        {/* Estadísticas */}
-        <MUI.Grid 
-          container 
-          spacing={{ xs: 2, md: 4 }} 
-          sx={{ 
-            mb: 8,
-            width: '100%',
-            maxWidth: '100%',
-            margin: 0,
-            boxSizing: 'border-box'
-          }}
-        >
-          <MUI.Grid item xs={12} sm={4}>
-            <MUI.Paper 
-              elevation={2} 
-              sx={{ 
-                p: 2, 
-                textAlign: 'center',
-                bgcolor: MUI.alpha('#1a237e', 0.05)
-              }}
-            >
-              <MUI.Typography variant="h4" sx={{ color: '#1a237e', fontWeight: 'bold' }}>
-                32+
-              </MUI.Typography>
-              <MUI.Typography variant="body1" color="text.secondary">
-                Años de Experiencia
-              </MUI.Typography>
-            </MUI.Paper>
-          </MUI.Grid>
-          <MUI.Grid item xs={12} sm={4}>
-            <MUI.Paper 
-              elevation={2} 
-              sx={{ 
-                p: 2, 
-                textAlign: 'center',
-                bgcolor: MUI.alpha('#1a237e', 0.05)
-              }}
-            >
-              <MUI.Typography variant="h4" sx={{ color: '#1a237e', fontWeight: 'bold' }}>
-                700+
-              </MUI.Typography>
-              <MUI.Typography variant="body1" color="text.secondary">
-                Estudiantes
-              </MUI.Typography>
-            </MUI.Paper>
-          </MUI.Grid>
-          <MUI.Grid item xs={12} sm={4}>
-            <MUI.Paper 
-              elevation={2} 
-              sx={{ 
-                p: 2, 
-                textAlign: 'center',
-                bgcolor: MUI.alpha('#1a237e', 0.05)
-              }}
-            >
-              <MUI.Typography variant="h4" sx={{ color: '#1a237e', fontWeight: 'bold' }}>
-                8+
-              </MUI.Typography>
-              <MUI.Typography variant="body1" color="text.secondary">
-                Carreras Técnicas
-              </MUI.Typography>
-            </MUI.Paper>
-          </MUI.Grid>
-        </MUI.Grid>
-
-        {/* Características */}
-        <MUI.Grid 
-          container 
-          spacing={{ xs: 2, md: 4 }} 
-          sx={{ 
-            mb: 8,
-            width: '100%',
-            maxWidth: '100%',
-            margin: 0,
-            boxSizing: 'border-box'
-          }}
-        >
-          {features.map((feature, index) => (
-            <MUI.Grid item xs={12} md={4} key={index}>
-              <MUI.Paper 
-                elevation={2} 
-                sx={{ 
-                  p: 3, 
-                  textAlign: 'center',
-                  height: '100%',
-                  transition: 'transform 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-5px)',
-                  },
-                }}
-              >
-                {feature.icon}
-                <MUI.Typography variant="h6" sx={{ mt: 2, color: '#1a237e' }}>
-                  {feature.title}
-                </MUI.Typography>
-                <MUI.Typography variant="body2" color="text.secondary">
-                  {feature.description}
-                </MUI.Typography>
-              </MUI.Paper>
-            </MUI.Grid>
-          ))}
-        </MUI.Grid>
-
-        {/* Footer */}
-        <Footer />
-      </MUI.Container>
-    </div>
+        </MUI.Fade>
+      </MUI.Box>
+      <Footer />
+    </MUI.Box>
   );
-}
+};
 
 export default Login; 
