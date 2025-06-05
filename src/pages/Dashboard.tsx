@@ -23,7 +23,6 @@ function Dashboard() {
   const [activeStudents, setActiveStudents] = useState(0);
   const [activeCompanies, setActiveCompanies] = useState(0);
   const [activeInternships, setActiveInternships] = useState(0);
-  const [pendingDocs, setPendingDocs] = useState(0);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -38,15 +37,11 @@ function Dashboard() {
         // Pasantías activas
         const pasantias = await internshipService.getAllPasantias();
         setActiveInternships(pasantias.filter(p => p.estado_pas === 'En Proceso' || p.estado_pas === 'Pendiente').length);
-        // Documentos pendientes
-        const docs = await documentoService.getAllDocumentos();
-        setPendingDocs(docs.filter(d => d.estado_doc_est === EstadoDocumento.PENDIENTE).length);
       } catch {
         // Si hay error, dejar los valores en 0
         setActiveStudents(0);
         setActiveCompanies(0);
         setActiveInternships(0);
-        setPendingDocs(0);
       } finally {
         setLoading(false);
       }
@@ -94,14 +89,6 @@ function Dashboard() {
       color: theme.palette.primary.light, 
       path: '/Pasantias',
       description: 'Estudiantes realizando Pasantías'
-    },
-    { 
-      title: 'Documentos Pendientes', 
-      value: pendingDocs, 
-      icon: <Icons.Description fontSize="large" />, 
-      color: theme.palette.primary.light, 
-      path: '/Documentacion',
-      description: 'Documentos por revisar y aprobar'
     }
   ];
 
@@ -152,9 +139,9 @@ function Dashboard() {
           </MUI.Typography>
 
           {/* Dashboard cards */}
-          <MUI.Grid container spacing={3} sx={{ mb: 4 }}>
+          <MUI.Grid container spacing={3} sx={{ mb: 4 }} component="div">
             {dashboardCards.map((card, index) => (
-              <MUI.Grid item xs={12} sm={6} md={3} key={index}>
+              <MUI.Grid item xs={12} sm={6} md={3} key={index} component="div">
                 <MUI.Card
                   sx={{
                     height: '100%',
