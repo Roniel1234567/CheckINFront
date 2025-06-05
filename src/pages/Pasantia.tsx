@@ -571,8 +571,8 @@ const PasantiaPage = () => {
         )}
         <MUI.Container maxWidth="lg" sx={{ py: 4 }}>
           {/* Tarjetas de resumen general */}
-          <MUI.Grid container spacing={3} sx={{ mb: 4 }}>
-            <MUI.Grid item xs={12} sm={6} md={3}>
+          <MUI.Grid container spacing={3} sx={{ mb: 4 }} component="div">
+            <MUI.Grid item xs={12} sm={6} md={3} component="div">
               <MUI.Card sx={{ borderRadius: 4, boxShadow: 3, p: 0 }}>
                 <MUI.CardContent sx={{ textAlign: 'center' }}>
                   <Icons.School fontSize="large" color="primary" />
@@ -581,7 +581,7 @@ const PasantiaPage = () => {
                 </MUI.CardContent>
               </MUI.Card>
             </MUI.Grid>
-            <MUI.Grid item xs={12} sm={6} md={3}>
+            <MUI.Grid item xs={12} sm={6} md={3} component="div">
               <MUI.Card sx={{ borderRadius: 4, boxShadow: 3, p: 0 }}>
                 <MUI.CardContent sx={{ textAlign: 'center' }}>
                   <Icons.Business fontSize="large" color="primary" />
@@ -590,7 +590,7 @@ const PasantiaPage = () => {
                 </MUI.CardContent>
               </MUI.Card>
             </MUI.Grid>
-            <MUI.Grid item xs={12} sm={6} md={3}>
+            <MUI.Grid item xs={12} sm={6} md={3} component="div">
               <MUI.Card sx={{ borderRadius: 4, boxShadow: 3, p: 0 }}>
                 <MUI.CardContent sx={{ textAlign: 'center' }}>
                   <Icons.Work fontSize="large" color="primary" />
@@ -599,7 +599,7 @@ const PasantiaPage = () => {
                 </MUI.CardContent>
               </MUI.Card>
             </MUI.Grid>
-            <MUI.Grid item xs={12} sm={6} md={3}>
+            <MUI.Grid item xs={12} sm={6} md={3} component="div">
               <MUI.Card sx={{ borderRadius: 4, boxShadow: 3, p: 0 }}>
                 <MUI.CardContent sx={{ textAlign: 'center' }}>
                   <Icons.CheckCircle fontSize="large" color="success" />
@@ -635,9 +635,9 @@ const PasantiaPage = () => {
             </MUI.Typography>
           </MUI.Box>
           <MUI.Paper elevation={3} sx={{ p: 3, borderRadius: 4, mb: 4, background: theme.palette.primary.main }}>
-            <MUI.Grid container spacing={2} alignItems="center">
+            <MUI.Grid container spacing={2} alignItems="center" component="div">
               {/* Filtro de Taller */}
-              <MUI.Grid item xs={12} md={3}>
+              <MUI.Grid item xs={12} md={3} component="div">
                 <MUI.FormControl fullWidth>
                   <MUI.InputLabel sx={{ color: '#fff' }}>Taller</MUI.InputLabel>
                   <MUI.Select
@@ -650,8 +650,35 @@ const PasantiaPage = () => {
                     label="Taller"
                     sx={{
                       color: '#fff',
+                      minWidth: '250px',
                       '& .MuiSelect-icon': { color: '#fff' },
                       '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
+                      '& .MuiSelect-select': {
+                        padding: '16px 14px',
+                        minHeight: '25px',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }
+                    }}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: {
+                          maxHeight: 300,
+                          width: '350px',
+                          '& .MuiMenuItem-root': {
+                            padding: '12px 24px',
+                            '&:hover': {
+                              backgroundColor: 'rgba(26, 54, 93, 0.08)'
+                            },
+                            '&.Mui-selected': {
+                              backgroundColor: 'rgba(26, 54, 93, 0.15)',
+                              '&:hover': {
+                                backgroundColor: 'rgba(26, 54, 93, 0.2)'
+                              }
+                            }
+                          }
+                        }
+                      }
                     }}
                   >
                     <MUI.MenuItem value=""><em>Todos</em></MUI.MenuItem>
@@ -665,7 +692,7 @@ const PasantiaPage = () => {
               </MUI.Grid>
 
               {/* Filtro de Centro */}
-              <MUI.Grid item xs={12} md={3}>
+              <MUI.Grid item xs={12} md={3} component="div">
                 <MUI.FormControl fullWidth>
                   <MUI.InputLabel sx={{ color: '#fff' }}>Centro de Trabajo</MUI.InputLabel>
                   <MUI.Select
@@ -678,8 +705,35 @@ const PasantiaPage = () => {
                     disabled={esEmpresa}
                     sx={{
                       color: '#fff',
+                      minWidth: '250px',
                       '& .MuiSelect-icon': { color: '#fff' },
                       '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
+                      '& .MuiSelect-select': {
+                        padding: '16px 14px',
+                        minHeight: '25px',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }
+                    }}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: {
+                          maxHeight: 300,
+                          width: '350px',
+                          '& .MuiMenuItem-root': {
+                            padding: '12px 24px',
+                            '&:hover': {
+                              backgroundColor: 'rgba(26, 54, 93, 0.08)'
+                            },
+                            '&.Mui-selected': {
+                              backgroundColor: 'rgba(26, 54, 93, 0.15)',
+                              '&:hover': {
+                                backgroundColor: 'rgba(26, 54, 93, 0.2)'
+                              }
+                            }
+                          }
+                        }
+                      }
                     }}
                   >
                     {esEmpresa && user && (() => {
@@ -707,7 +761,7 @@ const PasantiaPage = () => {
               </MUI.Grid>
 
               {/* Filtro de Plaza */}
-              <MUI.Grid item xs={12} md={3}>
+              <MUI.Grid item xs={12} md={3} component="div">
                 <MUI.FormControl fullWidth>
                   <MUI.InputLabel sx={{ color: '#fff' }}>Plaza</MUI.InputLabel>
                   <MUI.Select
@@ -720,8 +774,35 @@ const PasantiaPage = () => {
                     disabled={!centroFiltro || !tallerFiltro}
                     sx={{
                       color: '#fff',
+                      minWidth: '250px',
                       '& .MuiSelect-icon': { color: '#fff' },
                       '& .MuiOutlinedInput-notchedOutline': { borderColor: '#fff' },
+                      '& .MuiSelect-select': {
+                        padding: '16px 14px',
+                        minHeight: '25px',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }
+                    }}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: {
+                          maxHeight: 300,
+                          width: '350px',
+                          '& .MuiMenuItem-root': {
+                            padding: '12px 24px',
+                            '&:hover': {
+                              backgroundColor: 'rgba(26, 54, 93, 0.08)'
+                            },
+                            '&.Mui-selected': {
+                              backgroundColor: 'rgba(26, 54, 93, 0.15)',
+                              '&:hover': {
+                                backgroundColor: 'rgba(26, 54, 93, 0.2)'
+                              }
+                            }
+                          }
+                        }
+                      }
                     }}
                   >
                     <MUI.MenuItem value=""><em>Seleccione una plaza</em></MUI.MenuItem>
@@ -735,7 +816,7 @@ const PasantiaPage = () => {
               </MUI.Grid>
 
               {/* Botón Nueva Pasantía */}
-              <MUI.Grid item xs={12} md={3}>
+              <MUI.Grid item xs={12} md={3} component="div">
                 <MUI.Button
                   variant="contained"
                   color="warning"
@@ -746,13 +827,8 @@ const PasantiaPage = () => {
                     fontWeight: 'bold',
                     borderRadius: 3,
                     boxShadow: 2,
-                    py: 1.5,
-                    color: theme.palette.primary.main,
-                    bgcolor: theme.palette.warning.light,
-                    '&:hover': { bgcolor: theme.palette.warning.main }
+                    py: 1.5
                   }}
-                  onClick={() => setOpenDialog(true)}
-                  disabled={isReadOnly || esEstudiante || !plazaFormSeleccionada || plazasOcupadas(plazaFormSeleccionada) >= (plazaFormSeleccionada?.plazas_centro || 0)}
                 >
                   Nueva Pasantía
                 </MUI.Button>
@@ -788,12 +864,12 @@ const PasantiaPage = () => {
 
           {/* Tarjetas de plazas */}
           {!esEstudiante && !esEmpresa && mostrarPlazas && tallerFiltro && (
-            <MUI.Grid container spacing={3} sx={{ mb: 4 }}>
+            <MUI.Grid container spacing={3} sx={{ mb: 4 }} component="div">
               {plazasFiltradas.map((plaza) => {
                 const ocupadas = plazasOcupadas(plaza);
                 const disponibles = plaza.plazas_centro - ocupadas;
                 return (
-                  <MUI.Grid item xs={12} sm={6} md={4} key={plaza.id_plaza}>
+                  <MUI.Grid item xs={12} sm={6} md={4} key={plaza.id_plaza} component="div">
                     <MUI.Card
                       sx={{
                         borderRadius: 4,
@@ -873,8 +949,8 @@ const PasantiaPage = () => {
               </MUI.Typography>
 
               {/* Filtros de búsqueda */}
-              <MUI.Grid container spacing={2} sx={{ mb: 3 }}>
-                <MUI.Grid item xs={12} md={4}>
+              <MUI.Grid container spacing={2} sx={{ mb: 3 }} component="div">
+                <MUI.Grid item xs={12} md={4} component="div">
                   <MUI.TextField
                     fullWidth
                     label="Buscar estudiante"
@@ -888,9 +964,17 @@ const PasantiaPage = () => {
                         </MUI.InputAdornment>
                       ),
                     }}
+                    sx={{
+                      minWidth: '400px',
+                      '& .MuiOutlinedInput-root': {
+                        '& input': {
+                          fontSize: '1rem'
+                        }
+                      }
+                    }}
                   />
                 </MUI.Grid>
-                <MUI.Grid item xs={12} md={4}>
+                <MUI.Grid item xs={12} md={4} component="div">
                   <MUI.Autocomplete
                     options={talleres}
                     getOptionLabel={t => `${t.nombre_taller} - ${t.familia_taller.nombre_fam}`}
@@ -902,11 +986,27 @@ const PasantiaPage = () => {
                         label="Filtrar por Taller"
                         placeholder="Buscar taller..."
                         fullWidth
+                        sx={{
+                          minWidth: '400px',
+                          '& .MuiOutlinedInput-root': {
+                            '& input': {
+                              fontSize: '1rem'
+                            }
+                          }
+                        }}
                       />
                     )}
+                    PaperProps={{
+                      sx: {
+                        minWidth: '400px',
+                        '& .MuiAutocomplete-option': {
+                          fontSize: '1rem'
+                        }
+                      }
+                    }}
                   />
                 </MUI.Grid>
-                <MUI.Grid item xs={12} md={4}>
+                <MUI.Grid item xs={12} md={4} component="div">
                   <MUI.Autocomplete
                     options={centros}
                     getOptionLabel={c => c.nombre_centro}
@@ -918,8 +1018,24 @@ const PasantiaPage = () => {
                         label="Filtrar por Centro"
                         placeholder="Buscar centro..."
                         fullWidth
+                        sx={{
+                          minWidth: '400px',
+                          '& .MuiOutlinedInput-root': {
+                            '& input': {
+                              fontSize: '1rem'
+                            }
+                          }
+                        }}
                       />
                     )}
+                    PaperProps={{
+                      sx: {
+                        minWidth: '400px',
+                        '& .MuiAutocomplete-option': {
+                          fontSize: '1rem'
+                        }
+                      }
+                    }}
                   />
                 </MUI.Grid>
               </MUI.Grid>
