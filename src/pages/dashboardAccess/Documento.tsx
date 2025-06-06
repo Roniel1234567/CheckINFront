@@ -471,7 +471,13 @@ function Documento() {
                     <MUI.Button
                       variant={selectedEstudiante === estudiante.documento_id_est ? "contained" : "outlined"}
                       color="primary"
-                      onClick={() => setSelectedEstudiante(estudiante.documento_id_est)}
+                      onClick={() => {
+                        if (selectedEstudiante === estudiante.documento_id_est) {
+                          setSelectedEstudiante('');
+                        } else {
+                          setSelectedEstudiante(estudiante.documento_id_est);
+                        }
+                      }}
                       startIcon={<Icons.Folder />}
                       sx={{
                         minWidth: 200,
