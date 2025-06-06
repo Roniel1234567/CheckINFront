@@ -120,6 +120,28 @@ function Companies() {
 
   const isReadOnly = useReadOnlyMode();
 
+  const commonSelectStyles = {
+    minWidth: '350px',
+    '& .MuiSelect-select': {
+      padding: '16px 14px',
+      minHeight: '25px',
+      display: 'flex',
+      alignItems: 'center'
+    }
+  };
+
+  const commonMenuProps = {
+    PaperProps: {
+      sx: {
+        maxHeight: 300,
+        width: '350px',
+        '& .MuiMenuItem-root': {
+          padding: '12px 24px'
+        }
+      }
+    }
+  };
+
   // 2. Función para chequear usuario de empresa
   const checkUsuarioEmpresa = async (usuario: string) => {
     if (!usuario) return;
@@ -753,50 +775,148 @@ function Companies() {
         </MUI.Grid>
 
         {/* Tarjetas de estadísticas */}
-        <MUI.Grid container spacing={3} sx={{ mb: 4 }}>
+        <MUI.Grid container spacing={3} sx={{ mb: 4 }} justifyContent="center" alignItems="stretch">
           {companyStats.map((stat, index) => (
-            <MUI.Grid item xs={12} sm={6} md={3} key={index}>
+            <MUI.Grid item xs={12} sm={6} md={3} key={index} sx={{ display: 'flex' }}>
               <MUI.Zoom in={!loading} style={{ transitionDelay: `${index * 100}ms` }}>
                 <MUI.Card
                   sx={{
-                    height: '100%',
+                    width: '280px',
+                    height: '220px',
+                    display: 'flex',
+                    flexDirection: 'column',
                     borderRadius: 4,
+                    background: `linear-gradient(135deg, ${MUI.alpha(stat.color, 0.05)} 0%, #ffffff 100%)`,
                     boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
-                    transition: 'transform 0.3s, box-shadow 0.3s',
-                    '&:hover': {
-                      transform: 'translateY(-5px)',
-                      boxShadow: '0 12px 20px rgba(0,0,0,0.15)',
-                    },
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    m: 'auto',
+                    '&:hover': {
+                      transform: 'translateY(-8px) scale(1.02)',
+                      boxShadow: `0 20px 30px ${MUI.alpha(stat.color, 0.2)}`,
+                      '& .stat-icon': {
+                        transform: 'rotate(10deg) scale(1.1)',
+                      },
+                      '& .stat-value': {
+                        transform: 'scale(1.1)',
+                        color: stat.color,
+                      },
+                      '& .card-glow': {
+                        opacity: 1,
+                      },
+                      '& .stat-title': {
+                        color: stat.color,
+                      }
+                    },
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '4px',
+                      background: `linear-gradient(90deg, transparent, ${stat.color}, transparent)`,
+                      opacity: 0.7,
+                    }
                   }}
                 >
                   <MUI.Box
+                    className="card-glow"
                     sx={{
                       position: 'absolute',
-                      top: 0,
-                      right: 0,
-                      width: 80,
-                      height: 80,
-                      background: MUI.alpha(stat.color, 0.1),
-                      borderRadius: '0 0 0 100%',
+                      top: '-50%',
+                      left: '-50%',
+                      width: '200%',
+                      height: '200%',
+                      background: `radial-gradient(circle, ${MUI.alpha(stat.color, 0.1)} 0%, transparent 70%)`,
+                      opacity: 0,
+                      transition: 'opacity 0.3s ease-in-out',
+                      pointerEvents: 'none',
+                    }}
+                  />
+                  <MUI.Box
+                    className="stat-icon"
+                    sx={{
+                      position: 'absolute',
+                      top: 16,
+                      right: 16,
+                      width: 60,
+                      height: 60,
                       display: 'flex',
-                      alignItems: 'flex-start',
-                      justifyContent: 'flex-end',
-                      p: 1,
-                      color: stat.color
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '50%',
+                      background: `linear-gradient(135deg, ${MUI.alpha(stat.color, 0.2)} 0%, ${MUI.alpha(stat.color, 0.1)} 100%)`,
+                      color: stat.color,
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      '& > svg': {
+                        fontSize: '2rem',
+                      }
                     }}
                   >
                     {stat.icon}
                   </MUI.Box>
-                  <MUI.CardContent sx={{ p: 3, position: 'relative', zIndex: 1 }}>
-                    <MUI.Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1, color: stat.color }}>
-                      {stat.value}
-                    </MUI.Typography>
-                    <MUI.Typography variant="h6" sx={{ fontWeight: 'medium', mb: 1 }}>
-                      {stat.title}
-                    </MUI.Typography>
-                    <MUI.Typography variant="body2" color="text.secondary">
+                  <MUI.CardContent 
+                    sx={{ 
+                      p: 3, 
+                      position: 'relative', 
+                      zIndex: 1,
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <MUI.Box>
+                      <MUI.Typography 
+                        className="stat-value"
+                        variant="h3" 
+                        sx={{ 
+                          fontWeight: 'bold', 
+                          mb: 1, 
+                          color: 'text.primary',
+                          fontSize: '2.5rem',
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          display: 'inline-block',
+                        }}
+                      >
+                        {stat.value}
+                      </MUI.Typography>
+                      <MUI.Typography 
+                        className="stat-title"
+                        variant="h6" 
+                        sx={{ 
+                          fontWeight: 'medium', 
+                          mb: 1,
+                          fontSize: '1.1rem',
+                          lineHeight: 1.2,
+                          transition: 'color 0.3s ease-in-out',
+                          color: 'text.primary',
+                        }}
+                      >
+                        {stat.title}
+                      </MUI.Typography>
+                    </MUI.Box>
+                    <MUI.Typography 
+                      variant="body2" 
+                      sx={{
+                        mt: 2,
+                        fontSize: '0.875rem',
+                        color: 'text.secondary',
+                        position: 'relative',
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          left: -24,
+                          top: '50%',
+                          width: 16,
+                          height: 2,
+                          background: MUI.alpha(stat.color, 0.5),
+                          transform: 'translateY(-50%)',
+                        }
+                      }}
+                    >
                       {stat.description}
                     </MUI.Typography>
                   </MUI.CardContent>
@@ -981,6 +1101,7 @@ function Companies() {
                     value={selectedProvincia}
                     onChange={(e) => handleProvinciaChange({ target: { value: e.target.value } } as SelectChangeEvent<number | ''>)}
                     variant="outlined"
+                    sx={{ minWidth: '350px' }}
                   >
                     <MUI.MenuItem value="">
                       <em>Seleccione una provincia</em>
@@ -1001,6 +1122,7 @@ function Companies() {
                     onChange={(e) => handleCiudadChange({ target: { value: e.target.value } } as SelectChangeEvent<number | ''>)}
                     variant="outlined"
                     disabled={!selectedProvincia}
+                    sx={{ minWidth: '350px' }}
                   >
                     <MUI.MenuItem value="">
                       <em>Seleccione una ciudad</em>
@@ -1021,6 +1143,7 @@ function Companies() {
                     onChange={(e) => handleSectorChange({ target: { value: e.target.value } } as SelectChangeEvent<number | ''>)}
                     variant="outlined"
                     disabled={!selectedCiudad}
+                    sx={{ minWidth: '350px' }}
                   >
                     <MUI.MenuItem value="">
                       <em>Seleccione un sector</em>
