@@ -393,74 +393,219 @@ function PlazasCentro() {
 
         {/* Grid de Plazas */}
         <MUI.Box sx={{ p: { xs: 2, md: 4 } }}>
-          <MUI.Grid container spacing={3}>
+          <MUI.Grid 
+            container 
+            spacing={3} 
+            alignItems="stretch" 
+            justifyContent="center"
+            sx={{
+              '& .MuiGrid-item': {
+                display: 'flex',
+              }
+            }}
+          >
             {filteredPlazas.map((plaza) => (
-              <MUI.Grid item xs={12} md={6} key={plaza.id_plaza || plaza.id}>
+              <MUI.Grid item xs={12} sm={6} key={plaza.id_plaza || plaza.id}>
                 <MUI.Paper
                   elevation={3}
                   sx={{
+                    width: '100%',
+                    minWidth: { xs: '100%', sm: '450px' },
+                    maxWidth: '500px',
+                    height: '280px',
+                    m: 'auto',
                     p: 3,
                     borderRadius: 2,
-                    transition: 'all 0.3s ease',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    background: `linear-gradient(135deg, ${MUI.alpha(theme.palette.primary.main, 0.05)} 0%, #ffffff 100%)`,
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                     '&:hover': {
-                      transform: 'translateY(-5px)',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.15)'
+                      transform: 'translateY(-8px) scale(1.02)',
+                      boxShadow: `0 20px 30px ${MUI.alpha(theme.palette.primary.main, 0.2)}`,
+                      '& .plaza-icon': {
+                        transform: 'rotate(10deg) scale(1.1)',
+                      },
+                      '& .plaza-chip': {
+                        transform: 'scale(1.1)',
+                        backgroundColor: theme.palette.primary.main,
+                        color: 'white',
+                      },
+                      '& .plaza-title': {
+                        color: theme.palette.primary.main,
+                      },
+                      '& .card-glow': {
+                        opacity: 1,
+                      }
                     },
-                    // Añadir un borde o estilo para indicar plazas inactivas
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '4px',
+                      background: `linear-gradient(90deg, transparent, ${theme.palette.primary.main}, transparent)`,
+                      opacity: 0.7,
+                    },
                     ...(plaza.estado === 'Inactiva' && {
                       borderLeft: `5px solid ${theme.palette.error.main}`,
                       opacity: 0.8
                     })
                   }}
                 >
-                  <MUI.Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <MUI.Box>
-                      <MUI.Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                        <Icons.Business sx={{ color: theme.palette.primary.main }} />
-                        {plaza.centro?.nombre_centro || '-'}
-                      </MUI.Typography>
-                      <MUI.Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Icons.LocationOn sx={{ fontSize: '1rem' }} />
-                        {plaza.centro?.direccion_centro?.calle_dir || '-'}
-                      </MUI.Typography>
+                  <MUI.Box
+                    className="card-glow"
+                    sx={{
+                      position: 'absolute',
+                      top: '-50%',
+                      left: '-50%',
+                      width: '200%',
+                      height: '200%',
+                      background: `radial-gradient(circle, ${MUI.alpha(theme.palette.primary.main, 0.1)} 0%, transparent 70%)`,
+                      opacity: 0,
+                      transition: 'opacity 0.3s ease-in-out',
+                      pointerEvents: 'none',
+                    }}
+                  />
+
+                  <MUI.Box sx={{ flex: '0 0 auto' }}>
+                    <MUI.Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                      <MUI.Box>
+                        <MUI.Typography 
+                          className="plaza-title"
+                          variant="h6" 
+                          sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1, 
+                            mb: 1,
+                            transition: 'color 0.3s ease-in-out',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '300px'
+                          }}
+                        >
+                          <Icons.Business 
+                            className="plaza-icon"
+                            sx={{ 
+                              color: theme.palette.primary.main,
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              flexShrink: 0
+                            }} 
+                          />
+                          {plaza.centro?.nombre_centro || '-'}
+                        </MUI.Typography>
+                        <MUI.Typography 
+                          variant="body2" 
+                          color="text.secondary" 
+                          sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 1,
+                            position: 'relative',
+                            pl: 3,
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            maxWidth: '300px',
+                            '&::before': {
+                              content: '""',
+                              position: 'absolute',
+                              left: 0,
+                              top: '50%',
+                              width: 16,
+                              height: 2,
+                              background: MUI.alpha(theme.palette.primary.main, 0.5),
+                              transform: 'translateY(-50%)',
+                            }
+                          }}
+                        >
+                          <Icons.LocationOn sx={{ fontSize: '1rem', flexShrink: 0 }} />
+                          {plaza.centro?.direccion_centro?.calle_dir || '-'}
+                        </MUI.Typography>
+                      </MUI.Box>
+                      <MUI.Chip
+                        className="plaza-chip"
+                        label={`${plaza.plazas} plazas`}
+                        color="primary"
+                        icon={<Icons.People />}
+                        sx={{
+                          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                          backgroundColor: MUI.alpha(theme.palette.primary.main, 0.1),
+                          color: theme.palette.primary.main,
+                          flexShrink: 0,
+                          '& .MuiChip-icon': {
+                            color: 'inherit'
+                          }
+                        }}
+                      />
                     </MUI.Box>
-                    <MUI.Chip
-                      label={`${plaza.plazas} plazas`}
-                      color="primary"
-                      icon={<Icons.People />}
-                      sx={{
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          transform: 'scale(1.1)'
-                        }
-                      }}
-                    />
                   </MUI.Box>
 
-                  <MUI.Divider sx={{ my: 2 }} />
+                  <MUI.Divider 
+                    sx={{ 
+                      my: 2,
+                      '&::before, &::after': {
+                        borderColor: MUI.alpha(theme.palette.primary.main, 0.2)
+                      }
+                    }} 
+                  />
 
-                  <MUI.Box sx={{ mb: 2 }}>
-                    <MUI.Typography variant="subtitle1" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Icons.Build sx={{ color: theme.palette.secondary.main }} />
+                  <MUI.Box sx={{ flex: '1 1 auto' }}>
+                    <MUI.Typography 
+                      variant="subtitle1" 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1, 
+                        mb: 1,
+                        color: theme.palette.secondary.main,
+                        transition: 'color 0.3s ease',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      <Icons.Build sx={{ color: 'inherit', flexShrink: 0 }} />
                       {plaza.taller?.nombre_taller || '-'}
                     </MUI.Typography>
                   </MUI.Box>
 
-                  <MUI.Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <MUI.Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <MUI.Box 
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      mt: 'auto',
+                      pt: 2,
+                      flex: '0 0 auto'
+                    }}
+                  >
+                    <MUI.Typography 
+                      variant="caption" 
+                      color="text.secondary" 
+                      sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 0.5 
+                      }}
+                    >
                       <Icons.CalendarToday sx={{ fontSize: '0.875rem' }} />
                       Creado: {new Date(plaza.creacion_plaza).toLocaleDateString()}
                     </MUI.Typography>
                     <MUI.Box sx={{ display: 'flex', gap: 1 }}>
                       {showInactive ? (
-                        // Botón de restaurar para plazas inactivas
                         <MUI.IconButton
                           color="success"
                           onClick={() => handleRestorePlaza(plaza)}
                           sx={{
-                            transition: 'all 0.3s ease',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                             '&:hover': {
-                              transform: 'scale(1.1)',
+                              transform: 'scale(1.2) rotate(10deg)',
                               backgroundColor: MUI.alpha(theme.palette.success.main, 0.1)
                             }
                           }}
@@ -468,36 +613,35 @@ function PlazasCentro() {
                           <Icons.RestoreFromTrash />
                         </MUI.IconButton>
                       ) : (
-                        // Botones de editar y eliminar para plazas activas
                         <>
-                      <MUI.IconButton
-                        color="primary"
-                        onClick={() => handleEditClick(plaza)}
-                        disabled={isReadOnly}
-                        sx={{
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            transform: 'scale(1.1)',
-                            backgroundColor: MUI.alpha(theme.palette.primary.main, 0.1)
-                          }
-                        }}
-                      >
-                        <Icons.Edit />
-                      </MUI.IconButton>
-                      <MUI.IconButton
-                        color="error"
-                        onClick={() => handleDeleteClick(plaza)}
-                        disabled={isReadOnly}
-                        sx={{
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            transform: 'scale(1.1)',
-                            backgroundColor: MUI.alpha(theme.palette.error.main, 0.1)
-                          }
-                        }}
-                      >
-                        <Icons.Delete />
-                      </MUI.IconButton>
+                          <MUI.IconButton
+                            color="primary"
+                            onClick={() => handleEditClick(plaza)}
+                            disabled={isReadOnly}
+                            sx={{
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              '&:hover': {
+                                transform: 'scale(1.2) rotate(-10deg)',
+                                backgroundColor: MUI.alpha(theme.palette.primary.main, 0.1)
+                              }
+                            }}
+                          >
+                            <Icons.Edit />
+                          </MUI.IconButton>
+                          <MUI.IconButton
+                            color="error"
+                            onClick={() => handleDeleteClick(plaza)}
+                            disabled={isReadOnly}
+                            sx={{
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              '&:hover': {
+                                transform: 'scale(1.2) rotate(10deg)',
+                                backgroundColor: MUI.alpha(theme.palette.error.main, 0.1)
+                              }
+                            }}
+                          >
+                            <Icons.Delete />
+                          </MUI.IconButton>
                         </>
                       )}
                     </MUI.Box>
