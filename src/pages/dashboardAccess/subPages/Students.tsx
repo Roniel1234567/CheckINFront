@@ -1205,6 +1205,28 @@ const Students = () => {
     );
   }
 
+  const commonSelectStyles = {
+    minWidth: '400px',
+    '& .MuiSelect-select': {
+      padding: '16px 14px',
+      minHeight: '25px',
+      display: 'flex',
+      alignItems: 'center'
+    }
+  };
+
+  const commonMenuProps = {
+    PaperProps: {
+      sx: {
+        maxHeight: 300,
+        width: '400px',
+        '& .MuiMenuItem-root': {
+          padding: '12px 24px'
+        }
+      }
+    }
+  };
+
   return (
     <MUI.Box sx={{ display: 'flex', width: '100vw', minHeight: '100vh', bgcolor: theme ? MUI.alpha(theme.palette.background.paper, 0.6) : undefined, p: 0 }}>
       <SideBar drawerOpen={drawerOpen} toggleDrawer={() => setDrawerOpen(!drawerOpen)} />
@@ -1278,6 +1300,8 @@ const Students = () => {
                       return t ? t.nombre_taller : id;
                     }).join(', ')
                   }
+                  sx={commonSelectStyles}
+                  MenuProps={commonMenuProps}
                 >
                   {talleres.map((taller) => (
                     <MUI.MenuItem key={taller.id_taller} value={String(taller.id_taller)}>
@@ -1639,6 +1663,8 @@ const Students = () => {
                       value={fechasTallerFiltro}
                       onChange={(e) => setFechasTallerFiltro(e.target.value)}
                       label="Taller"
+                      sx={commonSelectStyles}
+                      MenuProps={commonMenuProps}
                     >
                       <MUI.MenuItem value="">Todos</MUI.MenuItem>
                       {talleres.map((taller) => (
@@ -1656,6 +1682,8 @@ const Students = () => {
                       value={fechasCentroFiltro}
                       onChange={(e) => setFechasCentroFiltro(e.target.value)}
                       label="Centro"
+                      sx={commonSelectStyles}
+                      MenuProps={commonMenuProps}
                     >
                       <MUI.MenuItem value="">Todos</MUI.MenuItem>
                       {Array.from(new Set(fechasRows.map(row => row.centro)))
@@ -1773,6 +1801,8 @@ const Students = () => {
                         value={formData.nacionalidad}
                         label="Nacionalidad"
                         onChange={handleNacionalidadChange}
+                        sx={commonSelectStyles}
+                        MenuProps={commonMenuProps}
                       >
                         <MUI.MenuItem value="Dominicana">Dominicana</MUI.MenuItem>
                         <MUI.MenuItem value="Otra">Otra</MUI.MenuItem>
@@ -1801,7 +1831,8 @@ const Students = () => {
                         value={formData.tipoDocumento}
                         label="Tipo de Documento"
                         onChange={handleSelectChange}
-                        disabled
+                        sx={commonSelectStyles}
+                        MenuProps={commonMenuProps}
                       >
                         {formData.nacionalidad === 'Dominicana' ? (
                           <MUI.MenuItem value="Cédula">Cédula</MUI.MenuItem>
@@ -1899,6 +1930,8 @@ const Students = () => {
                             value={formData.sexo_est}
                             label="Sexo"
                             onChange={handleSelectChange}
+                            sx={commonSelectStyles}
+                            MenuProps={commonMenuProps}
                         >
                             <MUI.MenuItem value="Masculino">Masculino</MUI.MenuItem>
                             <MUI.MenuItem value="Femenino">Femenino</MUI.MenuItem>
@@ -1935,6 +1968,8 @@ const Students = () => {
                         onChange={handleSelectChange}
                         required
                         disabled={esTutor}
+                        sx={commonSelectStyles}
+                        MenuProps={commonMenuProps}
                       >
                         {esTutor && tallerTutor && (
                           // Solo el taller del tutor
@@ -1963,6 +1998,8 @@ const Students = () => {
                         value={formData.provincia}
                         label="Provincia"
                         onChange={handleProvinciaChange}
+                        sx={commonSelectStyles}
+                        MenuProps={commonMenuProps}
                       >
                         {provincias.map((prov) => (
                           <MUI.MenuItem key={prov.id_prov} value={prov.id_prov}>{prov.provincia}</MUI.MenuItem>
@@ -1980,6 +2017,8 @@ const Students = () => {
                         label="Ciudad"
                         onChange={handleCiudadChange}
                         disabled={!formData.provincia}
+                        sx={commonSelectStyles}
+                        MenuProps={commonMenuProps}
                       >
                         {ciudades.map((ciu) => (
                           <MUI.MenuItem key={ciu.id_ciu} value={ciu.id_ciu}>{ciu.ciudad}</MUI.MenuItem>
@@ -1996,7 +2035,9 @@ const Students = () => {
                         value={formData.sector}
                         label="Sector"
                         onChange={handleSelectChange}
-                        disabled={!formData.ciudad || sectores.length === 0}
+                        disabled={!formData.ciudad}
+                        sx={commonSelectStyles}
+                        MenuProps={commonMenuProps}
                       >
                         {sectores.map((sec: Sector) => (
                           <MUI.MenuItem key={sec.id_sec} value={String(sec.id_sec)}>
@@ -2057,6 +2098,8 @@ const Students = () => {
                         value={formData.estadoCiclo}
                         label="Estado ciclo escolar"
                         onChange={handleSelectChange}
+                        sx={commonSelectStyles}
+                        MenuProps={commonMenuProps}
                       >
                         <MUI.MenuItem value="Actual">Actual</MUI.MenuItem>
                         <MUI.MenuItem value="Pasado">Pasado</MUI.MenuItem>
@@ -2109,6 +2152,8 @@ const Students = () => {
                         value={formData.relacionPersonaContacto}
                         label="Relación"
                         onChange={handleSelectChange}
+                        sx={commonSelectStyles}
+                        MenuProps={commonMenuProps}
                       >
                         <MUI.MenuItem value="Padre">Padre</MUI.MenuItem>
                         <MUI.MenuItem value="Madre">Madre</MUI.MenuItem>
