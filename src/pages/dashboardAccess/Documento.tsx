@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as MUI from '@mui/material';
 import * as Icons from '@mui/icons-material';
 import documentoService, { type DocEstudiante, EstadoDocumento } from '../../services/documentoService';
 import studentService, { type Estudiante } from '../../services/studentService';
 import SideBar from '../../components/SideBar';
 import DashboardAppBar from '../../components/DashboardAppBar';
+import api from '../../services/api';
+import emailService from '../../services/emailService';
 
 interface DocumentoMeta {
   tipo: string;
@@ -14,13 +16,13 @@ interface DocumentoMeta {
 }
 
 const documentosMeta: DocumentoMeta[] = [
-  { tipo: 'ced_est', nombre: 'Cédula', campo: 'ced_est', icono: <Icons.Badge /> },
-  { tipo: 'cv_doc', nombre: 'Curriculum Vitae', campo: 'cv_doc', icono: <Icons.Description /> },
-  { tipo: 'anexo_iv_doc', nombre: 'Anexo IV', campo: 'anexo_iv_doc', icono: <Icons.Assignment /> },
-  { tipo: 'anexo_v_doc', nombre: 'Anexo V', campo: 'anexo_v_doc', icono: <Icons.AssignmentTurnedIn /> },
-  { tipo: 'acta_nac_doc', nombre: 'Acta de Nacimiento', campo: 'acta_nac_doc', icono: <Icons.Article /> },
-  { tipo: 'ced_padres_doc', nombre: 'Cédula de Padres', campo: 'ced_padres_doc', icono: <Icons.Group /> },
-  { tipo: 'vac_covid_doc', nombre: 'Tarjeta de Vacunación', campo: 'vac_covid_doc', icono: <Icons.HealthAndSafety /> }
+  { tipo: 'ced_est', nombre: 'Cédula', campo: 'ced_est', icono: <Icons.Badge sx={{ fontSize: '1.5rem' }} /> },
+  { tipo: 'cv_doc', nombre: 'Curriculum Vitae', campo: 'cv_doc', icono: <Icons.Description sx={{ fontSize: '1.5rem' }} /> },
+  { tipo: 'anexo_iv_doc', nombre: 'Anexo IV', campo: 'anexo_iv_doc', icono: <Icons.Assignment sx={{ fontSize: '1.5rem' }} /> },
+  { tipo: 'anexo_v_doc', nombre: 'Anexo V', campo: 'anexo_v_doc', icono: <Icons.AssignmentTurnedIn sx={{ fontSize: '1.5rem' }} /> },
+  { tipo: 'acta_nac_doc', nombre: 'Acta de Nacimiento', campo: 'acta_nac_doc', icono: <Icons.Article sx={{ fontSize: '1.5rem' }} /> },
+  { tipo: 'ced_padres_doc', nombre: 'Cédula de Padres', campo: 'ced_padres_doc', icono: <Icons.Group sx={{ fontSize: '1.5rem' }} /> },
+  { tipo: 'vac_covid_doc', nombre: 'Tarjeta de Vacunación', campo: 'vac_covid_doc', icono: <Icons.HealthAndSafety sx={{ fontSize: '1.5rem' }} /> }
 ];
 
 function Documento() {
@@ -37,7 +39,6 @@ function Documento() {
   const [selectedDocumento, setSelectedDocumento] = useState<{ documento: string; tipo: string } | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [comentario, setComentario] = useState('');
-  const notifications = 4;
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -190,6 +191,56 @@ function Documento() {
       // Actualizar estado
       await documentoService.actualizarEstadoDocumento(documento, nuevoEstado);
       
+      // Obtener el estudiante y el documento
+      const estudiante = estudiantes.find(e => e.documento_id_est === documento);
+      const doc = documentos.find(d => d.est_doc === documento);
+      
+      if (estudiante?.contacto_est?.email_contacto && doc) {
+        // Determinar qué documentos fueron afectados
+        const documentosAfectados = documentosMeta
+          .filter(meta => doc[meta.campo])
+          .map(meta => meta.nombre);
+
+        // Mapear el estado para el correo
+        let estadoCorreo: 'aprobados' | 'rechazados' | 'vistos' | 'pendientes';
+        switch (nuevoEstado) {
+          case EstadoDocumento.APROBADO:
+            estadoCorreo = 'aprobados';
+            break;
+          case EstadoDocumento.RECHAZADO:
+            estadoCorreo = 'rechazados';
+            break;
+          case EstadoDocumento.VISTO:
+            estadoCorreo = 'vistos';
+            break;
+          default:
+            estadoCorreo = 'pendientes';
+        }
+
+        try {
+          const emailResult = await emailService.sendDocumentosEmail({
+            correoEstudiante: estudiante.contacto_est.email_contacto,
+            nombreEstudiante: `${estudiante.nombre_est} ${estudiante.apellido_est}`,
+            estado: estadoCorreo,
+            documentosAfectados: documentosAfectados
+          });
+
+          if (!emailResult.success) {
+            console.error('Error detallado del servidor:', emailResult.detalles);
+            throw new Error(emailResult.detalles?.message || 'Error al enviar la notificación por correo');
+          }
+
+          console.log('Email enviado correctamente');
+        } catch (emailError: any) {
+          console.error('Error al enviar notificación por correo:', emailError);
+          setSnackbar({
+            open: true,
+            message: `Error al enviar la notificación por correo: ${emailError.message || 'Error desconocido'}`,
+            severity: 'warning'
+          });
+        }
+      }
+      
       await cargarDocumentos(selectedEstudiante);
 
       setSnackbar({
@@ -241,258 +292,355 @@ function Documento() {
   });
 
   return (
-    <MUI.Box sx={{ display: 'flex', width: '100vw', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <MUI.Box sx={{ 
+      display: 'flex', 
+      width: '100vw', 
+      minHeight: '100vh', 
+      bgcolor: MUI.alpha(theme.palette.background.paper, 0.6),
+      p: 0 
+    }}>
       <SideBar drawerOpen={drawerOpen} toggleDrawer={() => setDrawerOpen(!drawerOpen)} />
 
-      <MUI.Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        <DashboardAppBar notifications={notifications} toggleDrawer={() => setDrawerOpen(!drawerOpen)} />
+      <MUI.Box component="main" sx={{ 
+        flexGrow: 1, 
+        overflow: 'auto',
+        transition: 'all 0.3s ease-in-out'
+      }}>
+        <DashboardAppBar toggleDrawer={() => setDrawerOpen(!drawerOpen)} />
 
+        {/* Loading Overlay */}
         {loading && (
-          <MUI.Backdrop
-            sx={{ 
-              color: '#fff', 
-              zIndex: (theme) => theme.zIndex.drawer + 1,
-              backdropFilter: 'blur(3px)'
-            }}
-            open={loading}
-          >
-            <MUI.Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <MUI.CircularProgress color="primary" />
-              <MUI.Typography variant="h6" color="white">
-                Procesando...
-              </MUI.Typography>
-            </MUI.Box>
-          </MUI.Backdrop>
+          <MUI.Box sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: 'rgba(255,255,255,0.8)',
+            zIndex: 9999
+          }}>
+            <MUI.CircularProgress size={60} sx={{ color: theme.palette.primary.main }} />
+          </MUI.Box>
         )}
 
-        <MUI.Grid container spacing={3}>
-          <MUI.Grid item xs={12}>
-            <MUI.Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
-              <MUI.Grid container spacing={2} alignItems="center">
-                <MUI.Grid item xs={12} md={4}>
-                  <MUI.TextField
-                    fullWidth
-                    placeholder="Buscar estudiante..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <MUI.InputAdornment position="start">
-                          <Icons.Search />
-                        </MUI.InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        transition: 'all 0.2s',
-                        '&:hover': {
-                          backgroundColor: 'action.hover'
-                        }
-                      }
-                    }}
-                  />
-                </MUI.Grid>
-                <MUI.Grid item xs={12} md={4}>
-                  <MUI.FormControl fullWidth>
-                    <MUI.InputLabel>Filtrar por Taller</MUI.InputLabel>
-                    <MUI.Select
-                      value={selectedTaller}
-                      onChange={(e) => setSelectedTaller(e.target.value)}
-                      label="Filtrar por Taller"
-                      sx={{ borderRadius: 2 }}
-                    >
-                      <MUI.MenuItem value="">Todos los talleres</MUI.MenuItem>
-                      {talleres.map((taller) => (
-                        <MUI.MenuItem key={taller} value={taller}>
-                          {taller}
-                        </MUI.MenuItem>
-                      ))}
-                    </MUI.Select>
-                  </MUI.FormControl>
-                </MUI.Grid>
-                <MUI.Grid item xs={12} md={4}>
-                  <MUI.FormControl fullWidth>
-                    <MUI.InputLabel>Filtrar por Estado</MUI.InputLabel>
-                    <MUI.Select
-                      value={selectedEstado}
-                      onChange={(e) => setSelectedEstado(e.target.value)}
-                      label="Filtrar por Estado"
-                      sx={{ borderRadius: 2 }}
-                    >
-                      <MUI.MenuItem value="">Todos los estados</MUI.MenuItem>
-                      {Object.values(EstadoDocumento).map((estado) => (
-                        <MUI.MenuItem key={estado} value={estado}>
-                          <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <MUI.Chip
-                              label={estado}
-                              size="small"
-                              color={getEstadoColor(estado)}
-                              sx={{ minWidth: 80 }}
-                            />
-                          </MUI.Box>
-                        </MUI.MenuItem>
-                      ))}
-                    </MUI.Select>
-                  </MUI.FormControl>
-                </MUI.Grid>
-              </MUI.Grid>
-            </MUI.Paper>
-          </MUI.Grid>
+        {/* Encabezado */}
+        <MUI.Box sx={{ 
+          p: { xs: 2, md: 4 },
+          background: `linear-gradient(135deg, ${MUI.alpha(theme.palette.primary.main, 0.1)} 0%, transparent 100%)`,
+          borderBottom: `1px solid ${MUI.alpha(theme.palette.primary.main, 0.1)}`
+        }}>
+          <MUI.Typography variant="h2" sx={{ 
+            mb: 1, 
+            fontWeight: 'bold',
+            color: theme.palette.primary.main,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2
+          }}>
+            <Icons.Description sx={{ fontSize: '2.5rem' }} />
+            Gestión de Documentos
+          </MUI.Typography>
+          <MUI.Typography variant="body1" color="text.secondary">
+            Administra y revisa los documentos de los estudiantes
+          </MUI.Typography>
+        </MUI.Box>
 
-          <MUI.Grid item xs={12} md={4}>
-            <MUI.Paper elevation={3} sx={{ p: 2, borderRadius: 2, height: '70vh', overflow: 'auto' }}>
-              <MUI.List>
-                {estudiantesFiltrados.map((estudiante) => (
-                  <MUI.ListItem
-                    key={estudiante.documento_id_est}
-                    disablePadding
-                  >
-                    <MUI.ListItemButton
+        {/* Filtros */}
+        <MUI.Box sx={{ 
+          p: { xs: 2, md: 4 }, 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: 2,
+          alignItems: 'center',
+          background: theme.palette.background.paper,
+          boxShadow: `0 2px 4px ${MUI.alpha(theme.palette.primary.main, 0.1)}`
+        }}>
+          <MUI.TextField
+            placeholder="Buscar estudiante..."
+            variant="outlined"
+            size="small"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ 
+              flexGrow: 1,
+              minWidth: 200,
+              '& .MuiOutlinedInput-root': {
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  borderColor: theme.palette.primary.main,
+                  boxShadow: `0 0 0 2px ${MUI.alpha(theme.palette.primary.main, 0.1)}`
+                }
+              }
+            }}
+            InputProps={{
+              startAdornment: <Icons.Search sx={{ mr: 1, color: 'text.secondary' }} />
+            }}
+          />
+
+          <MUI.FormControl size="small" sx={{ minWidth: 200 }}>
+            <MUI.InputLabel>Taller</MUI.InputLabel>
+            <MUI.Select
+              value={selectedTaller}
+              onChange={(e) => setSelectedTaller(e.target.value)}
+              label="Taller"
+            >
+              <MUI.MenuItem value="">Todos</MUI.MenuItem>
+              {talleres.map((taller) => (
+                <MUI.MenuItem key={taller} value={taller}>{taller}</MUI.MenuItem>
+              ))}
+            </MUI.Select>
+          </MUI.FormControl>
+
+          <MUI.FormControl size="small" sx={{ minWidth: 200 }}>
+            <MUI.InputLabel>Estado</MUI.InputLabel>
+            <MUI.Select
+              value={selectedEstado}
+              onChange={(e) => setSelectedEstado(e.target.value)}
+              label="Estado"
+            >
+              <MUI.MenuItem value="">Todos</MUI.MenuItem>
+              {Object.values(EstadoDocumento).map((estado) => (
+                <MUI.MenuItem key={estado} value={estado}>{estado}</MUI.MenuItem>
+              ))}
+            </MUI.Select>
+          </MUI.FormControl>
+        </MUI.Box>
+
+        {/* Lista de Estudiantes */}
+        <MUI.Box sx={{ p: { xs: 2, md: 4 } }}>
+          <MUI.Grid container spacing={3}>
+            {estudiantesFiltrados.map((estudiante) => (
+              <MUI.Grid 
+                component={MUI.Box} 
+                key={estudiante.documento_id_est}
+                sx={{ width: '100%' }}
+              >
+                <MUI.Paper
+                  elevation={3}
+                  sx={{
+                    p: 3,
+                    borderRadius: 2,
+                    transition: 'all 0.3s ease',
+                    background: selectedEstudiante === estudiante.documento_id_est
+                      ? `linear-gradient(135deg, ${MUI.alpha(theme.palette.primary.main, 0.1)} 0%, transparent 100%)`
+                      : theme.palette.background.paper,
+                    border: `1px solid ${selectedEstudiante === estudiante.documento_id_est 
+                      ? theme.palette.primary.main 
+                      : MUI.alpha(theme.palette.divider, 0.1)}`,
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 24px ${MUI.alpha(theme.palette.primary.main, 0.15)}`,
+                      borderColor: theme.palette.primary.main
+                    }
+                  }}
+                >
+                  <MUI.Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'flex-start',
+                    flexWrap: 'wrap',
+                    gap: 2
+                  }}>
+                    {/* Información del Estudiante */}
+                    <MUI.Box sx={{ flex: 1, minWidth: 250 }}>
+                      <MUI.Typography variant="h6" sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 1,
+                        color: theme.palette.primary.main
+                      }}>
+                        <Icons.Person />
+                        {`${estudiante.nombre_est} ${estudiante.apellido_est}`}
+                      </MUI.Typography>
+                      <MUI.Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        <Icons.Badge sx={{ mr: 1, fontSize: '1rem', verticalAlign: 'middle' }} />
+                        {estudiante.documento_id_est}
+                      </MUI.Typography>
+                      {estudiante.taller_est && (
+                        <MUI.Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          <Icons.Build sx={{ mr: 1, fontSize: '1rem', verticalAlign: 'middle' }} />
+                          {estudiante.taller_est.nombre_taller}
+                        </MUI.Typography>
+                      )}
+                    </MUI.Box>
+
+                    {/* Botón para ver documentos */}
+                    <MUI.Button
+                      variant={selectedEstudiante === estudiante.documento_id_est ? "contained" : "outlined"}
+                      color="primary"
                       onClick={() => setSelectedEstudiante(estudiante.documento_id_est)}
-                      selected={selectedEstudiante === estudiante.documento_id_est}
+                      startIcon={<Icons.Folder />}
                       sx={{
-                        borderRadius: 2,
-                        mb: 1,
-                        transition: 'all 0.2s',
+                        minWidth: 200,
+                        transition: 'all 0.3s ease',
                         '&:hover': {
-                          backgroundColor: 'action.hover'
-                        },
-                        '&.Mui-selected': {
-                          backgroundColor: 'primary.main',
-                          color: 'white',
-                          '&:hover': {
-                            backgroundColor: 'primary.dark'
-                          }
+                          transform: 'scale(1.05)',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                         }
                       }}
                     >
-                      <MUI.ListItemIcon>
-                        <Icons.Person sx={{ color: selectedEstudiante === estudiante.documento_id_est ? 'white' : 'inherit' }} />
-                      </MUI.ListItemIcon>
-                      <MUI.ListItemText
-                        primary={`${estudiante.nombre_est} ${estudiante.apellido_est}`}
-                        secondary={
-                          <MUI.Typography
-                            variant="body2"
+                      {selectedEstudiante === estudiante.documento_id_est ? "Ocultar Documentos" : "Ver Documentos"}
+                    </MUI.Button>
+                  </MUI.Box>
+
+                  {/* Lista de Documentos */}
+                  {selectedEstudiante === estudiante.documento_id_est && (
+                    <MUI.Box sx={{ 
+                      mt: 3,
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                      gap: 3,
+                      animation: 'fadeIn 0.5s ease-out',
+                      '@keyframes fadeIn': {
+                        from: { opacity: 0, transform: 'translateY(20px)' },
+                        to: { opacity: 1, transform: 'translateY(0)' }
+                      }
+                    }}>
+                      {documentosMeta.map((docMeta) => {
+                        const doc = documentos.find(d => d.est_doc === estudiante.documento_id_est);
+                        const estado = doc?.[docMeta.campo] ? doc.estado_doc_est : 'PENDIENTE';
+                        const color = getEstadoColor(estado as EstadoDocumento);
+
+                        return (
+                          <MUI.Paper
+                            key={docMeta.tipo}
+                            elevation={2}
                             sx={{
-                              color: selectedEstudiante === estudiante.documento_id_est ? 'white' : 'text.secondary'
+                              p: 2,
+                              borderRadius: 2,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 2,
+                              transition: 'all 0.3s ease',
+                              background: `linear-gradient(135deg, ${MUI.alpha(theme.palette[color].main, 0.05)} 0%, transparent 100%)`,
+                              border: `1px solid ${MUI.alpha(theme.palette[color].main, 0.1)}`,
+                              '&:hover': {
+                                transform: 'translateY(-4px)',
+                                boxShadow: `0 8px 24px ${MUI.alpha(theme.palette[color].main, 0.15)}`,
+                                borderColor: theme.palette[color].main
+                              }
                             }}
                           >
-                            {estudiante.documento_id_est}
-                          </MUI.Typography>
-                        }
-                      />
-                    </MUI.ListItemButton>
-                  </MUI.ListItem>
-                ))}
-              </MUI.List>
-            </MUI.Paper>
-          </MUI.Grid>
-
-          <MUI.Grid item xs={12} md={8}>
-            <MUI.Paper elevation={3} sx={{ p: 2, borderRadius: 2, height: '70vh', overflow: 'auto' }}>
-              {selectedEstudiante ? (
-                <>
-                  <MUI.Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <MUI.Typography variant="h6">Estado de Documentos:</MUI.Typography>
-                    <MUI.FormControl sx={{ minWidth: 200 }}>
-                      <MUI.Select
-                        value={documentos[0]?.estado_doc_est || EstadoDocumento.PENDIENTE}
-                        onChange={(e) => handleEstadoChange(selectedEstudiante, e.target.value as EstadoDocumento)}
-                        size="small"
-                      >
-                        {Object.values(EstadoDocumento).map((estado) => (
-                          <MUI.MenuItem key={estado} value={estado}>
                             <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <MUI.Box sx={{ color: theme.palette[color].main }}>
+                                {docMeta.icono}
+                              </MUI.Box>
+                              <MUI.Typography variant="subtitle1" sx={{ flex: 1 }}>
+                                {docMeta.nombre}
+                              </MUI.Typography>
                               <MUI.Chip
                                 label={estado}
+                                color={color}
                                 size="small"
-                                color={getEstadoColor(estado)}
-                                sx={{ minWidth: 80 }}
+                                sx={{ 
+                                  minWidth: 90,
+                                  transition: 'all 0.3s ease',
+                                  '&:hover': {
+                                    transform: 'scale(1.05)'
+                                  }
+                                }}
                               />
                             </MUI.Box>
-                          </MUI.MenuItem>
-                        ))}
-                      </MUI.Select>
-                    </MUI.FormControl>
-                  </MUI.Box>
-                <MUI.Grid container spacing={2}>
-                  {documentosMeta.map((doc) => {
-                    const documento = documentos.find(d => d.est_doc === selectedEstudiante);
-                    const tieneDocumento = documento && documento[doc.campo];
 
-                    return (
-                      <MUI.Grid item xs={12} sm={6} md={4} key={doc.tipo}>
-                        <MUI.Card
-                          sx={{
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            transition: 'all 0.2s',
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: 4
-                            }
-                          }}
-                        >
-                          <MUI.CardContent sx={{ flexGrow: 1 }}>
-                            <MUI.Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                              {doc.icono}
-                              <MUI.Typography variant="h6" sx={{ ml: 1 }}>
-                                {doc.nombre}
-                              </MUI.Typography>
-                            </MUI.Box>
-                            <MUI.Typography variant="body2" color="text.secondary">
-                              {tieneDocumento ? 'Documento disponible' : 'No disponible'}
-                            </MUI.Typography>
-                          </MUI.CardContent>
-                          <MUI.CardActions>
-                            <MUI.Button
-                              size="small"
-                              startIcon={<Icons.Visibility />}
-                              onClick={() => tieneDocumento && handlePreviewDocumento(selectedEstudiante, doc.tipo)}
-                              disabled={!tieneDocumento}
-                            >
-                              Ver
-                            </MUI.Button>
-                            <MUI.Button
-                              size="small"
-                              startIcon={<Icons.Download />}
-                              onClick={() => tieneDocumento && handleDownloadDocumento(selectedEstudiante, doc.tipo, doc.nombre)}
-                              disabled={!tieneDocumento}
-                            >
-                              Descargar
-                            </MUI.Button>
-                          </MUI.CardActions>
-                        </MUI.Card>
-                      </MUI.Grid>
-                    );
-                  })}
-                </MUI.Grid>
-                </>
-              ) : (
-                <MUI.Box
-                  sx={{
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'column',
-                    gap: 2
-                  }}
-                >
-                  <Icons.Description sx={{ fontSize: 60, color: 'text.secondary' }} />
+                            {doc?.[docMeta.campo] && (
+                              <MUI.Box sx={{ display: 'flex', gap: 1 }}>
+                                <MUI.Button
+                                  fullWidth
+                                  variant="outlined"
+                                  color={color}
+                                  size="small"
+                                  startIcon={<Icons.Visibility />}
+                                  onClick={() => handlePreviewDocumento(estudiante.documento_id_est, docMeta.tipo)}
+                                  sx={{
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                      transform: 'scale(1.02)',
+                                      boxShadow: `0 4px 12px ${MUI.alpha(theme.palette[color].main, 0.2)}`
+                                    }
+                                  }}
+                                >
+                                  Ver
+                                </MUI.Button>
+                                <MUI.Button
+                                  fullWidth
+                                  variant="outlined"
+                                  color={color}
+                                  size="small"
+                                  startIcon={<Icons.Download />}
+                                  onClick={() => handleDownloadDocumento(estudiante.documento_id_est, docMeta.tipo, docMeta.nombre)}
+                                  sx={{
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                      transform: 'scale(1.02)',
+                                      boxShadow: `0 4px 12px ${MUI.alpha(theme.palette[color].main, 0.2)}`
+                                    }
+                                  }}
+                                >
+                                  Descargar
+                                </MUI.Button>
+                              </MUI.Box>
+                            )}
+
+                            {doc?.[docMeta.campo] && (
+                              <MUI.Box sx={{ display: 'flex', gap: 1 }}>
+                                {Object.values(EstadoDocumento).map((estado) => (
+                                  <MUI.IconButton
+                                    key={estado}
+                                    size="small"
+                                    color={getEstadoColor(estado)}
+                                    onClick={() => handleEstadoChange(estudiante.documento_id_est, estado)}
+                                    sx={{
+                                      flex: 1,
+                                      border: `1px solid ${MUI.alpha(theme.palette[getEstadoColor(estado)].main, 0.5)}`,
+                                      transition: 'all 0.3s ease',
+                                      '&:hover': {
+                                        transform: 'scale(1.1)',
+                                        backgroundColor: MUI.alpha(theme.palette[getEstadoColor(estado)].main, 0.1)
+                                      }
+                                    }}
+                                  >
+                                    {estado === EstadoDocumento.APROBADO && <Icons.CheckCircle />}
+                                    {estado === EstadoDocumento.RECHAZADO && <Icons.Cancel />}
+                                    {estado === EstadoDocumento.VISTO && <Icons.RemoveRedEye />}
+                                    {estado === EstadoDocumento.PENDIENTE && <Icons.Schedule />}
+                                  </MUI.IconButton>
+                                ))}
+                              </MUI.Box>
+                            )}
+                          </MUI.Paper>
+                        );
+                      })}
+                    </MUI.Box>
+                  )}
+                </MUI.Paper>
+              </MUI.Grid>
+            ))}
+
+            {estudiantesFiltrados.length === 0 && (
+              <MUI.Grid 
+                component={MUI.Box}
+                sx={{ width: '100%' }}
+              >
+                <MUI.Box sx={{ 
+                  textAlign: 'center', 
+                  p: 4, 
+                  color: 'text.secondary',
+                  animation: 'fadeIn 0.5s ease-out'
+                }}>
+                  <Icons.SearchOff sx={{ fontSize: '5rem', opacity: 0.3, mb: 2 }} />
                   <MUI.Typography variant="h6" color="text.secondary">
-                    Selecciona un estudiante para ver sus documentos
+                    No se encontraron estudiantes que coincidan con los filtros
                   </MUI.Typography>
                 </MUI.Box>
-              )}
-            </MUI.Paper>
+              </MUI.Grid>
+            )}
           </MUI.Grid>
-        </MUI.Grid>
+        </MUI.Box>
 
-        {/* Modal para previsualizar PDF */}
+        {/* Diálogo de Previsualización */}
         <MUI.Dialog
           open={Boolean(pdfUrl)}
           onClose={() => {
@@ -501,6 +649,7 @@ function Documento() {
           }}
           maxWidth="lg"
           fullWidth
+          TransitionComponent={MUI.Slide}
           PaperProps={{
             sx: {
               height: '90vh',
@@ -509,77 +658,87 @@ function Documento() {
             }
           }}
         >
-          <MUI.DialogTitle>
-            <MUI.Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <MUI.Typography variant="h6">
-                Previsualización del Documento
-              </MUI.Typography>
-              <MUI.IconButton
-                onClick={() => {
-                  setPdfUrl(null);
-                  setSelectedDocumento(null);
-                }}
-              >
-                <Icons.Close />
-              </MUI.IconButton>
-            </MUI.Box>
+          <MUI.DialogTitle sx={{ 
+            bgcolor: theme.palette.primary.main,
+            color: 'white',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <MUI.Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Icons.PictureAsPdf />
+              Previsualización de Documento
+            </MUI.Typography>
+            <MUI.IconButton
+              onClick={() => {
+                setPdfUrl(null);
+                setSelectedDocumento(null);
+              }}
+              sx={{ color: 'white' }}
+            >
+              <Icons.Close />
+            </MUI.IconButton>
           </MUI.DialogTitle>
-          <MUI.DialogContent dividers>
-            <MUI.Grid container spacing={2}>
-              <MUI.Grid item xs={12} md={8} sx={{ height: '100%' }}>
-                {pdfUrl && (
-                  <iframe
-                    src={pdfUrl}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      border: 'none',
-                      minHeight: '500px'
-                    }}
-                    title="PDF Viewer"
-                  />
-                )}
-              </MUI.Grid>
-              <MUI.Grid item xs={12} md={4}>
-                <MUI.Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <MUI.Typography variant="h6" gutterBottom>
-                    Agregar Comentario
-                  </MUI.Typography>
-                  <MUI.TextField
-                    fullWidth
-                    multiline
-                    rows={4}
-                    value={comentario}
-                    onChange={(e) => setComentario(e.target.value)}
-                    placeholder="Escribe un comentario sobre el documento..."
-                    sx={{ mb: 2 }}
-                  />
-                  <MUI.Button
-                    variant="contained"
-                    startIcon={<Icons.Send />}
-                    onClick={handleEnviarComentario}
-                    disabled={!comentario.trim()}
-                  >
-                    Enviar Comentario
-                  </MUI.Button>
-                </MUI.Box>
-              </MUI.Grid>
-            </MUI.Grid>
+
+          <MUI.DialogContent sx={{ flex: 1, p: 0 }}>
+            {pdfUrl && (
+              <iframe
+                src={pdfUrl}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                title="PDF Preview"
+              />
+            )}
           </MUI.DialogContent>
+
+          <MUI.DialogActions sx={{ 
+            p: 2, 
+            borderTop: `1px solid ${theme.palette.divider}`,
+            bgcolor: theme.palette.background.paper
+          }}>
+            <MUI.TextField
+              fullWidth
+              multiline
+              rows={2}
+              placeholder="Escribe un comentario..."
+              value={comentario}
+              onChange={(e) => setComentario(e.target.value)}
+              sx={{ mr: 2 }}
+            />
+            <MUI.Button
+              variant="contained"
+              color="primary"
+              onClick={handleEnviarComentario}
+              disabled={!comentario.trim()}
+              startIcon={<Icons.Send />}
+              sx={{
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }
+              }}
+            >
+              Enviar Comentario
+            </MUI.Button>
+          </MUI.DialogActions>
         </MUI.Dialog>
 
-        {/* Snackbar para mensajes */}
+        {/* Snackbar para notificaciones */}
         <MUI.Snackbar
           open={snackbar.open}
           autoHideDuration={6000}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
           <MUI.Alert
-            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
             severity={snackbar.severity}
             variant="filled"
-            sx={{ width: '100%' }}
+            elevation={6}
+            sx={{
+              minWidth: 300,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}
           >
             {snackbar.message}
           </MUI.Alert>
