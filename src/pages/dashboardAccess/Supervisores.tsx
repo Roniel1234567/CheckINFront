@@ -58,6 +58,28 @@ function SupervisoresPage() {
 
   const isReadOnly = useReadOnlyMode();
 
+  const commonSelectStyles = {
+    minWidth: '250px',
+    '& .MuiSelect-select': {
+      padding: '16px 14px',
+      minHeight: '25px',
+      display: 'flex',
+      alignItems: 'center'
+    }
+  };
+
+  const commonMenuProps = {
+    PaperProps: {
+      sx: {
+        maxHeight: 300,
+        width: '250px',
+        '& .MuiMenuItem-root': {
+          padding: '12px 24px'
+        }
+      }
+    }
+  };
+
   // Cargar datos
   useEffect(() => {
     const fetchData = async () => {
@@ -120,6 +142,15 @@ function SupervisoresPage() {
     });
   };
 
+  const resetForm = () => {
+    setFormNombre('');
+    setFormApellido('');
+    setFormTelefono('');
+    setFormEmail('');
+    setFormCentro('');
+    resetFormErrors();
+  };
+
   const validateForm = () => {
     const errors = {
       nombre_sup: formNombre.trim() === '',
@@ -173,6 +204,7 @@ function SupervisoresPage() {
       // Recargar supervisores
       const supervisoresActualizados = await supervisorService.getAllSupervisores();
       setSupervisores(supervisoresActualizados);
+      resetForm();
       handleCloseDialog();
     } catch (error) {
       console.error('Error al guardar:', error);
@@ -338,17 +370,40 @@ function SupervisoresPage() {
               >
                 <MUI.Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, mb: 2, gap: 2, alignItems: 'center', justifyContent: 'space-between' }}>
                   <MUI.Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                    <MUI.Autocomplete
-                      options={centros}
-                      getOptionLabel={(option) => option.nombre_centro}
-                      value={centros.find(c => c.id_centro.toString() === centroFiltro) || null}
-                      onChange={(_, newValue) => setCentroFiltro(newValue ? newValue.id_centro.toString() : '')}
-                      renderInput={(params) => (
-                        <MUI.TextField {...params} label="Filtrar por centro" variant="outlined" size="small" />
-                      )}
-                      isOptionEqualToValue={(option, value) => option.id_centro === value.id_centro}
-                      sx={{ minWidth: '200px' }}
-                    />
+                    <MUI.FormControl sx={{ width: '250px' }}>
+                      <MUI.InputLabel>Filtrar por Centro</MUI.InputLabel>
+                      <MUI.Select
+                        value={centroFiltro}
+                        onChange={(e) => setCentroFiltro(e.target.value)}
+                        label="Filtrar por Centro"
+                        sx={{
+                          '& .MuiSelect-select': {
+                            padding: '8px 14px',
+                            minHeight: '20px',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }
+                        }}
+                        MenuProps={{
+                          PaperProps: {
+                            sx: {
+                              maxHeight: 300,
+                              width: '250px',
+                              '& .MuiMenuItem-root': {
+                                padding: '6px 14px'
+                              }
+                            }
+                          }
+                        }}
+                      >
+                        <MUI.MenuItem value="">Todos</MUI.MenuItem>
+                        {centros.map((centro) => (
+                          <MUI.MenuItem key={centro.id_centro} value={centro.id_centro.toString()}>
+                            {centro.nombre_centro}
+                          </MUI.MenuItem>
+                        ))}
+                      </MUI.Select>
+                    </MUI.FormControl>
                     <MUI.TextField
                       variant="outlined"
                       size="small"
@@ -654,16 +709,29 @@ function SupervisoresPage() {
                   </MUI.Grid>
                   <MUI.Grid item xs={12} md={6}>
                     <MUI.Autocomplete
+                      value={centros.find(centro => centro.id_centro.toString() === formCentro) || null}
+                      onChange={(event, newValue) => {
+                        setFormCentro(newValue ? newValue.id_centro.toString() : '');
+                      }}
                       options={centros}
                       getOptionLabel={(option) => option.nombre_centro}
-                      value={centros.find(c => c.id_centro.toString() === formCentro) || null}
-                      onChange={(_, newValue) => setFormCentro(newValue ? newValue.id_centro.toString() : '')}
                       renderInput={(params) => (
-                        <MUI.TextField {...params} label="Centro de Trabajo" variant="outlined" />
+                        <MUI.TextField
+                          {...params}
+                          label="Centro de Trabajo"
+                          fullWidth
+                        />
                       )}
-                      isOptionEqualToValue={(option, value) => option.id_centro === value.id_centro}
-                      clearOnEscape
-                      sx={{ width: '100%' }}
+                      sx={{
+                        width: '350px',
+                        '& .MuiInputBase-root': {
+                          height: '56px',
+                          padding: '0 14px'
+                        },
+                        '& .MuiAutocomplete-input': {
+                          padding: '7.5px 0 !important'
+                        }
+                      }}
                     />
                   </MUI.Grid>
                   <MUI.Grid item xs={12}>
