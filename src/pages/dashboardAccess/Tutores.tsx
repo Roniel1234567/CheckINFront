@@ -112,6 +112,28 @@ function TutoresPage() {
 
   const isReadOnly = useReadOnlyMode();
 
+  const commonSelectStyles = {
+    minWidth: '400px',
+    '& .MuiSelect-select': {
+      padding: '16px 14px',
+      minHeight: '25px',
+      display: 'flex',
+      alignItems: 'center'
+    }
+  };
+
+  const commonMenuProps = {
+    PaperProps: {
+      sx: {
+        maxHeight: 300,
+        width: '400px',
+        '& .MuiMenuItem-root': {
+          padding: '12px 24px'
+        }
+      }
+    }
+  };
+
   // Cargar datos
   useEffect(() => {
     const fetchData = async () => {
@@ -267,7 +289,7 @@ function TutoresPage() {
       email_contacto: formEmail.trim() === '' || !formEmail.includes('@'),
       dato_usuario: formUsuario.trim() === '',
       contrasena_usuario: !selectedTutor && formContrasena.trim() === '',
-      taller_tutor: formTaller.trim() === ''
+      taller_tutor: !formTaller || formTaller === ''
     };
     
     setFormErrors(errors);
@@ -332,6 +354,17 @@ function TutoresPage() {
       console.error('Error al verificar email:', error);
       setEmailDisponible(true);
     }
+  };
+
+  const resetForm = () => {
+    setFormNombre('');
+    setFormApellido('');
+    setFormTelefono('');
+    setFormEmail('');
+    setFormUsuario('');
+    setFormContrasena('');
+    setFormTaller('');
+    resetFormErrors();
   };
 
   const handleSaveTutor = async () => {
@@ -425,7 +458,8 @@ function TutoresPage() {
         const usuarioResponse = await api.post<{ id_usuario: number }>('/usuarios', {
           dato_usuario: formUsuario,
           contrasena_usuario: formContrasena,
-          rol_usuario: 3 // Rol de tutor
+          rol_usuario: 3, // Rol de tutor
+          estado_usuario: 'Activo'
         });
         
         // 3. Crear tutor
@@ -448,7 +482,10 @@ function TutoresPage() {
       const { data: tutoresData } = await api.get<Tutor[]>('/tutores');
       setTutores(tutoresData);
       
+      // Limpiar el formulario
+      resetForm();
       handleCloseDialog();
+      
     } catch (error) {
       console.error('Error al guardar tutor:', error);
       setSnackbar({
@@ -997,32 +1034,72 @@ function TutoresPage() {
 
               {/* Tab 2: Formulario de Tutor */}
               <TabPanel value="2">
-                <MUI.Paper elevation={3} sx={{ borderRadius: 3, p: 3, maxWidth: 800, mx: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
-                  <MUI.Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', color: theme.palette.primary.main, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <MUI.Paper 
+                  elevation={3} 
+                  sx={{ 
+                    borderRadius: 3, 
+                    p: 4, 
+                    maxWidth: 900, 
+                    mx: 'auto', 
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)'
+                  }}
+                >
+                  <MUI.Typography 
+                    variant="h5" 
+                    sx={{ 
+                      mb: 4, 
+                      fontWeight: 'bold', 
+                      color: theme.palette.primary.main, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1,
+                      borderBottom: `2px solid ${theme.palette.primary.main}`,
+                      paddingBottom: 2
+                    }}
+                  >
                     {selectedTutor ? <Icons.Edit /> : <Icons.Add />}
                     {selectedTutor ? 'Editar Tutor' : 'Nuevo Tutor'}
                   </MUI.Typography>
 
                   {talleresError && (
-                    <MUI.Alert severity="warning" sx={{ mb: 3 }}>
+                    <MUI.Alert severity="warning" sx={{ mb: 4 }}>
                       No se pudieron cargar los talleres. La creación/edición del tutor puede estar limitada.
                     </MUI.Alert>
                   )}
 
-                  <MUI.Grid container spacing={3}>
+                  <MUI.Grid container spacing={4}>
                     {/* Sección de datos personales */}
                     <MUI.Grid item xs={12}>
-                      <MUI.Typography variant="h6" sx={{ 
-                        mb: 2, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1,
-                        borderBottom: `1px solid ${theme.palette.divider}`,
-                        pb: 1
-                      }}>
-                        <Icons.Person />
-                        Datos Personales
-                      </MUI.Typography>
+                      <MUI.Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          mb: 3,
+                          borderBottom: `2px solid ${theme.palette.primary.main}`,
+                          pb: 2
+                        }}
+                      >
+                        <MUI.Avatar
+                          sx={{
+                            bgcolor: theme.palette.primary.main,
+                            width: 40,
+                            height: 40
+                          }}
+                        >
+                          <Icons.Person />
+                        </MUI.Avatar>
+                        <MUI.Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 'bold',
+                            color: theme.palette.primary.main
+                          }}
+                        >
+                          Datos Personales
+                        </MUI.Typography>
+                      </MUI.Box>
                     </MUI.Grid>
                     
                     <MUI.Grid item xs={12} md={6}>
@@ -1040,6 +1117,13 @@ function TutoresPage() {
                               <Icons.Badge />
                             </MUI.InputAdornment>
                           ),
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
                         }}
                       />
                     </MUI.Grid>
@@ -1060,27 +1144,77 @@ function TutoresPage() {
                             </MUI.InputAdornment>
                           ),
                         }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
                       />
                     </MUI.Grid>
 
-                    <MUI.Grid item xs={12} md={6}>
-                                          <MUI.FormControl fullWidth error={formErrors.taller_tutor}>                      <MUI.InputLabel>Taller Asignado</MUI.InputLabel>                      <MUI.Select                        label="Taller Asignado"                        value={formTaller}                        onChange={(e) => setFormTaller(e.target.value)}                        startAdornment={                          <MUI.InputAdornment position="start">                            <Icons.School />                          </MUI.InputAdornment>                        }                      >                        {talleres.length === 0 ? (                          <MUI.MenuItem disabled value="">                            No hay talleres disponibles                          </MUI.MenuItem>                        ) : (                          talleres                            .filter(taller => taller.estado_taller === 'Activo')                            .map((taller) => (                            <MUI.MenuItem key={taller.id_taller} value={taller.id_taller.toString()}>                              {taller.nombre_taller}                            </MUI.MenuItem>                          ))                        )}                      </MUI.Select>                      {formErrors.taller_tutor && <MUI.FormHelperText>Este campo es obligatorio</MUI.FormHelperText>}                      {talleres.length === 0 && (                        <MUI.FormHelperText error>                          No se pudieron cargar los talleres. Intente recargar la página.                        </MUI.FormHelperText>                      )}                    </MUI.FormControl>
+                    <MUI.Grid item xs={12}>
+                      <MUI.FormControl fullWidth required error={formErrors.taller_tutor}>
+                        <MUI.InputLabel>Taller</MUI.InputLabel>
+                        <MUI.Select
+                          value={formTaller}
+                          onChange={(e) => setFormTaller(e.target.value)}
+                          label="Taller"
+                          sx={{
+                            ...commonSelectStyles,
+                            '& .MuiOutlinedInput-notchedOutline': {
+                              '&:hover': {
+                                borderColor: theme.palette.primary.main,
+                              },
+                            },
+                          }}
+                          MenuProps={commonMenuProps}
+                        >
+                          {talleres.map((taller) => (
+                            <MUI.MenuItem key={taller.id_taller} value={taller.id_taller}>
+                              {taller.nombre_taller}
+                            </MUI.MenuItem>
+                          ))}
+                        </MUI.Select>
+                        {formErrors.taller_tutor && (
+                          <MUI.FormHelperText>Seleccione un taller</MUI.FormHelperText>
+                        )}
+                      </MUI.FormControl>
                     </MUI.Grid>
 
                     {/* Sección de contacto */}
                     <MUI.Grid item xs={12}>
-                      <MUI.Typography variant="h6" sx={{ 
-                        mb: 2, 
-                        mt: 2,
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1,
-                        borderBottom: `1px solid ${theme.palette.divider}`,
-                        pb: 1
-                      }}>
-                        <Icons.ContactPhone />
-                        Datos de Contacto
-                      </MUI.Typography>
+                      <MUI.Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          mb: 3,
+                          mt: 2,
+                          borderBottom: `2px solid ${theme.palette.primary.main}`,
+                          pb: 2
+                        }}
+                      >
+                        <MUI.Avatar
+                          sx={{
+                            bgcolor: theme.palette.primary.main,
+                            width: 40,
+                            height: 40
+                          }}
+                        >
+                          <Icons.ContactPhone />
+                        </MUI.Avatar>
+                        <MUI.Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 'bold',
+                            color: theme.palette.primary.main
+                          }}
+                        >
+                          Datos de Contacto
+                        </MUI.Typography>
+                      </MUI.Box>
                     </MUI.Grid>
 
                     <MUI.Grid item xs={12} md={6}>
@@ -1106,6 +1240,13 @@ function TutoresPage() {
                               <Icons.Phone />
                             </MUI.InputAdornment>
                           ),
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
                         }}
                       />
                     </MUI.Grid>
@@ -1135,23 +1276,48 @@ function TutoresPage() {
                             </MUI.InputAdornment>
                           ),
                         }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
                       />
                     </MUI.Grid>
 
                     {/* Sección de datos de usuario */}
                     <MUI.Grid item xs={12}>
-                      <MUI.Typography variant="h6" sx={{ 
-                        mb: 2, 
-                        mt: 2,
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1,
-                        borderBottom: `1px solid ${theme.palette.divider}`,
-                        pb: 1
-                      }}>
-                        <Icons.AccountCircle />
-                        Datos de Usuario
-                      </MUI.Typography>
+                      <MUI.Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 2,
+                          mb: 3,
+                          mt: 2,
+                          borderBottom: `2px solid ${theme.palette.primary.main}`,
+                          pb: 2
+                        }}
+                      >
+                        <MUI.Avatar
+                          sx={{
+                            bgcolor: theme.palette.primary.main,
+                            width: 40,
+                            height: 40
+                          }}
+                        >
+                          <Icons.AccountCircle />
+                        </MUI.Avatar>
+                        <MUI.Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 'bold',
+                            color: theme.palette.primary.main
+                          }}
+                        >
+                          Datos de Usuario
+                        </MUI.Typography>
+                      </MUI.Box>
                     </MUI.Grid>
 
                     <MUI.Grid item xs={12} md={6}>
@@ -1171,13 +1337,20 @@ function TutoresPage() {
                           : !usuarioDisponible 
                             ? 'Este nombre de usuario ya está en uso' 
                             : ''}
-                        disabled={!!selectedTutor} // Deshabilitar edición si es actualización
+                        disabled={!!selectedTutor}
                         InputProps={{
                           startAdornment: (
                             <MUI.InputAdornment position="start">
                               <Icons.Person />
                             </MUI.InputAdornment>
                           ),
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
                         }}
                       />
                     </MUI.Grid>
@@ -1209,16 +1382,37 @@ function TutoresPage() {
                             </MUI.InputAdornment>
                           )
                         }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&:hover fieldset': {
+                              borderColor: theme.palette.primary.main,
+                            },
+                          },
+                        }}
                       />
                     </MUI.Grid>
 
                     <MUI.Grid item xs={12}>
-                      <MUI.Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+                      <MUI.Box 
+                        sx={{ 
+                          display: 'flex', 
+                          justifyContent: 'flex-end', 
+                          gap: 2, 
+                          mt: 4,
+                          borderTop: `1px solid ${theme.palette.divider}`,
+                          paddingTop: 4
+                        }}
+                      >
                         <MUI.Button
                           variant="outlined"
                           color="inherit"
                           startIcon={<Icons.Close />}
                           onClick={handleCloseDialog}
+                          sx={{
+                            '&:hover': {
+                              backgroundColor: 'rgba(0, 0, 0, 0.04)'
+                            }
+                          }}
                         >
                           Cancelar
                         </MUI.Button>
@@ -1228,6 +1422,11 @@ function TutoresPage() {
                           startIcon={<Icons.Save />}
                           onClick={handleSaveTutor}
                           disabled={isReadOnly || loading}
+                          sx={{
+                            '&:hover': {
+                              backgroundColor: theme.palette.primary.dark
+                            }
+                          }}
                         >
                           {selectedTutor ? 'Actualizar' : 'Guardar'}
                         </MUI.Button>
