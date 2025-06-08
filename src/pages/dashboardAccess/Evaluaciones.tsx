@@ -8,8 +8,6 @@ import api from '../../services/api';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { authService } from '../../services/authService';
-import studentService from '../../services/studentService';
-import { useLocation } from 'react-router-dom';
 import { useReadOnlyMode } from '../../hooks/useReadOnlyMode';
 
 // Interfaces
@@ -137,7 +135,6 @@ function Evaluaciones() {
   const [isEditModeEstudiante, setIsEditModeEstudiante] = useState(false);
   const [editingEvaluacionEstudianteId, setEditingEvaluacionEstudianteId] = useState<number | null>(null);
   const notifications = 4;
-  const location = useLocation();
   const isReadOnly = useReadOnlyMode();
 
   // Obtener usuario actual
@@ -907,116 +904,84 @@ function Evaluaciones() {
             </MUI.Box>
 
             {activeTab === 0 && (
-              <MUI.Box component="form" onSubmit={handleSubmitCentro}>
-                <MUI.Grid container spacing={3}>
-                  <MUI.Grid item xs={12}>
-                    <MUI.Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Icons.Business sx={{ color: theme.palette.primary.main }} />
-                      {isEditMode ? 'Modificar Evaluación del Centro de Trabajo' : 'Nueva Evaluación del Centro de Trabajo'}
-                    </MUI.Typography>
-                  </MUI.Grid>
-
-                  <MUI.Grid item xs={12} md={12}>
-                    <MUI.FormControl fullWidth>
-                      <MUI.InputLabel>Seleccione Pasantía</MUI.InputLabel>
-                      <MUI.Select
-                        value={selectedPasantia === null ? '' : String(selectedPasantia)}
-                        onChange={handleChangePasantia}
-                        label="Seleccione Pasantía"
-                        required
-                        disabled={isEditMode} // Deshabilitar cambio de pasantía en modo edición
-                      >
-                        {pasantias.map((pasantia) => (
-                          <MUI.MenuItem key={pasantia.id_pas} value={String(pasantia.id_pas)}>
-                            {pasantia.estudiante_pas.nombre_est} - {pasantia.centro_pas.nombre_centro}
-                          </MUI.MenuItem>
-                        ))}
-                      </MUI.Select>
-                      <MUI.FormHelperText>
-                        {isEditMode 
-                          ? 'Editando evaluación existente para esta pasantía' 
-                          : 'Seleccione la pasantía a evaluar'}
-                      </MUI.FormHelperText>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-
-                  <MUI.Grid item xs={12} md={6}>
-                    <MUI.FormControl fullWidth>
-                      <MUI.InputLabel>Espacio de Trabajo</MUI.InputLabel>
-                      <MUI.Select
-                        value={evaluacionCentro.espacio_trabajo_eval}
-                        onChange={handleChangeEvaluacionCentro('espacio_trabajo_eval')}
-                        label="Espacio de Trabajo"
-                        required
-                      >
-                        {[0, 20, 40, 60, 80, 100].map((value) => (
-                          <MUI.MenuItem key={value} value={value}>
-                            {value}%
-                          </MUI.MenuItem>
-                        ))}
-                      </MUI.Select>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-
-                  <MUI.Grid item xs={12} md={6}>
-                    <MUI.FormControl fullWidth>
-                      <MUI.InputLabel>Asignación de Tareas</MUI.InputLabel>
-                      <MUI.Select
-                        value={evaluacionCentro.asignacion_tareas_eval}
-                        onChange={handleChangeEvaluacionCentro('asignacion_tareas_eval')}
-                        label="Asignación de Tareas"
-                        required
-                      >
-                        {[0, 20, 40, 60, 80, 100].map((value) => (
-                          <MUI.MenuItem key={value} value={value}>
-                            {value}%
-                          </MUI.MenuItem>
-                        ))}
-                      </MUI.Select>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-
-                  <MUI.Grid item xs={12} md={6}>
-                    <MUI.FormControl fullWidth>
-                      <MUI.InputLabel>Disponibilidad para Dudas</MUI.InputLabel>
-                      <MUI.Select
-                        value={evaluacionCentro.disponibilidad_dudas_eval}
-                        onChange={handleChangeEvaluacionCentro('disponibilidad_dudas_eval')}
-                        label="Disponibilidad para Dudas"
-                        required
-                      >
-                        {[0, 20, 40, 60, 80, 100].map((value) => (
-                          <MUI.MenuItem key={value} value={value}>
-                            {value}%
-                          </MUI.MenuItem>
-                        ))}
-                      </MUI.Select>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-
-                  <MUI.Grid item xs={12}>
-                    <MUI.TextField
-                      label="Observaciones"
-                      multiline
-                      rows={4}
-                      fullWidth
+              <MUI.Box component="form" onSubmit={handleSubmitCentro} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%' }}>
+                <MUI.Paper elevation={2} sx={{ p: 4, borderRadius: 4, maxWidth: 540, width: '100%', mb: 2, bgcolor: '#fff', boxShadow: '0 2px 16px #1976d222' }}>
+                  <MUI.Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+                    <Icons.Business sx={{ color: theme.palette.primary.main }} />
+                    {isEditMode ? 'Modificar Evaluación del Centro de Trabajo' : 'Nueva Evaluación del Centro de Trabajo'}
+                  </MUI.Typography>
+                  <MUI.FormControl fullWidth sx={{ mb: 2 }}>
+                    <MUI.InputLabel>Seleccione Pasantía</MUI.InputLabel>
+                    <MUI.Select
+                      value={selectedPasantia === null ? '' : String(selectedPasantia)}
+                      onChange={handleChangePasantia}
+                      label="Seleccione Pasantía"
                       required
-                      value={evaluacionCentro.observaciones_eval_centro}
-                      onChange={handleChangeEvaluacionCentro('observaciones_eval_centro')}
-                    />
-                  </MUI.Grid>
-
-                  <MUI.Grid item xs={12}>
+                      disabled={isEditMode}
+                    >
+                      {pasantias.map((pasantia) => (
+                        <MUI.MenuItem key={pasantia.id_pas} value={String(pasantia.id_pas)}>
+                          {pasantia.estudiante_pas.nombre_est} - {pasantia.centro_pas.nombre_centro}
+                        </MUI.MenuItem>
+                      ))}
+                    </MUI.Select>
+                    <MUI.FormHelperText>
+                      {isEditMode 
+                        ? 'Editando evaluación existente para esta pasantía' 
+                        : 'Seleccione la pasantía a evaluar'}
+                    </MUI.FormHelperText>
+                  </MUI.FormControl>
+                  <MUI.Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center', mb: 3 }}>
+                    {[
+                      { key: 'espacio_trabajo_eval', label: 'Espacio de Trabajo', icon: <Icons.Business /> },
+                      { key: 'asignacion_tareas_eval', label: 'Asignación de Tareas', icon: <Icons.Assignment /> },
+                      { key: 'disponibilidad_dudas_eval', label: 'Disponibilidad para Dudas', icon: <Icons.Help /> }
+                    ].map((criterio) => (
+                      <MUI.Paper key={criterio.key} elevation={0} sx={{ p: 2, minWidth: 170, flex: '1 1 170px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid #e0e0e0', borderRadius: 2, bgcolor: '#f7fbff' }}>
+                        <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          {criterio.icon}
+                          <MUI.Typography variant="subtitle2" sx={{ fontWeight: 500 }}>{criterio.label}</MUI.Typography>
+                        </MUI.Box>
+                        <MUI.Select
+                          label={criterio.label}
+                          value={evaluacionCentro[criterio.key as keyof typeof evaluacionCentro]}
+                          onChange={handleChangeEvaluacionCentro(criterio.key as keyof typeof evaluacionCentro)}
+                          required
+                          sx={{ minWidth: 80, maxWidth: 120, bgcolor: '#fff', borderRadius: 1, fontWeight: 600 }}
+                        >
+                          {[0, 20, 40, 60, 80, 100].map((value) => (
+                            <MUI.MenuItem key={value} value={value}>
+                              {value}%
+                            </MUI.MenuItem>
+                          ))}
+                        </MUI.Select>
+                      </MUI.Paper>
+                    ))}
+                  </MUI.Box>
+                  <MUI.TextField
+                    label="Observaciones"
+                    multiline
+                    rows={5}
+                    fullWidth
+                    required
+                    value={evaluacionCentro.observaciones_eval_centro}
+                    onChange={handleChangeEvaluacionCentro('observaciones_eval_centro')}
+                    sx={{ mt: 2, bgcolor: '#f7fbff', borderRadius: 2, fontSize: 18 }}
+                    InputProps={{ style: { fontSize: 18 } }}
+                  />
+                  <MUI.Box sx={{ textAlign: 'center', mt: 3 }}>
                     <MUI.Button
                       type="submit"
                       variant="contained"
                       color={isEditMode ? "secondary" : "primary"}
                       startIcon={isEditMode ? <Icons.Edit /> : <Icons.Send />}
                       sx={{
+                        px: 4, py: 1.5, fontSize: 18, borderRadius: 3,
                         transition: 'all 0.3s ease',
+                        boxShadow: '0 2px 8px #1976d233',
                         '&:hover': {
                           transform: 'scale(1.05)',
-                          boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                          boxShadow: '0 4px 16px #1976d244'
                         }
                       }}
                       disabled={isReadOnly || loading}
@@ -1027,7 +992,7 @@ function Evaluaciones() {
                       <MUI.Button
                         variant="outlined"
                         color="primary"
-                        sx={{ ml: 2 }}
+                        sx={{ ml: 2, px: 4, py: 1.5, fontSize: 18, borderRadius: 3 }}
                         onClick={() => {
                           setIsEditMode(false);
                           setEditingEvaluacionId(null);
@@ -1043,86 +1008,80 @@ function Evaluaciones() {
                         Cancelar Edición
                       </MUI.Button>
                     )}
-                  </MUI.Grid>
-                </MUI.Grid>
+                  </MUI.Box>
+                </MUI.Paper>
               </MUI.Box>
             )}
 
             {activeTab === 1 && (
-              <MUI.Box component="form" onSubmit={handleSubmitEstudiante}>
-                <MUI.Grid container spacing={3}>
-                  <MUI.Grid item xs={12}>
-                    <MUI.Typography variant="h6" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Icons.School sx={{ color: theme.palette.primary.main }} />
-                      {isEditModeEstudiante ? 'Modificar Evaluación del Estudiante' : 'Nueva Evaluación del Estudiante'}
-                    </MUI.Typography>
-                  </MUI.Grid>
-
-                  <MUI.Grid item xs={12} md={12}>
-                    <MUI.FormControl fullWidth>
-                      <MUI.InputLabel>Seleccione Pasantía</MUI.InputLabel>
-                      <MUI.Select
-                        value={selectedPasantia === null ? '' : String(selectedPasantia)}
-                        onChange={handleChangePasantia}
-                        label="Seleccione Pasantía"
-                        required
-                        disabled={isEditModeEstudiante} // Deshabilitar cambio de pasantía en modo edición
-                      >
-                        {pasantias.map((pasantia) => (
-                          <MUI.MenuItem key={pasantia.id_pas} value={String(pasantia.id_pas)}>
-                            {`${pasantia.estudiante_pas?.nombre_est || 'Sin nombre'} - ${pasantia.centro_pas?.nombre_centro || 'Sin centro'}`}
-                          </MUI.MenuItem>
-                        ))}
-                      </MUI.Select>
-                      <MUI.FormHelperText>
-                        {isEditModeEstudiante 
-                          ? 'Editando evaluación existente para esta pasantía' 
-                          : 'Seleccione la pasantía a evaluar'}
-                      </MUI.FormHelperText>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-
-                  <MUI.Grid item xs={12} md={6}>
-                    <MUI.FormControl fullWidth>
-                      <MUI.InputLabel>Resultado de Aprendizaje (RA)</MUI.InputLabel>
-                      <MUI.Select
-                        value={selectedRA}
-                        onChange={handleChangeRA}
-                        label="Resultado de Aprendizaje (RA)"
+              <MUI.Box component="form" onSubmit={handleSubmitEstudiante} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%' }}>
+                <MUI.Paper elevation={2} sx={{ p: 4, borderRadius: 4, maxWidth: 540, width: '100%', mb: 2, bgcolor: '#fff', boxShadow: '0 2px 16px #1976d222' }}>
+                  <MUI.Typography variant="h6" sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
+                    <Icons.School sx={{ color: theme.palette.primary.main }} />
+                    {isEditModeEstudiante ? 'Modificar Evaluación del Estudiante' : 'Nueva Evaluación del Estudiante'}
+                  </MUI.Typography>
+                  <MUI.FormControl fullWidth sx={{ mb: 2 }}>
+                    <MUI.InputLabel>Seleccione Pasantía</MUI.InputLabel>
+                    <MUI.Select
+                      value={selectedPasantia === null ? '' : String(selectedPasantia)}
+                      onChange={handleChangePasantia}
+                      label="Seleccione Pasantía"
                       required
-                      >
-                        {['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].map((ra) => (
-                          <MUI.MenuItem key={ra} value={ra}>
-                            {ra}
-                          </MUI.MenuItem>
-                        ))}
-                      </MUI.Select>
-                      <MUI.FormHelperText>
-                        {isEditModeEstudiante 
-                          ? 'Puede cambiar a otro RA para crear una nueva evaluación' 
-                          : 'Seleccione el resultado de aprendizaje a evaluar'}
-                      </MUI.FormHelperText>
-                    </MUI.FormControl>
-                  </MUI.Grid>
-
-                  {[
-                    { key: 'asistencia_eval', label: 'Asistencia', icon: <Icons.EventAvailable /> },
-                    { key: 'desempeño_eval', label: 'Desempeño', icon: <Icons.Star /> },
-                    { key: 'disponibilidad_eval', label: 'Disponibilidad', icon: <Icons.AccessTime /> },
-                    { key: 'responsabilidad_eval', label: 'Responsabilidad', icon: <Icons.AssignmentTurnedIn /> },
-                    { key: 'limpieza_eval', label: 'Limpieza', icon: <Icons.CleaningServices /> },
-                    { key: 'trabajo_equipo_eval', label: 'Trabajo en Equipo', icon: <Icons.Group /> },
-                    { key: 'resolucion_problemas_eval', label: 'Resolución de Problemas', icon: <Icons.Lightbulb /> }
-                  ].map((criterio) => (
-                    <MUI.Grid item xs={12} md={6} key={criterio.key}>
-                      <MUI.FormControl fullWidth>
-                        <MUI.InputLabel>{criterio.label}</MUI.InputLabel>
+                      disabled={isEditModeEstudiante}
+                    >
+                      {pasantias.map((pasantia) => (
+                        <MUI.MenuItem key={pasantia.id_pas} value={String(pasantia.id_pas)}>
+                          {`${pasantia.estudiante_pas?.nombre_est || 'Sin nombre'} - ${pasantia.centro_pas?.nombre_centro || 'Sin centro'}`}
+                        </MUI.MenuItem>
+                      ))}
+                    </MUI.Select>
+                    <MUI.FormHelperText>
+                      {isEditModeEstudiante 
+                        ? 'Editando evaluación existente para esta pasantía' 
+                        : 'Seleccione la pasantía a evaluar'}
+                    </MUI.FormHelperText>
+                  </MUI.FormControl>
+                  <MUI.FormControl fullWidth sx={{ mb: 3 }}>
+                    <MUI.InputLabel>Resultado de Aprendizaje (RA)</MUI.InputLabel>
+                    <MUI.Select
+                      value={selectedRA}
+                      onChange={handleChangeRA}
+                      label="Resultado de Aprendizaje (RA)"
+                      required
+                    >
+                      {['RA1', 'RA2', 'RA3', 'RA4', 'RA5', 'RA6', 'RA7'].map((ra) => (
+                        <MUI.MenuItem key={ra} value={ra}>
+                          {ra}
+                        </MUI.MenuItem>
+                      ))}
+                    </MUI.Select>
+                    <MUI.FormHelperText>
+                      {isEditModeEstudiante 
+                        ? 'Puede cambiar a otro RA para crear una nueva evaluación' 
+                        : 'Seleccione el resultado de aprendizaje a evaluar'}
+                    </MUI.FormHelperText>
+                  </MUI.FormControl>
+                  <MUI.Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'center', mb: 3 }}>
+                    {[
+                      { key: 'asistencia_eval', label: 'Asistencia', icon: <Icons.EventAvailable /> },
+                      { key: 'desempeño_eval', label: 'Desempeño', icon: <Icons.Star /> },
+                      { key: 'disponibilidad_eval', label: 'Disponibilidad', icon: <Icons.AccessTime /> },
+                      { key: 'responsabilidad_eval', label: 'Responsabilidad', icon: <Icons.AssignmentTurnedIn /> },
+                      { key: 'limpieza_eval', label: 'Limpieza', icon: <Icons.CleaningServices /> },
+                      { key: 'trabajo_equipo_eval', label: 'Trabajo en Equipo', icon: <Icons.Group /> },
+                      { key: 'resolucion_problemas_eval', label: 'Resolución de Problemas', icon: <Icons.Lightbulb /> }
+                    ].map((criterio) => (
+                      <MUI.Paper key={criterio.key} elevation={0} sx={{ p: 2, minWidth: 150, flex: '1 1 150px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid #e0e0e0', borderRadius: 2, bgcolor: '#f7fbff' }}>
+                        <MUI.Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                          {criterio.icon}
+                          <MUI.Typography variant="subtitle2" sx={{ fontWeight: 500 }}>{criterio.label}</MUI.Typography>
+                        </MUI.Box>
                         <MUI.Select
                           label={criterio.label}
                           value={evaluacionEstudiante[criterio.key as keyof EvaluacionEstudiante]}
                           onChange={handleChangeEvaluacionEstudiante(criterio.key as keyof EvaluacionEstudiante)}
                           required
-                          startAdornment={<MUI.Box sx={{ mr: 1, color: 'text.secondary' }}>{criterio.icon}</MUI.Box>}
+                          sx={{ minWidth: 80, maxWidth: 120, bgcolor: '#fff', borderRadius: 1, fontWeight: 600 }}
                         >
                           {[0, 20, 40, 60, 80, 100].map((value) => (
                             <MUI.MenuItem key={value} value={value}>
@@ -1130,33 +1089,33 @@ function Evaluaciones() {
                             </MUI.MenuItem>
                           ))}
                         </MUI.Select>
-                      </MUI.FormControl>
-                    </MUI.Grid>
-                  ))}
-
-                  <MUI.Grid item xs={12}>
-                    <MUI.TextField
-                      label="Observaciones"
-                      multiline
-                      rows={4}
-                      fullWidth
-                      required
-                      value={evaluacionEstudiante.observaciones_eval}
-                      onChange={handleChangeEvaluacionEstudiante('observaciones_eval')}
-                    />
-                  </MUI.Grid>
-
-                  <MUI.Grid item xs={12}>
+                      </MUI.Paper>
+                    ))}
+                  </MUI.Box>
+                  <MUI.TextField
+                    label="Observaciones"
+                    multiline
+                    rows={5}
+                    fullWidth
+                    required
+                    value={evaluacionEstudiante.observaciones_eval}
+                    onChange={handleChangeEvaluacionEstudiante('observaciones_eval')}
+                    sx={{ mt: 2, bgcolor: '#f7fbff', borderRadius: 2, fontSize: 18 }}
+                    InputProps={{ style: { fontSize: 18 } }}
+                  />
+                  <MUI.Box sx={{ textAlign: 'center', mt: 3 }}>
                     <MUI.Button
                       type="submit"
                       variant="contained"
                       color={isEditModeEstudiante ? "secondary" : "primary"}
                       startIcon={isEditModeEstudiante ? <Icons.Edit /> : <Icons.Send />}
                       sx={{
+                        px: 4, py: 1.5, fontSize: 18, borderRadius: 3,
                         transition: 'all 0.3s ease',
+                        boxShadow: '0 2px 8px #1976d233',
                         '&:hover': {
                           transform: 'scale(1.05)',
-                          boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+                          boxShadow: '0 4px 16px #1976d244'
                         }
                       }}
                       disabled={isReadOnly || loading}
@@ -1167,7 +1126,7 @@ function Evaluaciones() {
                       <MUI.Button
                         variant="outlined"
                         color="primary"
-                        sx={{ ml: 2 }}
+                        sx={{ ml: 2, px: 4, py: 1.5, fontSize: 18, borderRadius: 3 }}
                         onClick={() => {
                           setIsEditModeEstudiante(false);
                           setEditingEvaluacionEstudianteId(null);
@@ -1188,8 +1147,8 @@ function Evaluaciones() {
                         Cancelar Edición
                       </MUI.Button>
                     )}
-                  </MUI.Grid>
-                </MUI.Grid>
+                  </MUI.Box>
+                </MUI.Paper>
               </MUI.Box>
             )}
 
@@ -1210,14 +1169,22 @@ function Evaluaciones() {
                 </MUI.Tabs>
 
                 {!showResponses ? (
-                  <MUI.Grid container spacing={3}>
+                  <MUI.Grid container spacing={3} justifyContent="center" alignItems="stretch">
                     {evaluacionesCentro.length > 0 ? evaluacionesCentro.map((item) => (
-                      <MUI.Grid item xs={12} key={item.id_eval_centro}>
+                      <MUI.Grid item xs={12} sm={6} md={4} lg={3} key={item.id_eval_centro} sx={{ display: 'flex', justifyContent: 'center' }}>
                         <MUI.Paper
                           elevation={2}
                           sx={{
                             p: 3,
                             borderRadius: 2,
+                            width: 320,
+                            minHeight: 320,
+                            maxWidth: 340,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            alignItems: 'stretch',
+                            margin: 'auto',
                             transition: 'all 0.3s ease',
                             '&:hover': {
                               transform: 'translateY(-5px)',
