@@ -109,8 +109,27 @@ function CierrePasantia() {
         <DashboardAppBar notifications={notifications} toggleDrawer={() => setDrawerOpen(!drawerOpen)} />
 
         <MUI.Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-          <MUI.Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
-            <MUI.Typography variant="h4" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', mb: 3 }}>
+          <MUI.Paper
+            elevation={6}
+            sx={{
+              p: 4,
+              borderRadius: 4,
+              boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)',
+              background: 'linear-gradient(135deg, #f8fafc 60%, #e3e9f7 100%)',
+              position: 'relative',
+              overflow: 'hidden',
+              animation: 'fadeInUp 0.8s cubic-bezier(.39,.575,.56,1.000)',
+              '@keyframes fadeInUp': {
+                '0%': { opacity: 0, transform: 'translateY(40px)' },
+                '100%': { opacity: 1, transform: 'translateY(0)' }
+              },
+              transition: 'box-shadow 0.3s',
+              '&:hover': {
+                boxShadow: '0 12px 40px 0 rgba(31, 38, 135, 0.22)',
+              },
+            }}
+          >
+            <MUI.Typography variant="h4" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold', mb: 3, letterSpacing: 1 }}>
               Cierre de Pasantías
             </MUI.Typography>
 
@@ -121,28 +140,28 @@ function CierrePasantia() {
             <MUI.List>
               <MUI.ListItem>
                 <MUI.ListItemIcon>
-                  <Icons.Business />
+                  <Icons.Business sx={{ color: 'secondary.main', fontSize: 32, transition: 'transform 0.4s', '&:hover': { transform: 'scale(1.15) rotate(-8deg)' } }} />
                 </MUI.ListItemIcon>
                 <MUI.ListItemText 
-                  primary="Actualizar estado de plazas" 
+                  primary={<span style={{ fontWeight: 500 }}>Actualizar estado de plazas</span>} 
                   secondary="Todas las plazas pasarán a estado Inactiva"
                 />
               </MUI.ListItem>
               <MUI.ListItem>
                 <MUI.ListItemIcon>
-                  <Icons.Person />
+                  <Icons.Person sx={{ color: 'info.main', fontSize: 32, transition: 'transform 0.4s', '&:hover': { transform: 'scale(1.15) rotate(8deg)' } }} />
                 </MUI.ListItemIcon>
                 <MUI.ListItemText 
-                  primary="Actualizar estado de usuarios" 
+                  primary={<span style={{ fontWeight: 500 }}>Actualizar estado de usuarios</span>} 
                   secondary="Los usuarios relacionados con estudiantes pasarán a estado Eliminado"
                 />
               </MUI.ListItem>
               <MUI.ListItem>
                 <MUI.ListItemIcon>
-                  <Icons.Event />
+                  <Icons.Event sx={{ color: 'success.main', fontSize: 32, transition: 'transform 0.4s', '&:hover': { transform: 'scale(1.15) rotate(-8deg)' } }} />
                 </MUI.ListItemIcon>
                 <MUI.ListItemText 
-                  primary="Actualizar fechas de fin" 
+                  primary={<span style={{ fontWeight: 500 }}>Actualizar fechas de fin</span>} 
                   secondary="Se establecerá la fecha actual como fecha de fin para las pasantías sin fecha de finalización"
                 />
               </MUI.ListItem>
@@ -153,14 +172,24 @@ function CierrePasantia() {
                 variant="contained"
                 color="error"
                 size="large"
-                startIcon={<Icons.Warning />}
+                startIcon={<Icons.Warning sx={{ animation: 'pulse 1.2s infinite alternate' }} />}
                 onClick={() => setOpenDialog(true)}
                 sx={{ 
                   px: 4,
                   py: 1.5,
-                  borderRadius: 2,
+                  borderRadius: 3,
                   fontWeight: 'bold',
-                  fontSize: '1.1rem'
+                  fontSize: '1.1rem',
+                  boxShadow: '0 4px 16px 0 rgba(255, 0, 0, 0.10)',
+                  transition: 'box-shadow 0.3s, transform 0.2s',
+                  '&:hover': {
+                    boxShadow: '0 8px 32px 0 rgba(255, 0, 0, 0.18)',
+                    transform: 'translateY(-2px) scale(1.04)',
+                  },
+                  '@keyframes pulse': {
+                    '0%': { filter: 'drop-shadow(0 0 0 #ff1744)' },
+                    '100%': { filter: 'drop-shadow(0 0 8px #ff1744)' }
+                  }
                 }}
               >
                 Iniciar Cierre de Pasantías
@@ -175,6 +204,19 @@ function CierrePasantia() {
           onClose={() => setOpenDialog(false)}
           aria-labelledby="alert-dialog-title"
           aria-describedby="alert-dialog-description"
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              p: 2,
+              background: 'linear-gradient(135deg, #fff 70%, #ffeaea 100%)',
+              boxShadow: '0 8px 32px 0 rgba(255, 23, 68, 0.10)',
+              animation: 'fadeInScale 0.5s',
+              '@keyframes fadeInScale': {
+                '0%': { opacity: 0, transform: 'scale(0.95)' },
+                '100%': { opacity: 1, transform: 'scale(1)' }
+              }
+            }
+          }}
         >
           <MUI.DialogTitle id="alert-dialog-title" sx={{ color: 'error.main' }}>
             {"¿Está seguro de realizar el cierre de pasantías?"}
