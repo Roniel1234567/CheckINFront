@@ -131,6 +131,13 @@ const estilosBase = `
   </style>
 `;
 
+// Animación de flotación para las tarjetas
+const floatKeyframes = {
+  '0%': { transform: 'translateY(0)' },
+  '50%': { transform: 'translateY(-10px)' },
+  '100%': { transform: 'translateY(0)' }
+};
+
 function Reportes() {
   const theme = useTheme();
   const isMobile = MUI.useMediaQuery(theme.breakpoints.down('md'));
@@ -142,7 +149,6 @@ function Reportes() {
   const [centros, setCentros] = useState<CentroTrabajo[]>([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [currentReporte, setCurrentReporte] = useState<string>('');
-  const notifications = 4;
   const [selectedYear, setSelectedYear] = useState('');
   const [availableYears, setAvailableYears] = useState<string[]>([]);
 
@@ -277,6 +283,9 @@ function Reportes() {
       if (esTutor && tallerTutor) {
         estudiantesFiltrados = estudiantesFiltrados.filter(e => e.taller_est?.id_taller === tallerTutor);
       }
+      if (selectedTaller) {
+        estudiantesFiltrados = estudiantesFiltrados.filter(e => e.taller_est && String(e.taller_est.id_taller) === selectedTaller);
+      }
 
       // Filtrar por año si está seleccionado
       if (selectedYear) {
@@ -364,6 +373,9 @@ function Reportes() {
 
       if (esTutor && tallerTutor) {
         estudiantesFiltrados = estudiantesFiltrados.filter(e => e.taller_est?.id_taller === tallerTutor);
+      }
+      if (selectedTaller) {
+        estudiantesFiltrados = estudiantesFiltrados.filter(e => e.taller_est && String(e.taller_est.id_taller) === selectedTaller);
       }
 
       // Filtrar por año si está seleccionado
@@ -500,6 +512,9 @@ function Reportes() {
       
       if (esTutor && tallerTutor) {
         pasantiasFiltradas = pasantiasFiltradas.filter(p => p.estudiante_pas.taller_est?.id_taller === tallerTutor);
+      }
+      if (selectedTaller) {
+        pasantiasFiltradas = pasantiasFiltradas.filter(p => p.estudiante_pas.taller_est && String(p.estudiante_pas.taller_est.id_taller) === selectedTaller);
       }
       
       if (selectedCentro) {
@@ -722,27 +737,46 @@ function Reportes() {
             Reportes
           </MUI.Typography>
 
-          <MUI.Grid container spacing={3}>
+          <MUI.Grid container spacing={3} justifyContent="center" alignItems="stretch">
             {reportes.map((reporte, index) => (
-              <MUI.Grid item xs={12} md={4} key={index}>
+              <MUI.Grid item xs={12} sm={6} md={4} key={index} sx={{ display: 'flex', justifyContent: 'center' }}>
                 <MUI.Card
                   sx={{
-                    height: '100%',
+                    width: 320,
+                    minHeight: 340,
+                    maxWidth: 340,
+                    height: 340,
                     display: 'flex',
                     flexDirection: 'column',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: 'auto',
+                    boxShadow: '0 4px 24px #1976d222',
+                    borderRadius: 4,
+                    background: 'linear-gradient(135deg, #f7fbff 0%, #e3f2fd 100%)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    animation: 'fadeInCard 0.7s cubic-bezier(0.4,0,0.2,1) both, floatCard 3.2s ease-in-out infinite',
+                    animationDelay: `${index * 0.12}s, ${index * 0.2}s`,
+                    transition: 'transform 0.3s, box-shadow 0.3s',
                     '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: 6,
-                      cursor: 'pointer'
-                    }
+                      transform: 'translateY(-10px) scale(1.04)',
+                      boxShadow: '0 8px 32px #1976d244',
+                      background: 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)',
+                    },
+                    '@keyframes fadeInCard': {
+                      from: { opacity: 0, transform: 'translateY(40px) scale(0.95)' },
+                      to: { opacity: 1, transform: 'translateY(0) scale(1)' }
+                    },
+                    '@keyframes floatCard': floatKeyframes,
                   }}
                   onClick={() => {
                     setCurrentReporte(reporte.titulo);
                     setOpenDialog(true);
                   }}
                 >
-                  <MUI.CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
+                  <MUI.CardContent sx={{ flexGrow: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', p: 3 }}>
                     <MUI.Box
                       sx={{
                         width: 80,
@@ -753,17 +787,29 @@ function Reportes() {
                         alignItems: 'center',
                         justifyContent: 'center',
                         margin: '0 auto 16px',
+                        boxShadow: `0 0 16px 0 ${reporte.color}33`,
+                        animation: 'glowPulse 2.2s infinite alternate',
+                        '@keyframes glowPulse': {
+                          from: { boxShadow: `0 0 16px 0 ${reporte.color}33` },
+                          to: { boxShadow: `0 0 32px 8px ${reporte.color}55` }
+                        }
                       }}
                     >
                       {reporte.icono}
                     </MUI.Box>
-                    <MUI.Typography variant="h6" gutterBottom>
+                    <MUI.Typography variant="h6" gutterBottom sx={{ fontWeight: 700, color: 'primary.main', textShadow: '0 2px 8px #1976d222' }}>
                       {reporte.titulo}
                     </MUI.Typography>
-                    <MUI.Typography variant="body2" color="text.secondary">
+                    <MUI.Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: 16 }}>
                       {reporte.descripcion}
                     </MUI.Typography>
                   </MUI.CardContent>
+                  {/* Animación decorativa SVG */}
+                  <svg width="100" height="24" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', opacity: 0.18 }}>
+                    <ellipse cx="50" cy="12" rx="48" ry="8" fill={reporte.color}>
+                      <animate attributeName="rx" values="48;56;48" dur="1.6s" repeatCount="indefinite" />
+                    </ellipse>
+                  </svg>
                 </MUI.Card>
               </MUI.Grid>
             ))}
@@ -789,6 +835,7 @@ function Reportes() {
                     value={selectedYear}
                     onChange={(e) => setSelectedYear(e.target.value)}
                     label="Año"
+                    sx={{ minWidth: 220, maxWidth: 340 }}
                   >
                     <MUI.MenuItem value="">Todos los años</MUI.MenuItem>
                     {availableYears.map((year) => (
@@ -806,6 +853,7 @@ function Reportes() {
                     value={selectedTaller}
                     onChange={(e) => setSelectedTaller(e.target.value)}
                     label="Taller"
+                    sx={{ minWidth: 220, maxWidth: 340 }}
                   >
                     <MUI.MenuItem value="">Todos los talleres</MUI.MenuItem>
                     {talleres.map((taller) => (
@@ -829,6 +877,7 @@ function Reportes() {
                         label="Centro de Trabajo"
                         placeholder="Buscar centro..."
                         fullWidth
+                        sx={{ minWidth: 220, maxWidth: 340 }}
                       />
                     )}
                     renderOption={(props, option) => {
