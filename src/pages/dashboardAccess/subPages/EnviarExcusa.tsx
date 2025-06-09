@@ -494,23 +494,45 @@ const EnviarExcusa = () => {
       <MUI.Box component="main" sx={{ flexGrow: 1, overflow: 'auto' }}>
         <DashboardAppBar toggleDrawer={toggleDrawer} />
         <MUI.Container maxWidth="md" sx={{ mt: 6, mb: 4 }}>
-          <MUI.Paper elevation={3} sx={{ p: 4, borderRadius: 3, mb: 4 }}>
-            <MUI.Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', textAlign: 'center' }}>
-              <Icons.EventBusy sx={{ mr: 1, color: 'primary.main' }} /> {editId ? 'Editar Excusa' : 'Enviar Excusa'}
+          <MUI.Paper
+            elevation={6}
+            sx={{
+              p: 4,
+              borderRadius: 4,
+              boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.18)',
+              background: 'linear-gradient(135deg, #f8fafc 60%, #e3e9f7 100%)',
+              position: 'relative',
+              overflow: 'hidden',
+              animation: 'fadeInUp 0.8s cubic-bezier(.39,.575,.56,1.000)',
+              '@keyframes fadeInUp': {
+                '0%': { opacity: 0, transform: 'translateY(40px)' },
+                '100%': { opacity: 1, transform: 'translateY(0)' }
+              },
+              transition: 'box-shadow 0.3s',
+              '&:hover': {
+                boxShadow: '0 12px 40px 0 rgba(31, 38, 135, 0.22)',
+              },
+              mb: 4
+            }}
+          >
+            <MUI.Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', textAlign: 'center', letterSpacing: 1 }}>
+              <Icons.EventBusy sx={{ mr: 1, color: 'primary.main', animation: 'shake 1.2s infinite alternate' }} /> {editId ? 'Editar Excusa' : 'Enviar Excusa'}
             </MUI.Typography>
             <form onSubmit={handleSubmit}>
-              <MUI.Grid container spacing={2}>
+              <MUI.Grid container spacing={3}>
                 <MUI.Grid item xs={12} sm={6}>
-                  <MUI.FormControl fullWidth required>
+                  <MUI.FormControl fullWidth required sx={{ minWidth: 260, maxWidth: 400, transition: 'box-shadow 0.3s', boxShadow: '0 2px 8px 0 rgba(31, 38, 135, 0.06)' }}>
                     <MUI.InputLabel>Pasantía</MUI.InputLabel>
                     <MUI.Select
                       value={selectedPasantia !== null ? selectedPasantia : ''}
                       onChange={e => !isEstudiante && !isTutor && setSelectedPasantia(Number(e.target.value))}
                       label="Pasantía"
                       disabled={isEstudiante || isTutor}
+                      sx={{ minWidth: 240, maxWidth: 400, borderRadius: 2, background: '#fff', fontWeight: 500, transition: 'box-shadow 0.3s', '&:focus': { boxShadow: '0 0 0 2px #1976d2' } }}
+                      MenuProps={{ PaperProps: { sx: { minWidth: 300 } } }}
                     >
                       {pasantiasFiltradas.length > 0 ? pasantiasFiltradas.map(p => (
-                        <MUI.MenuItem key={p.id_pas} value={p.id_pas}>
+                        <MUI.MenuItem key={p.id_pas} value={p.id_pas} sx={{ fontWeight: 500 }}>
                           {p.id_pas} - {p.estudiante_pas.nombre_est} {p.estudiante_pas.apellido_est} / {p.centro_pas.nombre_centro}
                         </MUI.MenuItem>
                       )) : <MUI.MenuItem value="">Sin pasantía activa</MUI.MenuItem>}
@@ -518,16 +540,18 @@ const EnviarExcusa = () => {
                   </MUI.FormControl>
                 </MUI.Grid>
                 <MUI.Grid item xs={12} sm={6}>
-                  <MUI.FormControl fullWidth required>
+                  <MUI.FormControl fullWidth required sx={{ minWidth: 260, maxWidth: 400, transition: 'box-shadow 0.3s', boxShadow: '0 2px 8px 0 rgba(31, 38, 135, 0.06)' }}>
                     <MUI.InputLabel>Estudiante</MUI.InputLabel>
                     <MUI.Select
                       value={selectedEstudiante}
                       onChange={e => !isEstudiante && !isTutor && setSelectedEstudiante(e.target.value)}
                       label="Estudiante"
                       disabled={isEstudiante || isTutor}
+                      sx={{ minWidth: 240, maxWidth: 400, borderRadius: 2, background: '#fff', fontWeight: 500, transition: 'box-shadow 0.3s', '&:focus': { boxShadow: '0 0 0 2px #1976d2' } }}
+                      MenuProps={{ PaperProps: { sx: { minWidth: 300 } } }}
                     >
                       {estudiantesFiltrados.map(e => (
-                        <MUI.MenuItem key={e.documento_id_est} value={e.documento_id_est}>
+                        <MUI.MenuItem key={e.documento_id_est} value={e.documento_id_est} sx={{ fontWeight: 500 }}>
                           {e.nombre_est} {e.apellido_est} ({e.documento_id_est})
                         </MUI.MenuItem>
                       ))}
@@ -535,7 +559,7 @@ const EnviarExcusa = () => {
                   </MUI.FormControl>
                 </MUI.Grid>
                 <MUI.Grid item xs={12} sm={6}>
-                  <MUI.FormControl fullWidth required>
+                  <MUI.FormControl fullWidth required sx={{ minWidth: 260, maxWidth: 400, transition: 'box-shadow 0.3s', boxShadow: '0 2px 8px 0 rgba(31, 38, 135, 0.06)' }}>
                     <MUI.InputLabel>Tutor</MUI.InputLabel>
                     <MUI.Select
                       value={selectedTutor ?? ''}
@@ -543,10 +567,12 @@ const EnviarExcusa = () => {
                       label="Tutor"
                       required
                       disabled={isTutor}
+                      sx={{ minWidth: 240, maxWidth: 400, borderRadius: 2, background: '#fff', fontWeight: 500, transition: 'box-shadow 0.3s', '&:focus': { boxShadow: '0 0 0 2px #1976d2' } }}
+                      MenuProps={{ PaperProps: { sx: { minWidth: 300 } } }}
                     >
                       {tutoresFiltrados.length > 0 ? (
                         tutoresFiltrados.map(t => (
-                          <MUI.MenuItem key={t.id_tutor} value={t.id_tutor}>
+                          <MUI.MenuItem key={t.id_tutor} value={t.id_tutor} sx={{ fontWeight: 500 }}>
                             {t.nombre_tutor} {t.apellido_tutor}
                           </MUI.MenuItem>
                         ))
@@ -568,10 +594,11 @@ const EnviarExcusa = () => {
                     fullWidth
                     required
                     disabled={isTutor}
+                    sx={{ borderRadius: 2, background: '#fff', boxShadow: '0 2px 8px 0 rgba(31, 38, 135, 0.06)', transition: 'box-shadow 0.3s', '&:focus-within': { boxShadow: '0 0 0 2px #1976d2' } }}
                   />
                 </MUI.Grid>
                 <MUI.Grid item xs={12} sm={6}>
-                  <MUI.FormControl fullWidth>
+                  <MUI.FormControl fullWidth sx={{ minWidth: 260, maxWidth: 400 }}>
                     <MUI.InputLabel shrink>Certificado (PNG o PDF)</MUI.InputLabel>
                     <input
                       ref={fileInputRef}
@@ -580,14 +607,44 @@ const EnviarExcusa = () => {
                       style={{ display: 'none' }}
                       onChange={handleArchivoChange}
                     />
-                    <MUI.Button
-                      variant="outlined"
-                      component="span"
-                      onClick={() => fileInputRef.current?.click()}
-                      sx={{ mt: 1 }}
+                    <MUI.Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-start',
+                        mt: 2,
+                        mb: archivoPreview ? 1 : 0
+                      }}
                     >
-                      {archivo ? archivo.name : 'Seleccionar archivo'}
-                    </MUI.Button>
+                      <MUI.IconButton
+                        onClick={() => fileInputRef.current?.click()}
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+                          boxShadow: '0 4px 16px 0 rgba(255, 152, 0, 0.18)',
+                          borderRadius: '50%',
+                          transition: 'transform 0.4s, box-shadow 0.4s',
+                          '&:hover': {
+                            transform: 'translateY(-8px) scale(1.12) rotate(-8deg)',
+                            boxShadow: '0 8px 32px 0 rgba(255, 152, 0, 0.28)',
+                            background: 'linear-gradient(135deg, #fcb69f 0%, #ffecd2 100%)',
+                          },
+                          animation: 'rocketFloat 2.2s infinite ease-in-out',
+                          '@keyframes rocketFloat': {
+                            '0%': { transform: 'translateY(0) scale(1) rotate(-6deg)' },
+                            '50%': { transform: 'translateY(-10px) scale(1.08) rotate(6deg)' },
+                            '100%': { transform: 'translateY(0) scale(1) rotate(-6deg)' }
+                          }
+                        }}
+                        size="large"
+                      >
+                        <Icons.RocketLaunch sx={{ fontSize: 40, color: '#ff7043', filter: 'drop-shadow(0 2px 8px #ffab91)' }} />
+                      </MUI.IconButton>
+                      <MUI.Typography variant="body2" sx={{ ml: 2, fontWeight: 500, color: '#ff7043' }}>
+                        {archivo ? archivo.name : 'Seleccionar archivo'}
+                      </MUI.Typography>
+                    </MUI.Box>
                     {archivoPreview && (
                       <MUI.Box sx={{ mt: 1 }}>
                         {archivo?.type === 'application/pdf' || archivoPreview.startsWith('data:application/pdf') ? (
@@ -595,7 +652,7 @@ const EnviarExcusa = () => {
                             PDF seleccionado. <MUI.Link href={archivoPreview} target="_blank" rel="noopener">Ver PDF</MUI.Link>
                           </MUI.Typography>
                         ) : (
-                          <img src={archivoPreview} alt="Certificado" style={{ maxWidth: 120, maxHeight: 120, borderRadius: 4 }} />
+                          <img src={archivoPreview} alt="Certificado" style={{ maxWidth: 120, maxHeight: 120, borderRadius: 4, boxShadow: '0 2px 8px 0 rgba(31, 38, 135, 0.10)' }} />
                         )}
                       </MUI.Box>
                     )}
@@ -608,14 +665,31 @@ const EnviarExcusa = () => {
                         type="submit"
                         variant="contained"
                         color="primary"
-                        startIcon={editId ? <Icons.Edit /> : <Icons.Send />}
+                        startIcon={editId ? <Icons.Edit sx={{ animation: 'pulse 1.2s infinite alternate' }} /> : <Icons.Send sx={{ animation: 'pulse 1.2s infinite alternate' }} />}
                         disabled={loading || !selectedTutor || isNaN(Number(selectedTutor)) || Number(selectedTutor) <= 0}
-                        sx={{ mr: 2 }}
+                        sx={{
+                          mr: 2,
+                          px: 4,
+                          py: 1.5,
+                          borderRadius: 3,
+                          fontWeight: 'bold',
+                          fontSize: '1.1rem',
+                          boxShadow: '0 4px 16px 0 rgba(25, 118, 210, 0.10)',
+                          transition: 'box-shadow 0.3s, transform 0.2s',
+                          '&:hover': {
+                            boxShadow: '0 8px 32px 0 rgba(25, 118, 210, 0.18)',
+                            transform: 'translateY(-2px) scale(1.04)',
+                          },
+                          '@keyframes pulse': {
+                            '0%': { filter: 'drop-shadow(0 0 0 #1976d2)' },
+                            '100%': { filter: 'drop-shadow(0 0 8px #1976d2)' }
+                          }
+                        }}
                       >
                         {loading ? <MUI.CircularProgress size={24} /> : (editId ? 'Actualizar Excusa' : 'Enviar Excusa')}
                       </MUI.Button>
                       {editId && (
-                        <MUI.Button variant="outlined" color="secondary" onClick={resetForm} disabled={loading}>
+                        <MUI.Button variant="outlined" color="secondary" onClick={resetForm} disabled={loading} sx={{ borderRadius: 3, fontWeight: 500 }}>
                           Cancelar edición
                         </MUI.Button>
                       )}
